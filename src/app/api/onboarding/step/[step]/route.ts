@@ -1,0 +1,350 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+
+// Encryption helpers for sensitive MBA.com credentials
+const ALGORITHM = 'aes-256-cbc';
+
+function encrypt(text: string): string {
+  const key = Buffer.from(process.env.ENCRYPTION_KEY || 'a'.repeat(64), 'hex');
+  const iv = randomBytes(16);
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return `${iv.toString('hex')}:${encrypted}`;
+}
+
+// ─── GET: Load saved data for a step ─────────────────
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { step: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const userId = (session.user as any).id;
+  const stepNum = parseInt(params.step);
+
+  const tutorProfile = await prisma.tutorProfile.findUnique({
+    where: { userId },
+    include: {
+      tutorLanguages: true,
+      certifications: true,
+      education: true,
+      pricing: true,
+    },
+  });
+
+  if (!tutorProfile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  let data: any = {};
+
+  switch (stepNum) {
+    case 1: // About
+      data = {
+        firstName: user?.name?.split(' ')[0] || '',
+        lastName: user?.name?.split(' ').slice(1).join(' ') || '',
+        email: user?.email || '',
+        countryOfBirth: tutorProfile.countryOfBirth || '',
+        subjects: tutorProfile.specializations || [],
+        languages: tutorProfile.tutorLanguages.length > 0
+          ? tutorProfile.tutorLanguages.map(l => ({ language: l.language, proficiency: l.proficiency }))
+          : [{ language: 'English', proficiency: 'NATIVE' }],
+        phoneNumber: tutorProfile.phoneNumber || '',
+      };
+      break;
+    case 2: // Photo
+      data = { avatarUrl: user?.avatarUrl || '' };
+      break;
+    case 3: // Certification
+      data = {
+        subjects: tutorProfile.specializations || [],
+        certifications: tutorProfile.certifications.map(c => ({
+          id: c.id,
+          type: c.type,
+          levelOrVariant: c.levelOrVariant,
+          score: c.score,
+          percentiles: c.percentiles,
+          testDate: c.testDate,
+          status: c.status,
+          fileUrl: c.fileUrl,
+        })),
+        noCertifications: tutorProfile.certifications.every(c => c.status === 'NONE'),
+      };
+      break;
+    case 4: // Education
+      data = {
+        education: tutorProfile.education.map(e => ({
+          id: e.id,
+          degree: e.degree,
+          fieldOfStudy: e.fieldOfStudy,
+          institution: e.institution,
+          graduationYear: e.graduationYear,
+        })),
+      };
+      break;
+    case 5: // Description
+      data = {
+        about: tutorProfile.about || '',
+        experienceHighlight: tutorProfile.experienceHighlight || '',
+      };
+      break;
+    case 6: // Video
+      data = { videoUrl: tutorProfile.videoUrl || '' };
+      break;
+    case 7: // Availability
+      const availability = await prisma.availability.findMany({ where: { tutorProfileId: tutorProfile.id } });
+      const overrides = await prisma.availabilityOverride.findMany({ where: { tutorProfileId: tutorProfile.id } });
+      data = {
+        timezone: tutorProfile.timezone || 'UTC',
+        slots: availability,
+        overrides,
+      };
+      break;
+    case 8: // Pricing
+      data = {
+        pricing: tutorProfile.pricing.length > 0
+          ? tutorProfile.pricing
+          : [
+              { durationMinutes: 30, price: 0, isEnabled: false, currency: 'USD' },
+              { durationMinutes: 60, price: 50, isEnabled: true, currency: 'USD' },
+              { durationMinutes: 90, price: 0, isEnabled: false, currency: 'USD' },
+              { durationMinutes: 120, price: 0, isEnabled: false, currency: 'USD' },
+            ],
+      };
+      break;
+  }
+
+  return NextResponse.json({
+    step: stepNum,
+    currentStep: tutorProfile.onboardingStep,
+    onboardingCompleted: tutorProfile.onboardingCompleted,
+    data,
+  });
+}
+
+// ─── POST: Save step data ─────────────────────────────
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { step: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const userId = (session.user as any).id;
+  const stepNum = parseInt(params.step);
+  const body = await request.json();
+
+  const tutorProfile = await prisma.tutorProfile.findUnique({ where: { userId } });
+  if (!tutorProfile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+
+  try {
+    switch (stepNum) {
+      case 1: { // About
+        const { firstName, lastName, email, countryOfBirth, subjects, languages, phoneNumber } = body;
+
+        await prisma.user.update({
+          where: { id: userId },
+          data: { name: `${firstName} ${lastName}`.trim() },
+        });
+
+        // Replace languages
+        await prisma.tutorLanguage.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
+        await prisma.tutorLanguage.createMany({
+          data: languages.map((l: any) => ({
+            tutorProfileId: tutorProfile.id,
+            language: l.language,
+            proficiency: l.proficiency,
+          })),
+        });
+
+        await prisma.tutorProfile.update({
+          where: { id: tutorProfile.id },
+          data: {
+            specializations: subjects,
+            countryOfBirth,
+            phoneNumber,
+            // Simple languages array stored for backward compat
+            languages: languages.map((l: any) => l.language),
+            onboardingStep: Math.max(tutorProfile.onboardingStep, 1),
+          },
+        });
+        break;
+      }
+
+      case 2: { // Photo
+        const { avatarUrl } = body;
+        if (avatarUrl) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { avatarUrl },
+          });
+        }
+        await prisma.tutorProfile.update({
+          where: { id: tutorProfile.id },
+          data: { onboardingStep: Math.max(tutorProfile.onboardingStep, 2) },
+        });
+        break;
+      }
+
+      case 3: { // Certification
+        const { certifications, noCertifications } = body;
+
+        await prisma.tutorCertification.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
+
+        if (noCertifications) {
+          await prisma.tutorProfile.update({
+            where: { id: tutorProfile.id },
+            data: { badgeType: 'NOT_VERIFIED', onboardingStep: Math.max(tutorProfile.onboardingStep, 3) },
+          });
+        } else {
+          for (const cert of certifications) {
+            const certData: any = {
+              tutorProfileId: tutorProfile.id,
+              type: cert.type,
+              levelOrVariant: cert.levelOrVariant,
+              score: cert.score ? parseFloat(cert.score) : null,
+              percentiles: cert.percentiles || null,
+              testDate: cert.testDate ? new Date(cert.testDate) : null,
+              status: (cert.fileUrl || cert.mbaEmail) ? 'PENDING_VERIFICATION' : 'SELF_REPORTED',
+              fileUrl: cert.fileUrl || null,
+            };
+            if (cert.mbaEmail) certData.mbaEmail = cert.mbaEmail;
+            if (cert.mbaPassword) certData.mbaPasswordEncrypted = encrypt(cert.mbaPassword);
+            await prisma.tutorCertification.create({ data: certData });
+          }
+          await prisma.tutorProfile.update({
+            where: { id: tutorProfile.id },
+            data: { onboardingStep: Math.max(tutorProfile.onboardingStep, 3) },
+          });
+        }
+        break;
+      }
+
+      case 4: { // Education
+        const { education } = body;
+        await prisma.tutorEducation.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
+        await prisma.tutorEducation.createMany({
+          data: education.map((e: any) => ({
+            tutorProfileId: tutorProfile.id,
+            degree: e.degree,
+            fieldOfStudy: e.fieldOfStudy,
+            institution: e.institution,
+            graduationYear: e.graduationYear ? parseInt(e.graduationYear) : null,
+          })),
+        });
+        await prisma.tutorProfile.update({
+          where: { id: tutorProfile.id },
+          data: { onboardingStep: Math.max(tutorProfile.onboardingStep, 4) },
+        });
+        break;
+      }
+
+      case 5: { // Description
+        const { about, experienceHighlight } = body;
+        await prisma.tutorProfile.update({
+          where: { id: tutorProfile.id },
+          data: {
+            about,
+            experienceHighlight: experienceHighlight || null,
+            onboardingStep: Math.max(tutorProfile.onboardingStep, 5),
+          },
+        });
+        break;
+      }
+
+      case 6: { // Video
+        const { videoUrl } = body;
+        await prisma.tutorProfile.update({
+          where: { id: tutorProfile.id },
+          data: {
+            videoUrl: videoUrl || null,
+            onboardingStep: Math.max(tutorProfile.onboardingStep, 6),
+          },
+        });
+        break;
+      }
+
+      case 7: { // Availability
+        const { timezone, slots, overrides } = body;
+
+        await prisma.availability.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
+        if (slots && slots.length > 0) {
+          await prisma.availability.createMany({
+            data: slots.map((s: any) => ({
+              tutorProfileId: tutorProfile.id,
+              dayOfWeek: s.dayOfWeek,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              timezone,
+              isActive: true,
+            })),
+          });
+        }
+
+        await prisma.availabilityOverride.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
+        if (overrides && overrides.length > 0) {
+          await prisma.availabilityOverride.createMany({
+            data: overrides.map((o: any) => ({
+              tutorProfileId: tutorProfile.id,
+              date: new Date(o.date),
+              reason: o.reason || 'Unavailable',
+              isAvailable: false,
+            })),
+          });
+        }
+
+        await prisma.tutorProfile.update({
+          where: { id: tutorProfile.id },
+          data: {
+            timezone,
+            onboardingStep: Math.max(tutorProfile.onboardingStep, 7),
+          },
+        });
+        break;
+      }
+
+      case 8: { // Pricing — final step
+        const { pricing } = body;
+
+        // Upsert each pricing row
+        for (const p of pricing) {
+          await prisma.tutorPricing.upsert({
+            where: { tutorProfileId_durationMinutes: { tutorProfileId: tutorProfile.id, durationMinutes: p.durationMinutes } },
+            update: { price: parseFloat(p.price), currency: p.currency, isEnabled: p.isEnabled },
+            create: {
+              tutorProfileId: tutorProfile.id,
+              durationMinutes: p.durationMinutes,
+              price: parseFloat(p.price),
+              currency: p.currency || 'USD',
+              isEnabled: p.isEnabled,
+            },
+          });
+        }
+
+        // Calculate default hourly rate from the 60-min pricing if enabled
+        const sixtyMin = pricing.find((p: any) => p.durationMinutes === 60 && p.isEnabled);
+        const hourlyRate = sixtyMin ? parseFloat(sixtyMin.price) : tutorProfile.hourlyRate;
+
+        await prisma.tutorProfile.update({
+          where: { id: tutorProfile.id },
+          data: {
+            hourlyRate,
+            onboardingStep: 8,
+            onboardingCompleted: true,
+          },
+        });
+        break;
+      }
+    }
+
+    return NextResponse.json({ success: true, step: stepNum });
+  } catch (error: any) {
+    console.error(`Onboarding step ${stepNum} error:`, error);
+    return NextResponse.json({ error: error.message || 'Failed to save step' }, { status: 500 });
+  }
+}

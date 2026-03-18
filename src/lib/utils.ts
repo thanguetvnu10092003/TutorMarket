@@ -1,0 +1,108 @@
+import { clsx, type ClassValue } from 'clsx';
+
+export function cn(...inputs: ClassValue[]) {
+  return clsx(inputs);
+}
+
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+export function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export function formatTime(dateString: string): string {
+  return new Date(dateString).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+export function formatDateTime(dateString: string): string {
+  return `${formatDate(dateString)} at ${formatTime(dateString)}`;
+}
+
+export function formatRelativeTime(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDate(dateString);
+}
+
+export function formatResponseTime(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours === 1 ? '1 hour' : `${hours} hours`;
+}
+
+export function generateId(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trim() + '...';
+}
+
+export function calculateCommission(
+  amount: number,
+  sessionNumber: number,
+  cumulativeFees: number,
+  rate: number = 0.20,
+  cap: number = 500
+): { platformFee: number; tutorPayout: number } {
+  if (sessionNumber === 1) {
+    return { platformFee: 0, tutorPayout: 0 }; // Free session
+  }
+
+  if (cumulativeFees >= cap) {
+    return { platformFee: 0, tutorPayout: amount }; // Cap reached
+  }
+
+  let fee = amount * rate;
+  if (cumulativeFees + fee > cap) {
+    fee = cap - cumulativeFees; // Partial fee to reach cap
+  }
+
+  return {
+    platformFee: Math.round(fee * 100) / 100,
+    tutorPayout: Math.round((amount - fee) * 100) / 100,
+  };
+}
+
+export function getDayName(dayOfWeek: number): string {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[dayOfWeek] || '';
+}
+
+export function getStarDisplay(rating: number): string {
+  return '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
+}
