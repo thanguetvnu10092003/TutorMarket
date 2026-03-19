@@ -102,6 +102,10 @@ export async function POST(request: Request) {
           data: {
             status: 'PENDING_VERIFICATION',
             fileUrl: files[0].url,
+            verifiedAt: null,
+            verifiedById: null,
+            rejectionReason: null,
+            notes: null,
             updatedAt: new Date()
           }
         });
@@ -134,7 +138,15 @@ export async function POST(request: Request) {
              ON CONFLICT ("tutorCertificationId") DO UPDATE SET
              "encryptedEmail" = EXCLUDED."encryptedEmail",
              "encryptedPassword" = EXCLUDED."encryptedPassword",
-             "consentGiven" = EXCLUDED."consentGiven"`,
+             "consentGiven" = EXCLUDED."consentGiven",
+             "portalVerifiedAt" = NULL,
+             "portalVerifiedById" = NULL,
+             "documentReviewedAt" = NULL,
+             "documentReviewedById" = NULL,
+             "reviewNotes" = NULL,
+             "rejectionReason" = NULL,
+             "usedAt" = NULL,
+             "deletedAt" = NULL`,
             requestId,
             certId,
             encEmail,

@@ -77,7 +77,11 @@ export async function buildAdminDashboardData() {
       include: {
         tutorProfile: {
           include: {
-            certifications: true,
+            certifications: {
+              include: {
+                gmatVerification: true,
+              },
+            },
             credentials: true,
             education: true,
             tutorLanguages: true,
@@ -89,7 +93,11 @@ export async function buildAdminDashboardData() {
     prisma.tutorProfile.findMany({
       include: {
         user: true,
-        certifications: true,
+        certifications: {
+          include: {
+            gmatVerification: true,
+          },
+        },
         credentials: true,
         education: true,
         tutorLanguages: true,
@@ -601,7 +609,12 @@ export async function buildAdminDashboardData() {
     id: r.id,
     tutorName: r.tutorCertification.tutorProfile.user.name,
     tutorId: r.tutorCertification.tutorProfileId,
+    tutorCertificationId: r.tutorCertificationId,
     status: r.tutorCertification.status,
+    portalVerifiedAt: r.portalVerifiedAt,
+    documentReviewedAt: r.documentReviewedAt,
+    reviewNotes: r.reviewNotes,
+    rejectionReason: r.rejectionReason,
     createdAt: r.createdAt,
   }));
 

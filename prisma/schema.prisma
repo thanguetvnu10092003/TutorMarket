@@ -604,6 +604,12 @@ model GmatVerificationRequest {
   encryptedEmail       String
   encryptedPassword    String
   consentGiven         Boolean           @default(false)
+  portalVerifiedAt     DateTime?
+  portalVerifiedById   String?
+  documentReviewedAt   DateTime?
+  documentReviewedById String?
+  reviewNotes          String?
+  rejectionReason      String?
   usedAt              DateTime?
   deletedAt           DateTime?
   createdAt           DateTime          @default(now())

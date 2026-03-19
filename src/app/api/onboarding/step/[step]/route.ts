@@ -220,6 +220,14 @@ export async function POST(
                   encryptedEmail: encrypt(cert.mbaEmail),
                   encryptedPassword: encrypt(cert.mbaPassword),
                   consentGiven: true, // Frontend validates this
+                  portalVerifiedAt: null,
+                  portalVerifiedById: null,
+                  documentReviewedAt: null,
+                  documentReviewedById: null,
+                  reviewNotes: null,
+                  rejectionReason: null,
+                  usedAt: null,
+                  deletedAt: null,
                 },
                 create: {
                   tutorCertificationId: createdCert.id,

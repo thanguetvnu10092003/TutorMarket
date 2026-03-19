@@ -17,59 +17,137 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 
-    // @ts-ignore
-    const certification = await prisma.tutorCertification.update({
-      where: { id: params.id },
-      data: {
-        status,
-        rejectionReason: status === 'REJECTED' ? remarks : undefined,
-        verifiedAt: status === 'VERIFIED' ? new Date() : undefined,
-        verifiedById: status === 'VERIFIED' ? session.user.id : undefined,
-      },
-      include: {
-        tutorProfile: true
+    let certification: any;
+
+    await prisma.$transaction(async (tx) => {
+      const existingCertification: any = await tx.tutorCertification.findUnique({
+        where: { id: params.id },
+        include: {
+          tutorProfile: true,
+          gmatVerification: true,
+        },
+      });
+
+      if (!existingCertification) {
+        throw new Error('CERTIFICATION_NOT_FOUND');
       }
+
+      const isGmatCertification = existingCertification.type === 'GMAT' && existingCertification.gmatVerification;
+
+      if (isGmatCertification && status === 'VERIFIED') {
+        const documentReviewedAt = new Date();
+        const portalVerifiedAt = existingCertification.gmatVerification?.portalVerifiedAt;
+        const isFullyVerified = !!portalVerifiedAt;
+
+        // @ts-ignore - new GMAT review fields are added in the latest Prisma schema
+        await tx.gmatVerificationRequest.update({
+          where: { tutorCertificationId: existingCertification.id },
+          data: {
+            documentReviewedAt,
+            documentReviewedById: session.user.id,
+            reviewNotes: remarks || 'Document review completed by admin',
+            rejectionReason: null,
+          },
+        });
+
+        certification = await tx.tutorCertification.update({
+          where: { id: existingCertification.id },
+          data: {
+            status: isFullyVerified ? 'VERIFIED' : 'PENDING_VERIFICATION',
+            rejectionReason: null,
+            verifiedAt: isFullyVerified ? documentReviewedAt : null,
+            verifiedById: isFullyVerified ? session.user.id : null,
+            notes: isFullyVerified
+              ? 'GMAT verified via document review and MBA.com'
+              : 'Document reviewed. Awaiting MBA.com verification.',
+          },
+          include: {
+            tutorProfile: true,
+            gmatVerification: true,
+          },
+        });
+      } else {
+        if (isGmatCertification) {
+          // @ts-ignore - new GMAT review fields are added in the latest Prisma schema
+          await tx.gmatVerificationRequest.update({
+            where: { tutorCertificationId: existingCertification.id },
+            data: {
+              reviewNotes: remarks || null,
+              rejectionReason: status === 'REJECTED' ? remarks || 'Rejected during document review' : null,
+            },
+          });
+        }
+
+        certification = await tx.tutorCertification.update({
+          where: { id: existingCertification.id },
+          data: {
+            status,
+            rejectionReason: status === 'REJECTED' ? remarks : null,
+            verifiedAt: status === 'VERIFIED' ? new Date() : null,
+            verifiedById: status === 'VERIFIED' ? session.user.id : null,
+            notes:
+              status === 'VERIFIED'
+                ? remarks || existingCertification.notes || null
+                : remarks || existingCertification.notes || null,
+          },
+          include: {
+            tutorProfile: true,
+            gmatVerification: true,
+          },
+        });
+      }
+
+      // Log the action
+      // @ts-ignore
+      await tx.tutorVerificationLog.create({
+        data: {
+          tutorProfileId: certification.tutorProfileId,
+          adminId: session.user.id,
+          action: `${status}_CERTIFICATION`,
+          notes: `${certification.type}: ${remarks || ''}`,
+          metadata: { certificationId: params.id }
+        }
+      });
+
+      // Update overall tutor verification status based on individual certifications
+      const allCerts = await tx.tutorCertification.findMany({
+        where: { tutorProfileId: certification.tutorProfileId }
+      });
+      
+      const hasVerifiedCert = allCerts.some((c: any) => c.status === 'VERIFIED');
+      const allRejected = allCerts.length > 0 && allCerts.every((c: any) => c.status === 'REJECTED');
+      
+      // Determine overall status:
+      // - At least one VERIFIED cert => tutor is APPROVED with VERIFIED badge
+      // - All certs REJECTED => tutor is REJECTED with NOT_VERIFIED badge  
+      // - Otherwise (some pending) => stay PENDING
+      const newVerificationStatus = hasVerifiedCert ? 'APPROVED' : allRejected ? 'REJECTED' : 'PENDING';
+      const newBadgeType = hasVerifiedCert ? 'VERIFIED' : allRejected ? 'NOT_VERIFIED' : 'NONE';
+      
+      await tx.tutorProfile.update({
+        where: { id: certification.tutorProfileId },
+        data: {
+          verificationStatus: newVerificationStatus,
+          badgeType: newBadgeType,
+        }
+      });
     });
 
-    // Log the action
-    // @ts-ignore
-    await prisma.tutorVerificationLog.create({
-      data: {
-        tutorProfileId: certification.tutorProfileId,
-        adminId: session.user.id,
-        action: `${status}_CERTIFICATION`,
-        notes: `${certification.type}: ${remarks || ''}`,
-        metadata: { certificationId: params.id }
-      }
+    return NextResponse.json({
+      success: true,
+      data: certification,
+      message:
+        certification?.type === 'GMAT' && certification?.status !== 'VERIFIED' && status === 'VERIFIED'
+          ? 'GMAT document reviewed. Final verification will complete after MBA.com review.'
+          : 'Certification updated successfully.',
     });
-
-    // Update overall tutor verification status based on individual certifications
-    const allCerts = await prisma.tutorCertification.findMany({
-      where: { tutorProfileId: certification.tutorProfileId }
-    });
-    
-    const hasVerifiedCert = allCerts.some((c: any) => c.status === 'VERIFIED');
-    const allRejected = allCerts.length > 0 && allCerts.every((c: any) => c.status === 'REJECTED');
-    
-    // Determine overall status:
-    // - At least one VERIFIED cert => tutor is APPROVED with VERIFIED badge
-    // - All certs REJECTED => tutor is REJECTED with NOT_VERIFIED badge  
-    // - Otherwise (some pending) => stay PENDING
-    const newVerificationStatus = hasVerifiedCert ? 'APPROVED' : allRejected ? 'REJECTED' : 'PENDING';
-    const newBadgeType = hasVerifiedCert ? 'VERIFIED' : allRejected ? 'NOT_VERIFIED' : 'NONE';
-    
-    await prisma.tutorProfile.update({
-      where: { id: certification.tutorProfileId },
-      data: {
-        verificationStatus: newVerificationStatus,
-        badgeType: newBadgeType,
-      }
-    });
-
-    return NextResponse.json({ success: true, data: certification });
   } catch (error) {
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message === 'CERTIFICATION_NOT_FOUND') {
+      return NextResponse.json({ error: 'Certification not found' }, { status: 404 });
     }
 
     console.error('Certification update error:', error);

@@ -42,6 +42,11 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
     () => selected?.certifications?.find((c: any) => c.id === selectedCertId) ?? null,
     [selected, selectedCertId]
   );
+
+  const selectedCertGmatReview = selectedCert?.gmatVerification ?? null;
+  const selectedGmatPortalVerified = Boolean(selectedGmat?.portalVerifiedAt);
+  const selectedGmatDocumentReviewed = Boolean(selectedGmat?.documentReviewedAt);
+
   const fetchGmatCreds = async (requestId: string) => {
     try {
       const resp = await fetch(`/api/admin/gmat/${requestId}`);
@@ -66,7 +71,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
       const json = await resp.json();
       if (!resp.ok) throw new Error(json.error);
       
-      toast.success(`Certification ${status.toLowerCase()}!`);
+      toast.success(json.message || `Certification ${status.toLowerCase()}!`);
       await onRefresh();
     } catch (e: any) {
       toast.error(e.message);
@@ -97,8 +102,28 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'APPROVE' }),
       });
-      if (!resp.ok) throw new Error('Failed');
-      toast.success('GMAT Verified.');
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || 'Failed');
+      toast.success(json.message || 'GMAT verification updated.');
+      await onRefresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const rejectGmat = async (id: string) => {
+    const remarks = window.prompt('Reason for rejecting this GMAT verification:');
+    if (!remarks) return;
+
+    try {
+      const resp = await fetch(`/api/admin/gmat/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'REJECT', remarks }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || 'Failed');
+      toast.success(json.message || 'GMAT rejected.');
       await onRefresh();
     } catch (e: any) {
       toast.error(e.message);
@@ -210,7 +235,19 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                     </div>
                     <div>
                       <div className="text-sm font-bold text-navy-600 dark:text-cream-200">{req.tutorName}</div>
-                      <Badge value={req.status} />
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <Badge value={req.status} />
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+                          req.documentReviewedAt ? 'bg-sage-50 text-sage-700' : 'bg-navy-100 text-navy-400'
+                        }`}>
+                          Doc {req.documentReviewedAt ? 'done' : 'pending'}
+                        </span>
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+                          req.portalVerifiedAt ? 'bg-sage-50 text-sage-700' : 'bg-navy-100 text-navy-400'
+                        }`}>
+                          MBA {req.portalVerifiedAt ? 'done' : 'pending'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -287,13 +324,37 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                           ))}
                         </div>
 
+                        {selectedCert.type === 'GMAT' && (
+                          <div className="rounded-2xl border border-gold-200 bg-white/70 p-4 text-xs text-navy-500">
+                            <div className="flex flex-wrap gap-2">
+                              <span className={`rounded-full px-2 py-1 font-black uppercase tracking-[0.16em] ${
+                                selectedCertGmatReview?.documentReviewedAt ? 'bg-sage-50 text-sage-700' : 'bg-navy-100 text-navy-400'
+                              }`}>
+                                Document {selectedCertGmatReview?.documentReviewedAt ? 'verified' : 'pending'}
+                              </span>
+                              <span className={`rounded-full px-2 py-1 font-black uppercase tracking-[0.16em] ${
+                                selectedCertGmatReview?.portalVerifiedAt ? 'bg-sage-50 text-sage-700' : 'bg-navy-100 text-navy-400'
+                              }`}>
+                                MBA.com {selectedCertGmatReview?.portalVerifiedAt ? 'verified' : 'pending'}
+                              </span>
+                            </div>
+                            <p className="mt-3 leading-relaxed">
+                              GMAT only becomes fully verified after both the uploaded document review and the MBA.com credential review are completed.
+                            </p>
+                          </div>
+                        )}
+
                         <div className="pt-4 flex gap-2">
                           <button 
                             onClick={() => updateCertification(selectedCert.id, 'VERIFIED')}
                             disabled={!certChecklist[selectedCert.id]?.['Document Authentic']}
                             className="flex-1 rounded-2xl bg-navy-600 py-3 text-sm font-bold text-white disabled:opacity-50"
                           >
-                            Verify {selectedCert.type}
+                            {selectedCert.type === 'GMAT'
+                              ? selectedCertGmatReview?.portalVerifiedAt
+                                ? 'Complete GMAT Verification'
+                                : 'Verify GMAT Document'
+                              : `Verify ${selectedCert.type}`}
                           </button>
                           <button 
                             onClick={() => updateCertification(selectedCert.id, 'REJECTED')}
@@ -327,15 +388,31 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                 <h2 className="text-2xl font-display font-bold text-navy-600 dark:text-cream-200">GMAT Verification: {selectedGmat.tutorName}</h2>
                 <div className="rounded-[28px] bg-navy-900 p-8 text-cream-200">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-400">Decrypted Credentials</div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+                      selectedGmatDocumentReviewed ? 'bg-sage-50 text-sage-700' : 'bg-white/10 text-cream-300'
+                    }`}>
+                      Document {selectedGmatDocumentReviewed ? 'verified' : 'pending'}
+                    </span>
+                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+                      selectedGmatPortalVerified ? 'bg-sage-50 text-sage-700' : 'bg-white/10 text-cream-300'
+                    }`}>
+                      MBA.com {selectedGmatPortalVerified ? 'verified' : 'pending'}
+                    </span>
+                  </div>
                   {gmatCreds ? (
                     <div className="mt-6 grid gap-6 md:grid-cols-2">
-                      <div>
+                      <div className="min-w-0 rounded-3xl border border-white/10 bg-white/5 p-5">
                         <div className="text-xs text-navy-300">GMAT Username / Email</div>
-                        <div className="mt-1 font-mono text-lg font-bold">{gmatCreds.email}</div>
+                        <div className="mt-2 break-all font-mono text-sm font-bold leading-6 text-cream-100 sm:text-base">
+                          {gmatCreds.email}
+                        </div>
                       </div>
-                      <div>
+                      <div className="min-w-0 rounded-3xl border border-white/10 bg-white/5 p-5">
                         <div className="text-xs text-navy-300">GMAT Password</div>
-                        <div className="mt-1 font-mono text-lg font-bold">{gmatCreds.password}</div>
+                        <div className="mt-2 break-all font-mono text-sm font-bold leading-6 text-cream-100 sm:text-base">
+                          {gmatCreds.password}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -348,15 +425,35 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
 
                 <div className="glass-card p-6 border-gold-200 bg-gold-400/5">
                   <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gold-700">Verification Steps</h3>
-                  <p className="mt-2 text-sm text-navy-400">Login to the official GMAT portal using the credentials above and verify the score reported in the profile certifications.</p>
-                  <div className="mt-6 flex gap-3">
+                  <p className="mt-2 text-sm text-navy-400">Login to the official GMAT portal using the credentials above and verify the score reported in the profile certifications. This is only one half of the process; the uploaded GMAT document must also be reviewed in the application queue.</p>
+                  <div className="mt-4 rounded-2xl border border-gold-200 bg-white/70 p-4 text-xs text-navy-500">
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`rounded-full px-2 py-1 font-black uppercase tracking-[0.16em] ${
+                        selectedGmatDocumentReviewed ? 'bg-sage-50 text-sage-700' : 'bg-navy-100 text-navy-400'
+                      }`}>
+                        Document {selectedGmatDocumentReviewed ? 'done' : 'pending'}
+                      </span>
+                      <span className={`rounded-full px-2 py-1 font-black uppercase tracking-[0.16em] ${
+                        selectedGmatPortalVerified ? 'bg-sage-50 text-sage-700' : 'bg-navy-100 text-navy-400'
+                      }`}>
+                        MBA.com {selectedGmatPortalVerified ? 'done' : 'pending'}
+                      </span>
+                    </div>
+                    <p className="mt-3 leading-relaxed">
+                      GMAT becomes fully verified only when both badges above are completed.
+                    </p>
+                  </div>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                     <button 
                       onClick={() => approveGmat(selectedGmat.id)}
                       className="flex-1 rounded-2xl bg-navy-600 py-4 text-sm font-bold text-white shadow-lg shadow-navy-600/20"
                     >
-                      Verified & Approve GMAT
+                      {selectedGmatDocumentReviewed ? 'Complete GMAT Verification' : 'Verify MBA.com Only'}
                     </button>
-                    <button className="flex-1 rounded-2xl border-2 border-red-500 py-4 text-sm font-bold text-red-500">
+                    <button
+                      onClick={() => rejectGmat(selectedGmat.id)}
+                      className="flex-1 rounded-2xl border-2 border-red-500 py-4 text-sm font-bold text-red-500"
+                    >
                       Fraud / Reject GMAT
                     </button>
                   </div>

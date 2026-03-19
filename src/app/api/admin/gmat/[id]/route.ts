@@ -65,7 +65,7 @@ export async function PATCH(
 ) {
   try {
     const session = await requireAdminSession();
-    const { action } = await req.json();
+    const { action, remarks } = await req.json();
 
     if (action !== 'APPROVE' && action !== 'REJECT') {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -83,27 +83,86 @@ export async function PATCH(
       return NextResponse.json({ error: 'GMAT Request not found' }, { status: 404 });
     }
 
+    let finalCertificationStatus = gmatRequest.tutorCertification.status;
+
     await prisma.$transaction(async (tx) => {
-      // Update the GMAT request status
-      // @ts-ignore
-      await tx.gmatVerificationRequest.update({
+      const freshRequest: any = await tx.gmatVerificationRequest.findUnique({
         where: { id: params.id },
-        data: {
-          usedAt: new Date(),
-          // We don't have a status field on GmatVerificationRequest itself, 
-          // it's handled via the certification status
-        }
       });
 
-      // Update the certification
-      await tx.tutorCertification.update({
-        where: { id: gmatRequest.tutorCertificationId },
+      if (!freshRequest) {
+        throw new Error('GMAT_REQUEST_NOT_FOUND');
+      }
+
+      if (action === 'APPROVE') {
+        const portalVerifiedAt = new Date();
+        const documentReviewedAt = freshRequest.documentReviewedAt;
+        const isFullyVerified = !!documentReviewedAt;
+
+        // @ts-ignore
+        await tx.gmatVerificationRequest.update({
+          where: { id: params.id },
+          data: {
+            usedAt: portalVerifiedAt,
+            portalVerifiedAt,
+            portalVerifiedById: session.user.id,
+            reviewNotes: remarks || 'MBA.com review completed by admin',
+            rejectionReason: null,
+          }
+        });
+
+        finalCertificationStatus = isFullyVerified ? 'VERIFIED' : 'PENDING_VERIFICATION';
+
+        await tx.tutorCertification.update({
+          where: { id: gmatRequest.tutorCertificationId },
+          data: {
+            status: finalCertificationStatus,
+            rejectionReason: null,
+            verifiedAt: isFullyVerified ? portalVerifiedAt : null,
+            verifiedById: isFullyVerified ? session.user.id : null,
+            notes: isFullyVerified
+              ? 'GMAT verified via MBA.com and document review'
+              : 'MBA.com credentials verified. Awaiting document review.',
+          }
+        });
+      } else {
+        // @ts-ignore
+        await tx.gmatVerificationRequest.update({
+          where: { id: params.id },
+          data: {
+            usedAt: new Date(),
+            rejectionReason: remarks || 'GMAT verification failed',
+            reviewNotes: remarks || 'Rejected during MBA.com verification',
+          }
+        });
+
+        finalCertificationStatus = 'REJECTED';
+
+        await tx.tutorCertification.update({
+          where: { id: gmatRequest.tutorCertificationId },
+          data: {
+            status: 'REJECTED',
+            rejectionReason: remarks || 'GMAT verification failed',
+            verifiedAt: null,
+            verifiedById: null,
+            notes: remarks || 'GMAT verification failed',
+          }
+        });
+      }
+
+      const allCerts = await tx.tutorCertification.findMany({
+        where: { tutorProfileId: gmatRequest.tutorCertification.tutorProfileId },
+      });
+
+      const hasVerifiedCert = allCerts.some((cert: any) => cert.status === 'VERIFIED');
+      const allRejected = allCerts.length > 0 && allCerts.every((cert: any) => cert.status === 'REJECTED');
+
+      await tx.tutorProfile.update({
+        where: { id: gmatRequest.tutorCertification.tutorProfileId },
         data: {
-          status: action === 'APPROVE' ? 'VERIFIED' : 'REJECTED',
-          verifiedAt: action === 'APPROVE' ? new Date() : null,
-          verifiedById: action === 'APPROVE' ? session.user.id : null,
-          notes: action === 'APPROVE' ? 'Verified via MBA.com' : 'GMAT verification failed'
-        }
+          verificationStatus: hasVerifiedCert ? 'APPROVED' : allRejected ? 'REJECTED' : 'PENDING',
+          badgeType: hasVerifiedCert ? 'VERIFIED' : allRejected ? 'NOT_VERIFIED' : 'NONE',
+        },
       });
     });
 
@@ -113,10 +172,21 @@ export async function PATCH(
       metadata: { requestId: params.id }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message:
+        action === 'APPROVE' && finalCertificationStatus !== 'VERIFIED'
+          ? 'MBA.com verification completed. Final GMAT approval will finish after document review.'
+          : action === 'APPROVE'
+          ? 'GMAT fully verified.'
+          : 'GMAT rejected.',
+    });
   } catch (error) {
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === 'GMAT_REQUEST_NOT_FOUND') {
+      return NextResponse.json({ error: 'GMAT Request not found' }, { status: 404 });
     }
     console.error('GMAT status update error:', error);
     return NextResponse.json({ error: 'Failed to update GMAT status' }, { status: 500 });
