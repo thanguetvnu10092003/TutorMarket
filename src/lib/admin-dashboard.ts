@@ -454,7 +454,14 @@ export async function buildAdminDashboardData() {
     }));
 
   const verificationQueue = tutorProfiles
-    .filter((profile: any) => profile.verificationStatus === 'PENDING')
+    .filter((profile: any) => {
+      const hasPendingProfileReview = profile.verificationStatus === 'PENDING';
+      const hasPendingCertificationReview = profile.certifications.some((certification: any) =>
+        certification.status === 'PENDING_VERIFICATION' || certification.status === 'RESUBMITTED'
+      );
+
+      return hasPendingProfileReview || hasPendingCertificationReview;
+    })
     .sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime())
     .map((profile: any) => ({
       id: profile.id,
