@@ -64,6 +64,7 @@ export default withAuth(
       '/dashboard/student': ['STUDENT', 'ADMIN'],
       '/dashboard/tutor': ['TUTOR', 'ADMIN'],
       '/dashboard/admin': ['ADMIN'],
+      '/admin': ['ADMIN'],
     };
 
     for (const [route, allowedRoles] of Object.entries(protectedRoutes)) {

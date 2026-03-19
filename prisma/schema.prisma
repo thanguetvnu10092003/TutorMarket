@@ -70,6 +70,7 @@ enum CertificationStatus {
   PENDING_VERIFICATION
   VERIFIED
   REJECTED
+  RESUBMITTED
 }
 
 enum LanguageProficiency {
@@ -169,6 +170,8 @@ model User {
   verificationLogsWritten     TutorVerificationLog[] @relation("VerificationLogAdmin")
   discountCampaignsCreated    DiscountCampaign[]    @relation("DiscountCreatedBy")
   seoMetadataUpdated          SeoMetadata[]         @relation("SeoMetadataUpdatedBy")
+  issuedStrikes             UserStrike[]          @relation("StrikeIssuer")
+  receivedStrikes           UserStrike[]          @relation("StrikeRecipient")
 
   @@index([email])
   @@index([role])
@@ -257,10 +260,14 @@ model TutorCertification {
   mbaEmail             String?             // For GMAT verification
   mbaPasswordEncrypted String?             // Encrypted, deleted after admin verification
   status               CertificationStatus @default(NONE)
+  selfReportedData     Json?               // {scores, percentiles, year, testDate}
+  rejectionReason      String?
+  resubmittedAt        DateTime?
   verifiedAt           DateTime?
   verifiedById         String?
   verifiedBy           User?               @relation("CertVerifiedBy", fields: [verifiedById], references: [id])
   notes                String?
+  gmatVerification     GmatVerificationRequest?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
@@ -276,6 +283,7 @@ model TutorEducation {
   fieldOfStudy   String
   institution    String
   graduationYear Int?
+  displayOrder   Int          @default(0)
   createdAt      DateTime     @default(now())
 
   @@index([tutorProfileId])
@@ -523,9 +531,12 @@ model DiscountCampaign {
   code        String       @unique
   type        DiscountType
   value       Float
+  currency    String       @default("USD")
   expiryDate  DateTime
   usageLimit  Int
   usageCount  Int          @default(0)
+  maxUses     Int?         // for consistency with prompt
+  usedCount   Int          @default(0) // for consistency with prompt
   isActive    Boolean      @default(true)
   createdById String?
   createdBy   User?        @relation("DiscountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -571,4 +582,28 @@ model BookingEvent {
   createdAt DateTime @default(now())
 
   @@index([bookingId, createdAt])
+}
+
+model UserStrike {
+  id        String   @id @default(cuid())
+  userId    String
+  recipient User     @relation("StrikeRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  reason    String
+  issuedById String
+  issuer    User     @relation("StrikeIssuer", fields: [issuedById], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model GmatVerificationRequest {
+  id                   String            @id @default(cuid())
+  tutorCertificationId String            @unique
+  tutorCertification   TutorCertification @relation(fields: [tutorCertificationId], references: [id], onDelete: Cascade)
+  encryptedEmail       String
+  encryptedPassword    String
+  consentGiven         Boolean           @default(false)
+  usedAt              DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime          @default(now())
 }
