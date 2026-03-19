@@ -77,22 +77,41 @@ export async function issueWarning(input: {
     throw new Error('USER_NOT_FOUND');
   }
 
-  const nextStrikeCount = user.strikeCount + 1;
+  // Create the strike record
+  // @ts-ignore
+  await prisma.userStrike.create({
+    data: {
+      userId: user.id,
+      issuedById: input.adminId,
+      reason: input.reason,
+    },
+  });
+
+  // Calculate strikes in the last 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  // @ts-ignore
+  const recentStrikeCount = await prisma.userStrike.count({
+    where: {
+      userId: user.id,
+      createdAt: { gte: thirtyDaysAgo },
+    },
+  });
+
   const nextWarningCount = user.warningCount + 1;
-  const shouldAutoSuspend = !user.isBanned && nextStrikeCount >= 3;
+  const shouldAutoSuspend = !user.isBanned && recentStrikeCount >= 3;
   const suspendedUntil = shouldAutoSuspend ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null;
 
   const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
       warningCount: nextWarningCount,
-      strikeCount: nextStrikeCount,
+      strikeCount: recentStrikeCount, // sync the count
       suspendedUntil: suspendedUntil ?? undefined,
-      suspensionReason: shouldAutoSuspend ? 'Auto-suspended after 3 strikes.' : undefined,
+      suspensionReason: shouldAutoSuspend ? 'Auto-suspended after 3 strikes in 30 days.' : undefined,
     },
   });
 
-  await sendWarningEmail(updatedUser.email, input.reason, nextStrikeCount);
+  await sendWarningEmail(updatedUser.email, input.reason, recentStrikeCount);
 
   await recordAdminAction({
     adminId: input.adminId,
@@ -100,7 +119,7 @@ export async function issueWarning(input: {
     actionType: shouldAutoSuspend ? 'WARN_AND_AUTO_SUSPEND' : 'WARN_USER',
     reason: input.reason,
     metadata: {
-      strikeCount: nextStrikeCount,
+      strikeCount: recentStrikeCount,
       warningCount: nextWarningCount,
       autoSuspended: shouldAutoSuspend,
       suspendedUntil: suspendedUntil?.toISOString(),
@@ -292,16 +311,19 @@ export async function processVerificationDecision(input: {
       });
 
       for (const cert of tutor.certifications) {
-        const nextStatus = cert.fileUrl ? 'VERIFIED' : 'SELF_REPORTED';
-        await tx.tutorCertification.update({
-          where: { id: cert.id },
-          data: {
-            status: nextStatus,
-            verifiedAt: new Date(),
-            verifiedById: input.adminId,
-            notes: input.notes ?? cert.notes,
-          },
-        });
+        // Only verify if it was pending or self-reported, don't automatically override rejections
+        if (cert.status === 'PENDING_VERIFICATION' || cert.status === 'SELF_REPORTED') {
+          const nextStatus = cert.fileUrl ? 'VERIFIED' : 'SELF_REPORTED';
+          await tx.tutorCertification.update({
+            where: { id: cert.id },
+            data: {
+              status: nextStatus,
+              verifiedAt: new Date(),
+              verifiedById: input.adminId,
+              notes: input.notes ?? cert.notes,
+            },
+          });
+        }
       }
 
       await tx.tutorVerificationLog.create({
@@ -441,4 +463,46 @@ export async function issueRefund(input: {
   });
 
   return updatedPayment;
+}
+
+export async function createGmatVerificationRequest(input: {
+  tutorCertificationId: string;
+  email: string;
+  passwordHash: string;
+  consentGiven: boolean;
+}) {
+  const { encrypt } = await import('./encryption');
+  
+  // @ts-ignore
+  return prisma.gmatVerificationRequest.create({
+    data: {
+      tutorCertificationId: input.tutorCertificationId,
+      encryptedEmail: encrypt(input.email),
+      encryptedPassword: encrypt(input.passwordHash),
+      consentGiven: input.consentGiven,
+    },
+  });
+}
+
+export async function getGmatCredentials(requestId: string) {
+  const { decrypt } = await import('./encryption');
+  
+  // @ts-ignore
+  const request = await prisma.gmatVerificationRequest.findUnique({
+    where: { id: requestId },
+  });
+
+  if (!request) throw new Error('REQUEST_NOT_FOUND');
+
+  return {
+    email: decrypt(request.encryptedEmail),
+    password: decrypt(request.encryptedPassword),
+  };
+}
+
+export async function deleteGmatCredentials(requestId: string) {
+  // @ts-ignore
+  return prisma.gmatVerificationRequest.delete({
+    where: { id: requestId },
+  });
 }

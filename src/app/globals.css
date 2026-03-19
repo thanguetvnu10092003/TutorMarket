@@ -197,6 +197,12 @@
            bg-sage-100 text-sage-600 dark:bg-sage-800/30 dark:text-sage-300;
   }
 
+  /* Unverified badge */
+  .unverified-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold
+           bg-gold-50 text-gold-600 dark:bg-gold-900/30 dark:text-gold-300;
+  }
+
   /* Stat chip */
   .stat-chip {
     @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium

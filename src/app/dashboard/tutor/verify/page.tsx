@@ -11,6 +11,9 @@ export default function TutorVerifyPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [selection, setSelection] = useState('');
+  const [mbaEmail, setMbaEmail] = useState('');
+  const [mbaPassword, setMbaPassword] = useState('');
+  const [mbaConsent, setMbaConsent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const credentialMap: Record<string, { subject: string | null, type: string }> = {
@@ -101,7 +104,10 @@ export default function TutorVerifyPage() {
         body: JSON.stringify({
           subject: mapping.subject,
           credentialType: mapping.type,
-          files: uploadedFiles 
+          files: uploadedFiles,
+          mbaEmail,
+          mbaPassword,
+          mbaConsent
         }),
       });
 
@@ -226,6 +232,57 @@ export default function TutorVerifyPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* GMAT Credentials Section */}
+              {selection === 'GMAT Score Report' && (
+                <div className="mt-8 space-y-6 p-6 rounded-2xl bg-gold-400/5 border border-gold-200 animate-in fade-in zoom-in duration-500">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-gold-400 flex items-center justify-center text-navy-600">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <h4 className="text-sm font-bold text-navy-600 dark:text-cream-200 uppercase tracking-wider font-display">MBA.com Verification</h4>
+                  </div>
+                  
+                  <p className="text-xs text-navy-400 dark:text-cream-400/70 leading-relaxed">
+                    To expedite GMAT verification, please provide your MBA.com login details. An admin will use these to verify your score directly on the official portal.
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">MBA Email</label>
+                      <input 
+                        type="email" 
+                        value={mbaEmail}
+                        onChange={(e) => setMbaEmail(e.target.value)}
+                        placeholder="your-email@example.com"
+                        className="w-full bg-white dark:bg-navy-800 border border-navy-100 dark:border-navy-500 rounded-xl px-4 py-3 text-sm focus:border-gold-400 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">MBA Password</label>
+                      <input 
+                        type="password" 
+                        value={mbaPassword}
+                        onChange={(e) => setMbaPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-white dark:bg-navy-800 border border-navy-100 dark:border-navy-500 rounded-xl px-4 py-3 text-sm focus:border-gold-400 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={mbaConsent}
+                      onChange={(e) => setMbaConsent(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-gold-400 text-gold-600 focus:ring-gold-400 accent-gold-400" 
+                    />
+                    <span className="text-[11px] text-navy-400 dark:text-cream-400/70 group-hover:text-navy-600 transition-colors">
+                      I authorize TutorMarket admins to use these credentials solely for the purpose of verifying my GMAT score on MBA.com. My credentials will be encrypted.
+                    </span>
+                  </label>
                 </div>
               )}
             </div>

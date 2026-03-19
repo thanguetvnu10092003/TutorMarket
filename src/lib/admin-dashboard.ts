@@ -69,6 +69,8 @@ export async function buildAdminDashboardData() {
     adminActions,
     campaigns,
     seoMetadata,
+    strikes,
+    gmatRequests,
   ] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
@@ -181,7 +183,10 @@ export async function buildAdminDashboardData() {
         },
       },
     }),
+    // @ts-ignore
     prisma.adminAction.findMany({
+      // @ts-ignore
+      where: { isDismissed: false },
       include: {
         admin: {
           select: { id: true, name: true },
@@ -199,24 +204,53 @@ export async function buildAdminDashboardData() {
     prisma.seoMetadata.findMany({
       orderBy: { subject: 'asc' },
     }),
+    // @ts-ignore
+    prisma.userStrike.findMany({
+      include: {
+        issuer: { select: { name: true } },
+      },
+    }),
+    // @ts-ignore
+    prisma.gmatVerificationRequest.findMany({
+      where: {
+        tutorCertification: {
+          status: 'PENDING_VERIFICATION',
+        },
+      },
+      include: {
+        tutorCertification: {
+          include: {
+            tutorProfile: {
+              include: {
+                user: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
   ]);
 
-  const tutorMap = new Map(tutorProfiles.map((profile) => [profile.id, profile]));
+  const nonAdminTutorProfiles = tutorProfiles.filter((p: any) => p.user?.role !== 'ADMIN');
+
+  const tutorMap = new Map(tutorProfiles.map((profile: any) => [profile.id, profile]));
   const conversationMap = new Map(
-    conversations.map((conversation) => [`${conversation.studentId}:${conversation.tutorProfileId}`, conversation])
+    conversations.map((conversation: any) => [`${conversation.studentId}:${conversation.tutorProfileId}`, conversation])
   );
 
-  const nonAdminUsers = users.filter((user) => user.role !== 'ADMIN');
-  const activeUsers = nonAdminUsers.filter((user) => getUserStatus(user) === 'ACTIVE');
-  const totalGrossRevenue = sum(bookings.map((booking) => booking.payment?.amount || 0));
-  const totalNetRevenue = sum(bookings.map((booking) => booking.payment?.platformFee || 0));
+  const nonAdminUsers = users.filter((user: any) => user.role !== 'ADMIN');
+  const activeUsers = nonAdminUsers.filter((user: any) => getUserStatus(user) === 'ACTIVE');
+  const totalGrossRevenue = sum(bookings.map((booking: any) => booking.payment?.amount || 0));
+  const totalNetRevenue = sum(bookings.map((booking: any) => booking.payment?.platformFee || 0));
   const openTicketsCount =
-    contentFlags.filter((flag) => flag.status === 'OPEN').length +
-    reports.filter((report) => report.status === 'OPEN' || report.status === 'UNDER_REVIEW').length;
+    contentFlags.filter((flag: any) => flag.status === 'OPEN').length +
+    reports.filter((report: any) => report.status === 'OPEN' || report.status === 'UNDER_REVIEW').length;
 
-  const userRows = nonAdminUsers.map((user) => {
+  const userRows = nonAdminUsers.map((user: any) => {
     const tutorProfile = user.tutorProfile;
     const status = getUserStatus(user);
+    const userStrikes = adminActions.filter((s: any) => s.targetUserId === user.id && s.actionType.startsWith('WARN'));
 
     return {
       id: user.id,
@@ -231,6 +265,7 @@ export async function buildAdminDashboardData() {
       suspensionReason: user.suspensionReason,
       warningCount: user.warningCount,
       strikeCount: user.strikeCount,
+      strikes: userStrikes,
       tutorProfile: tutorProfile
         ? {
             id: tutorProfile.id,
@@ -252,19 +287,19 @@ export async function buildAdminDashboardData() {
     };
   });
 
-  const studentBookings = bookings.filter((booking) => booking.student.role === 'STUDENT');
+  const studentBookings = bookings.filter((booking: any) => booking.student.role === 'STUDENT');
   const weekBuckets = getWeekBuckets();
   const monthBuckets = getMonthBuckets();
   const studentsBySubject = ['CFA', 'GMAT', 'GRE'].map((subject) => {
-    const subjectBookings = studentBookings.filter((booking) => groupSubject(booking.subject) === subject);
-    const studentIds = new Set(subjectBookings.map((booking) => booking.studentId));
+    const subjectBookings = studentBookings.filter((booking: any) => groupSubject(booking.subject) === subject);
+    const studentIds = new Set(subjectBookings.map((booking: any) => booking.studentId));
 
     const weekly = weekBuckets.map((bucket) => ({
       label: bucket.label,
       value: new Set(
         subjectBookings
-          .filter((booking) => booking.scheduledAt >= bucket.start && booking.scheduledAt < bucket.end)
-          .map((booking) => booking.studentId)
+          .filter((booking: any) => booking.scheduledAt >= bucket.start && booking.scheduledAt < bucket.end)
+          .map((booking: any) => booking.studentId)
       ).size,
     }));
 
@@ -272,8 +307,8 @@ export async function buildAdminDashboardData() {
       label: bucket.label,
       value: new Set(
         subjectBookings
-          .filter((booking) => booking.scheduledAt >= bucket.start && booking.scheduledAt < bucket.end)
-          .map((booking) => booking.studentId)
+          .filter((booking: any) => booking.scheduledAt >= bucket.start && booking.scheduledAt < bucket.end)
+          .map((booking: any) => booking.studentId)
       ).size,
     }));
 
@@ -288,26 +323,26 @@ export async function buildAdminDashboardData() {
   });
 
   const activeStudentsPerTutor = tutorProfiles
-    .map((profile) => {
-      const relatedBookings = bookings.filter((booking) => booking.tutorProfileId === profile.id);
+    .map((profile: any) => {
+      const relatedBookings = bookings.filter((booking: any) => booking.tutorProfileId === profile.id);
       return {
         tutorProfileId: profile.id,
         tutorName: profile.user.name,
         subject: profile.specializations[0],
-        activeStudents: new Set(relatedBookings.map((booking) => booking.studentId)).size,
+        activeStudents: new Set(relatedBookings.map((booking: any) => booking.studentId)).size,
       };
     })
-    .sort((a, b) => b.activeStudents - a.activeStudents)
+    .sort((a: any, b: any) => b.activeStudents - a.activeStudents)
     .slice(0, 10);
 
   const retainedStudents = new Set(
-    bookings.filter((booking) => booking.sessionNumber >= 2).map((booking) => booking.studentId)
+    bookings.filter((booking: any) => booking.sessionNumber >= 2).map((booking: any) => booking.studentId)
   );
-  const studentsWithAnyBooking = new Set(bookings.map((booking) => booking.studentId));
+  const studentsWithAnyBooking = new Set(bookings.map((booking: any) => booking.studentId));
   const recentStudentSignups = users
-    .filter((user) => user.role === 'STUDENT' && user.createdAt.getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map((user) => ({
+    .filter((user: any) => user.role === 'STUDENT' && user.createdAt.getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000)
+    .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
+    .map((user: any) => ({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -315,13 +350,13 @@ export async function buildAdminDashboardData() {
       lastActive: user.lastActiveAt ?? user.updatedAt,
     }));
 
-  const completedBookings = bookings.filter((booking) => booking.status === 'COMPLETED');
+  const completedBookings = bookings.filter((booking: any) => booking.status === 'COMPLETED');
   const hoursTaughtPerTutor = tutorProfiles
-    .map((profile) => {
+    .map((profile: any) => {
       const hours = sum(
         completedBookings
-          .filter((booking) => booking.tutorProfileId === profile.id)
-          .map((booking) => booking.durationMinutes / 60)
+          .filter((booking: any) => booking.tutorProfileId === profile.id)
+          .map((booking: any) => booking.durationMinutes / 60)
       );
       return {
         tutorProfileId: profile.id,
@@ -329,20 +364,20 @@ export async function buildAdminDashboardData() {
         hoursTaught: Number(hours.toFixed(1)),
       };
     })
-    .sort((a, b) => b.hoursTaught - a.hoursTaught);
+    .sort((a: any, b: any) => b.hoursTaught - a.hoursTaught);
 
   const studentBookingsPerTutor = tutorProfiles
-    .map((profile) => {
-      const relatedBookings = bookings.filter((booking) => booking.tutorProfileId === profile.id);
+    .map((profile: any) => {
+      const relatedBookings = bookings.filter((booking: any) => booking.tutorProfileId === profile.id);
       const trialPairs = new Set(
         relatedBookings
-          .filter((booking) => booking.isFreeSession)
-          .map((booking) => `${booking.studentId}:${booking.tutorProfileId}`)
+          .filter((booking: any) => booking.isFreeSession)
+          .map((booking: any) => `${booking.studentId}:${booking.tutorProfileId}`)
       );
       const convertedPairs = new Set(
         relatedBookings
-          .filter((booking) => booking.sessionNumber >= 2)
-          .map((booking) => `${booking.studentId}:${booking.tutorProfileId}`)
+          .filter((booking: any) => booking.sessionNumber >= 2)
+          .map((booking: any) => `${booking.studentId}:${booking.tutorProfileId}`)
       );
 
       return {
@@ -352,31 +387,31 @@ export async function buildAdminDashboardData() {
         sessionTwoPlusConversionRate: trialPairs.size === 0 ? 0 : Number(((convertedPairs.size / trialPairs.size) * 100).toFixed(1)),
       };
     })
-    .sort((a, b) => b.totalBookings - a.totalBookings);
+    .sort((a: any, b: any) => b.totalBookings - a.totalBookings);
 
-  const trialSessions = bookings.filter((booking) => booking.isFreeSession);
+  const trialSessions = bookings.filter((booking: any) => booking.isFreeSession);
   const freeToPaidPairs = new Set(
-    bookings.filter((booking) => booking.sessionNumber >= 2).map((booking) => `${booking.studentId}:${booking.tutorProfileId}`)
+    bookings.filter((booking: any) => booking.sessionNumber >= 2).map((booking: any) => `${booking.studentId}:${booking.tutorProfileId}`)
   );
   const freeToPaidConversionRate = trialSessions.length === 0 ? 0 : Number(((freeToPaidPairs.size / trialSessions.length) * 100).toFixed(1));
 
   const newTutorSignupsPerWeek = getWeekBuckets(8).map((bucket) => ({
     label: bucket.label,
     value: users.filter(
-      (user) =>
+      (user: any) =>
         user.role === 'TUTOR' &&
         user.createdAt >= bucket.start &&
         user.createdAt < bucket.end
     ).length,
   }));
 
-  const gmv = sum(bookings.map((booking) => booking.payment?.amount || 0));
-  const platformFees = sum(bookings.map((booking) => booking.payment?.platformFee || 0));
+  const gmv = sum(bookings.map((booking: any) => booking.payment?.amount || 0));
+  const platformFees = sum(bookings.map((booking: any) => booking.payment?.platformFee || 0));
   const takeRate = gmv === 0 ? 0 : Number(((platformFees / gmv) * 100).toFixed(1));
 
   const payoutHistory = bookings
-    .filter((booking) => booking.payment)
-    .map((booking) => ({
+    .filter((booking: any) => booking.payment)
+    .map((booking: any) => ({
       bookingId: booking.id,
       tutorName: booking.tutorProfile.user.name,
       studentName: booking.student.name,
@@ -386,15 +421,15 @@ export async function buildAdminDashboardData() {
       payoutAt: booking.payment?.payoutAt || null,
       stripeTransferId: booking.payment?.stripeTransferId || null,
     }))
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       const aTime = a.payoutAt ? new Date(a.payoutAt).getTime() : 0;
       const bTime = b.payoutAt ? new Date(b.payoutAt).getTime() : 0;
       return bTime - aTime;
     });
 
-  const pricingSuggestions = ['CFA', 'GMAT', 'GRE'].map((subjectGroupName) => {
-    const matchedProfiles = tutorProfiles.filter((profile) =>
-      profile.specializations.some((subject) => groupSubject(subject) === subjectGroupName)
+  const pricingSuggestions = ['CFA', 'GMAT', 'GRE'].map((subjectGroupName: any) => {
+    const matchedProfiles = tutorProfiles.filter((profile: any) =>
+      profile.specializations.some((subject: any) => groupSubject(subject) === subjectGroupName)
     );
 
     return {
@@ -402,15 +437,15 @@ export async function buildAdminDashboardData() {
       averageHourlyRate:
         matchedProfiles.length === 0
           ? 0
-          : Math.round(sum(matchedProfiles.map((profile) => profile.hourlyRate)) / matchedProfiles.length),
+          : Math.round(sum(matchedProfiles.map((profile: any) => profile.hourlyRate)) / matchedProfiles.length),
       tutorCount: matchedProfiles.length,
     };
   });
 
   const featuredTutors = tutorProfiles
-    .filter((profile) => profile.isFeatured)
-    .sort((a, b) => (a.featuredRank || 999) - (b.featuredRank || 999))
-    .map((profile) => ({
+    .filter((profile: any) => profile.isFeatured)
+    .sort((a: any, b: any) => (a.featuredRank || 999) - (b.featuredRank || 999))
+    .map((profile: any) => ({
       tutorProfileId: profile.id,
       tutorName: profile.user.name,
       featuredRank: profile.featuredRank,
@@ -419,11 +454,11 @@ export async function buildAdminDashboardData() {
     }));
 
   const verificationQueue = tutorProfiles
-    .filter((profile) => profile.verificationStatus === 'PENDING')
-    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-    .map((profile) => ({
+    .filter((profile: any) => profile.verificationStatus === 'PENDING')
+    .sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime())
+    .map((profile: any) => ({
       id: profile.id,
-      tutorName: profile.user.name,
+      name: profile.user.name,
       tutorEmail: profile.user.email,
       subjects: profile.specializations,
       submittedDate: profile.createdAt,
@@ -440,7 +475,7 @@ export async function buildAdminDashboardData() {
         totalReviews: profile.totalReviews,
         totalSessions: profile.totalSessions,
       },
-      certifications: profile.certifications.map((certification) => ({
+      certifications: profile.certifications.map((certification: any) => ({
         ...certification,
         viewerUrl: certification.fileUrl,
         checklist: {
@@ -453,7 +488,7 @@ export async function buildAdminDashboardData() {
       history: profile.verificationLogs,
     }));
 
-  const contentFlagQueue = contentFlags.map((flag) => ({
+  const contentFlagQueue = contentFlags.map((flag: any) => ({
     id: flag.id,
     reporter: {
       id: flag.reporter.id,
@@ -482,15 +517,16 @@ export async function buildAdminDashboardData() {
     resolutionNote: flag.resolutionNote,
   }));
 
-  const reportsQueue = reports.map((report) => {
+  const reportsQueue = reports.map((report: any) => {
     const relatedConversation = report.booking
       ? conversationMap.get(`${report.booking.studentId}:${report.booking.tutorProfileId}`)
       : undefined;
+
     const previousBookings = report.booking
       ? bookings.filter(
-          (booking) =>
-            booking.studentId === report.booking?.studentId &&
-            booking.tutorProfileId === report.booking?.tutorProfileId
+          (booking: any) =>
+            booking.studentId === (report.reportedUser.id === report.booking?.studentId ? report.booking?.studentId : report.reportedUser.id) &&
+            booking.tutorProfileId === (report.booking?.tutorProfileId || report.tutorProfileId)
         )
       : [];
 
@@ -533,7 +569,7 @@ export async function buildAdminDashboardData() {
           }
         : null,
       conversationThread: relatedConversation
-        ? relatedConversation.messages.map((message) => ({
+        ? (relatedConversation as any).messages.map((message: any) => ({
             id: message.id,
             sender: {
               id: message.sender.id,
@@ -544,7 +580,7 @@ export async function buildAdminDashboardData() {
             sentAt: message.sentAt,
           }))
         : [],
-      previousBookings: previousBookings.map((booking) => ({
+      previousBookings: previousBookings.map((booking: any) => ({
         id: booking.id,
         scheduledAt: booking.scheduledAt,
         status: booking.status,
@@ -554,14 +590,23 @@ export async function buildAdminDashboardData() {
     };
   });
 
+  const formattedGmatRequests = gmatRequests.map((r: any) => ({
+    id: r.id,
+    tutorName: r.tutorCertification.tutorProfile.user.name,
+    tutorId: r.tutorCertification.tutorProfileId,
+    status: r.tutorCertification.status,
+    createdAt: r.createdAt,
+  }));
+
   return {
     overview: {
       stats: {
         totalActiveUsers: activeUsers.length,
+        totalTutors: nonAdminTutorProfiles.length,
         tutorCounts: {
-          verified: tutorProfiles.filter((profile) => profile.verificationStatus === 'APPROVED').length,
-          pending: tutorProfiles.filter((profile) => profile.verificationStatus === 'PENDING').length,
-          rejected: tutorProfiles.filter((profile) => profile.verificationStatus === 'REJECTED').length,
+          verified: nonAdminTutorProfiles.filter((profile: any) => profile.verificationStatus === 'APPROVED').length,
+          pending: nonAdminTutorProfiles.filter((profile: any) => profile.verificationStatus === 'PENDING').length,
+          rejected: nonAdminTutorProfiles.filter((profile: any) => profile.verificationStatus === 'REJECTED').length,
         },
         revenue: {
           gross: totalGrossRevenue,
@@ -573,7 +618,7 @@ export async function buildAdminDashboardData() {
     },
     moderation: {
       users: userRows,
-      tutorProfiles: tutorProfiles.map((profile) => ({
+      tutorProfiles: nonAdminTutorProfiles.map((profile: any) => ({
         id: profile.id,
         userId: profile.userId,
         userName: profile.user.name,
@@ -631,6 +676,7 @@ export async function buildAdminDashboardData() {
     },
     verifications: {
       queue: verificationQueue,
+      gmatRequests: formattedGmatRequests,
     },
     reports: {
       queue: reportsQueue,
@@ -647,7 +693,7 @@ export async function getPublicTutorCards(filters: {
 }) {
   const profiles = await prisma.tutorProfile.findMany({
     where: {
-      verificationStatus: 'APPROVED',
+      verificationStatus: { in: ['APPROVED', 'PENDING'] },
       hiddenFromSearch: false,
       user: {
         isBanned: false,
@@ -666,10 +712,11 @@ export async function getPublicTutorCards(filters: {
     },
     include: {
       user: true,
+      certifications: true,
     },
   });
 
-  const sortedProfiles = [...profiles].sort((left, right) => {
+  const sortedProfiles = [...profiles].sort((left: any, right: any) => {
     if (left.isFeatured !== right.isFeatured) {
       return left.isFeatured ? -1 : 1;
     }
@@ -696,7 +743,7 @@ export async function getPublicTutorCards(filters: {
     }
   });
 
-  return sortedProfiles.map((profile) => ({
+  return sortedProfiles.map((profile: any) => ({
     id: profile.id,
     userId: profile.userId,
     name: profile.user.name,
@@ -712,6 +759,9 @@ export async function getPublicTutorCards(filters: {
     verificationStatus: profile.verificationStatus,
     isFeatured: profile.isFeatured,
     yearsOfExperience: profile.yearsOfExperience,
+    verifiedCertifications: profile.certifications
+      .filter((c: any) => c.status === 'VERIFIED')
+      .map((c: any) => c.type),
   }));
 }
 
@@ -719,7 +769,7 @@ export async function getPublicTutorProfile(tutorProfileId: string) {
   const profile = await prisma.tutorProfile.findFirst({
     where: {
       id: tutorProfileId,
-      verificationStatus: 'APPROVED',
+      verificationStatus: { in: ['APPROVED', 'PENDING'] },
       hiddenFromSearch: false,
       user: {
         isBanned: false,

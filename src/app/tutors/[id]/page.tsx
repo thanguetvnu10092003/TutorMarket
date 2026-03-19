@@ -48,7 +48,11 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200">{profile.user.name}</h1>
-                    <span className="verified-badge">Verified</span>
+                    {profile.verificationStatus === 'APPROVED' ? (
+                      <span className="verified-badge">Verified</span>
+                    ) : (
+                      <span className="unverified-badge">Unverified</span>
+                    )}
                     {profile.isFeatured ? <span className="badge-gold text-[10px]">Featured</span> : null}
                   </div>
                   <p className="mt-2 text-navy-300 dark:text-cream-400/60">{profile.headline}</p>
@@ -59,6 +63,16 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                       </span>
                     ))}
                   </div>
+                  {profile.certifications?.filter((c: any) => c.status === 'VERIFIED').length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {profile.certifications.filter((c: any) => c.status === 'VERIFIED').map((c: any) => (
+                        <span key={c.id} className="inline-flex items-center gap-1 rounded-full bg-sage-50 border border-sage-200 px-2.5 py-0.5 text-[10px] font-bold text-sage-700">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                          {c.type} Certified
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-4 flex flex-wrap gap-3 text-sm text-navy-400 dark:text-cream-300/70">
                     <span>{profile.rating} rating</span>
                     <span>{profile.totalReviews} reviews</span>
@@ -142,7 +156,9 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
             <button className="btn-primary mt-6 w-full py-3 text-sm">Book Free Trial Session</button>
             <button className="btn-outline mt-3 w-full py-3 text-sm">Message {profile.user.name.split(' ')[0]}</button>
             <div className="mt-6 rounded-3xl bg-navy-50/80 p-4 dark:bg-navy-700/20">
-              <div className="text-sm font-bold text-navy-600 dark:text-cream-200">Verified credentials</div>
+              <div className="text-sm font-bold text-navy-600 dark:text-cream-200">
+                {profile.verificationStatus === 'APPROVED' ? 'Verified credentials' : 'Credentials'}
+              </div>
               <div className="mt-3 space-y-3">
                 {profile.certifications.map((item: any) => (
                   <div key={item.id} className="rounded-2xl bg-white/80 p-3 text-sm text-navy-500 dark:bg-navy-600/30 dark:text-cream-300/80">

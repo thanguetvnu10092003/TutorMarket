@@ -58,9 +58,11 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-export function getInitials(name: string): string {
+export function getInitials(name?: string | null): string {
+  if (!name) return '??';
   return name
     .split(' ')
+    .filter(Boolean)
     .map(n => n[0])
     .join('')
     .toUpperCase()

@@ -472,6 +472,7 @@ model AdminAction {
   actionType   String
   reason       String?
   metadata     Json?
+  isDismissed  Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   @@index([adminId, createdAt])

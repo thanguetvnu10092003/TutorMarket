@@ -14,7 +14,7 @@ import ReviewsSection from '@/components/dashboard/tutor/ReviewsSection';
 export default function TutorDashboard() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('overview');
-  const [verificationData, setVerificationData] = useState<{ status: string, credentials: any[], notes?: string | null } | null>(null);
+  const [verificationData, setVerificationData] = useState<{ status: string, certifications: any[], documents: any[], notes?: string | null } | null>(null);
   const [availability, setAvailability] = useState<any[] | null>(null);
   const [bookings, setBookings] = useState<any[] | null>(null);
   const [stats, setStats] = useState<any>(null);
@@ -73,7 +73,7 @@ export default function TutorDashboard() {
         toast.success('Document removed successfully');
         setVerificationData(prev => prev ? {
           ...prev,
-          credentials: prev.credentials.filter(c => c.id !== id)
+          documents: prev.documents.filter(c => c.id !== id)
         } : null);
       } else {
         toast.error('Failed to delete document');
@@ -113,11 +113,18 @@ export default function TutorDashboard() {
                 <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200">
                   Welcome back, {session?.user?.name?.split(' ')[0]}
                 </h1>
-                {isVerified && (
+                {isVerified ? (
                   <div className="group relative">
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-sage-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-sage-500/20">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>
                       Verified
+                    </div>
+                  </div>
+                ) : (
+                  <div className="group relative">
+                    <div className="unverified-badge px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-gold-500/10 flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="animate-pulse"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      Unverified
                     </div>
                   </div>
                 )}
@@ -209,8 +216,38 @@ export default function TutorDashboard() {
                 </div>
 
                 <div className="space-y-8">
-                  <CertificationStatus certifications={verificationData?.credentials || []} />
+                  <CertificationStatus certifications={verificationData?.certifications || []} />
                   
+                  {/* Uploaded Documents List */}
+                  <div className="glass-card p-6">
+                    <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200 mb-6 uppercase tracking-wider">Submitted Documents</h3>
+                    <div className="space-y-3">
+                      {(verificationData?.documents || []).length > 0 ? (
+                        verificationData?.documents.map((doc: any) => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl bg-navy-50/50 dark:bg-navy-700/30 border border-navy-100/50 dark:border-navy-500/20">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-white dark:bg-navy-600 flex items-center justify-center text-navy-400">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-navy-600 dark:text-cream-200 truncate">{doc.fileName}</p>
+                                <p className="text-[9px] text-navy-300 dark:text-cream-400/40">{new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => handleDeleteCredential(doc.id)}
+                              className="p-1.5 text-navy-200 hover:text-red-500 transition-colors"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[10px] text-center text-navy-300 py-4 italic">No documents uploaded yet.</p>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="glass-card p-7 space-y-6">
                     <h3 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest border-b border-navy-100 dark:border-navy-500/50 pb-4">Quick Links</h3>
                     <div className="grid grid-cols-1 gap-3">

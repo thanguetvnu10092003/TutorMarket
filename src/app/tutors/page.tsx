@@ -63,7 +63,7 @@ function TutorsContent() {
       <div className="page-container">
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200 md:text-4xl">Find Your Perfect Tutor</h1>
-          <p className="mt-2 text-navy-300 dark:text-cream-400/60">{loading ? 'Loading tutors...' : `${results.length} verified tutors available`}</p>
+          <p className="mt-2 text-navy-300 dark:text-cream-400/60">{loading ? 'Loading tutors...' : `${results.length} tutors available`}</p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -129,7 +129,11 @@ function TutorsContent() {
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-xl font-bold text-navy-600 dark:text-cream-200">{tutor.name}</h3>
-                            {tutor.verificationStatus === 'APPROVED' ? <span className="verified-badge">Verified</span> : null}
+                            {tutor.verificationStatus === 'APPROVED' ? (
+                              <span className="verified-badge">Verified</span>
+                            ) : (
+                              <span className="unverified-badge">Unverified</span>
+                            )}
                             {tutor.isFeatured ? <span className="badge-gold text-[10px]">Featured</span> : null}
                           </div>
                           <p className="mt-1 text-sm text-navy-300 dark:text-cream-400/60">{tutor.headline}</p>
@@ -146,6 +150,16 @@ function TutorsContent() {
                           </span>
                         ))}
                       </div>
+                      {tutor.verifiedCertifications?.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {tutor.verifiedCertifications.map((certType: string) => (
+                            <span key={certType} className="inline-flex items-center gap-1 rounded-full bg-sage-50 border border-sage-200 px-2.5 py-0.5 text-[10px] font-bold text-sage-700">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                              {certType} Certified
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="mt-4 flex flex-wrap gap-3 text-xs text-navy-400 dark:text-cream-300/70">
                         <span>{tutor.rating} rating</span>
                         <span>{tutor.totalSessions} sessions</span>

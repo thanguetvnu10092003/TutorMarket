@@ -3,18 +3,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { encrypt } from '@/lib/encryption';
 
 // Encryption helpers for sensitive MBA.com credentials
 const ALGORITHM = 'aes-256-cbc';
 
-function encrypt(text: string): string {
-  const key = Buffer.from(process.env.ENCRYPTION_KEY || 'a'.repeat(64), 'hex');
-  const iv = randomBytes(16);
-  const cipher = createCipheriv(ALGORITHM, key, iv);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return `${iv.toString('hex')}:${encrypted}`;
-}
+// Using encrypt from @/lib/encryption for consistency
 
 // ─── GET: Load saved data for a step ─────────────────
 export async function GET(
@@ -215,7 +209,26 @@ export async function POST(
             };
             if (cert.mbaEmail) certData.mbaEmail = cert.mbaEmail;
             if (cert.mbaPassword) certData.mbaPasswordEncrypted = encrypt(cert.mbaPassword);
-            await prisma.tutorCertification.create({ data: certData });
+            const createdCert = await prisma.tutorCertification.create({ data: certData });
+            
+            // Also create a GmatVerificationRequest for the new system
+            if (cert.type === 'GMAT' && cert.mbaEmail && cert.mbaPassword) {
+              // @ts-ignore
+              await prisma.gmatVerificationRequest.upsert({
+                where: { tutorCertificationId: createdCert.id },
+                update: {
+                  encryptedEmail: encrypt(cert.mbaEmail),
+                  encryptedPassword: encrypt(cert.mbaPassword),
+                  consentGiven: true, // Frontend validates this
+                },
+                create: {
+                  tutorCertificationId: createdCert.id,
+                  encryptedEmail: encrypt(cert.mbaEmail),
+                  encryptedPassword: encrypt(cert.mbaPassword),
+                  consentGiven: true,
+                }
+              });
+            }
           }
           await prisma.tutorProfile.update({
             where: { id: tutorProfile.id },

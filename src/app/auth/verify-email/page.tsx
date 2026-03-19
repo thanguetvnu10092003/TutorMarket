@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import toast from 'react-hot-toast';
 
 function VerifyEmailContent() {
@@ -20,8 +21,16 @@ function VerifyEmailContent() {
     const emailParam = searchParams.get('email') || session?.user?.email;
     if (emailParam) {
       setEmail(emailParam);
-    } else if (!isLoading && !session) {
-      router.push('/auth/login');
+    } 
+
+    if (!isLoading) {
+      if (!session && !searchParams.get('email')) {
+        router.push('/auth/login');
+      } else if (session?.user?.isVerified) {
+        // Redirect to dashboard if already verified in session
+        const role = (session.user as any).role;
+        router.push(`/dashboard/${role?.toLowerCase() || 'student'}`);
+      }
     }
   }, [searchParams, session, router, isLoading]);
 
@@ -102,6 +111,12 @@ function VerifyEmailContent() {
           router.push('/auth/login?verified=true');
         }
       } else {
+        if (data.error === 'Invalid verification request' && session) {
+          // Likely already verified since OTP fields were cleared
+          await update({ isVerified: true });
+          router.refresh();
+          return;
+        }
         toast.error(data.error || 'Verification failed');
       }
     } catch (error) {
@@ -130,6 +145,16 @@ function VerifyEmailContent() {
         setExpiresIn(300);
         setOtp(['', '', '', '', '', '']);
       } else {
+        if (data.error === 'User is already verified') {
+          toast.success('You are already verified! Redirecting...');
+          if (session) {
+             await update({ isVerified: true });
+             router.refresh();
+          } else {
+             router.push('/auth/login?verified=true');
+          }
+          return;
+        }
         toast.error(data.error || 'Failed to resend code');
       }
     } catch (error) {
@@ -209,9 +234,17 @@ function VerifyEmailContent() {
           </button>
         </form>
 
-        <p className="mt-8 text-xs text-navy-300 dark:text-cream-400/40">
-          Already verified? <button onClick={() => router.push('/auth/login')} className="text-gold-500 hover:text-gold-600 font-bold">Log in here</button>
-        </p>
+        <div className="mt-10 pt-6 border-t border-navy-100 dark:border-navy-500/30">
+          <p className="text-sm text-navy-400 dark:text-cream-400/60 leading-relaxed">
+            Already verified? <Link href="/auth/login" className="text-gold-500 hover:text-gold-600 font-bold hover:underline transition-all">Log in here</Link>
+          </p>
+          <button 
+            onClick={() => signOut({ callbackUrl: '/auth/login' })}
+            className="mt-4 text-xs text-navy-300 hover:text-navy-500 underline transition-all"
+          >
+            Not your email? Sign out
+          </button>
+        </div>
       </motion.div>
     </div>
   );

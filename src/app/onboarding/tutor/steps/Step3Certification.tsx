@@ -17,11 +17,27 @@ export default function Step3Certification({ onNext, onBack }: Props) {
   const [isSaving, setIsSaving] = useState(false);
 
   // CFA state: per level
-  const [cfaData, setCfaData] = useState<Record<string, { year: string; score: string; fileUrl: string }>>({});
+  const [cfaData, setCfaData] = useState<Record<string, { year: string; score: string; fileUrl: string; file?: File }>>({});
   // GMAT state
   const [gmat, setGmat] = useState({ total: '', totalPct: '', quant: '', verbal: '', dataInsights: '', testDate: '', mbaEmail: '', mbaPassword: '', authorized: false });
   // GRE state
-  const [gre, setGre] = useState({ verbal: '', verbalPct: '', quant: '', quantPct: '', writing: '', writingPct: '', testDate: '', fileUrl: '' });
+  const [gre, setGre] = useState<{ verbal: string; verbalPct: string; quant: string; quantPct: string; writing: string; writingPct: string; testDate: string; fileUrl: string; file?: File }>({ verbal: '', verbalPct: '', quant: '', quantPct: '', writing: '', writingPct: '', testDate: '', fileUrl: '' });
+  
+  // File upload helper
+  const uploadFile = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('files', file);
+    try {
+      const up = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (up.ok) {
+        const { files } = await up.json();
+        return files[0].url;
+      }
+    } catch (e) {
+      console.error('File upload failed', e);
+    }
+    return null;
+  };
 
   useEffect(() => {
     fetch('/api/onboarding/step/3')
@@ -57,12 +73,20 @@ export default function Step3Certification({ onNext, onBack }: Props) {
         for (const level of CFA_LEVELS) {
           if (subjects.includes(level)) {
             const d = cfaData[level] || {};
+            let fileUrl = d.fileUrl;
+
+            // Upload if new file
+            if (d.file) {
+              const uploadedUrl = await uploadFile(d.file);
+              if (uploadedUrl) fileUrl = uploadedUrl;
+            }
+
             certifications.push({
               type: 'CFA',
               levelOrVariant: level,
               testDate: d.year ? `${d.year}-01-01` : null,
               score: d.score,
-              fileUrl: d.fileUrl || null,
+              fileUrl: fileUrl || null,
             });
           }
         }
@@ -90,6 +114,12 @@ export default function Step3Certification({ onNext, onBack }: Props) {
         }
         // GRE
         if (hasGRE) {
+          let fileUrl = gre.fileUrl;
+          if (gre.file) {
+            const uploadedUrl = await uploadFile(gre.file);
+            if (uploadedUrl) fileUrl = uploadedUrl;
+          }
+
           certifications.push({
             type: 'GRE',
             levelOrVariant: 'GRE',
@@ -102,7 +132,7 @@ export default function Step3Certification({ onNext, onBack }: Props) {
               writingPct: gre.writingPct,
             },
             testDate: gre.testDate || null,
-            fileUrl: gre.fileUrl || null,
+            fileUrl: fileUrl || null,
           });
         }
       }
@@ -182,13 +212,11 @@ export default function Step3Certification({ onNext, onBack }: Props) {
                         toast.error('File must be under 5MB');
                         return;
                       }
-                      const reader = new FileReader();
-                      reader.onload = () => setCfaData(p => ({ ...p, [level]: { ...p[level], fileUrl: reader.result as string } }));
-                      reader.readAsDataURL(file);
+                      setCfaData(p => ({ ...p, [level]: { ...p[level], file, fileUrl: URL.createObjectURL(file) } }));
                     }
                   }}
                 />
-                {cfaData[level]?.fileUrl?.startsWith('data:') ? (
+                {cfaData[level]?.file ? (
                   <p className="text-xs text-sage-600 dark:text-sage-400 font-bold flex items-center gap-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> File attached</p>
                 ) : cfaData[level]?.fileUrl ? (
                   <p className="text-xs text-navy-400">Current file saved.</p>
@@ -275,13 +303,11 @@ export default function Step3Certification({ onNext, onBack }: Props) {
                         toast.error('File must be under 5MB');
                         return;
                       }
-                      const reader = new FileReader();
-                      reader.onload = () => setGre(p => ({ ...p, fileUrl: reader.result as string }));
-                      reader.readAsDataURL(file);
+                      setGre(p => ({ ...p, file, fileUrl: URL.createObjectURL(file) }));
                     }
                   }}
                 />
-                {gre.fileUrl?.startsWith('data:') ? (
+                {gre.file ? (
                   <p className="text-xs text-sage-600 dark:text-sage-400 font-bold flex items-center gap-1 mt-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> File attached</p>
                 ) : gre.fileUrl ? (
                   <p className="text-xs text-navy-400 mt-1">Current file saved.</p>
