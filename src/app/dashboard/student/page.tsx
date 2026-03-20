@@ -28,6 +28,7 @@ export default function StudentDashboard() {
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [directMessageTutor, setDirectMessageTutor] = useState<any>(null);
   const [payingPaymentId, setPayingPaymentId] = useState<string | null>(null);
+  const [mockPayingId, setMockPayingId] = useState<string | null>(null);
   const [data, setData] = useState({
     bookings: [] as any[],
     packages: [] as any[],
@@ -161,6 +162,32 @@ export default function StudentDashboard() {
       toast.error(error.message || 'Could not start Stripe checkout');
     } finally {
       setPayingPaymentId(null);
+    }
+  }
+
+  async function handleMockPayNow(paymentId: string) {
+    try {
+      setMockPayingId(paymentId);
+
+      const response = await fetch('/api/payments/mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to process mock payment');
+      }
+
+      toast.success('Mock payment successful!');
+      void loadData(); // Refresh UI
+    } catch (error: any) {
+      console.error('Mock payment error:', error);
+      toast.error(error.message || 'Could not process mock payment');
+    } finally {
+      setMockPayingId(null);
     }
   }
 
@@ -433,16 +460,28 @@ export default function StudentDashboard() {
                       <p className="text-lg font-black text-navy-600 dark:text-cream-200">{formatCurrency(payment.amount)}</p>
                       <p className="text-[10px] font-black uppercase tracking-widest text-gold-600 mt-1">{payment.status.replaceAll('_', ' ')}</p>
                       {payment.canPayNow && (
-                        <button
-                          onClick={() => void handlePayNow(payment.id)}
-                          disabled={payingPaymentId === payment.id}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-navy-700 disabled:bg-navy-200 disabled:text-navy-400"
-                        >
-                          {payingPaymentId === payment.id ? (
-                            <div className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                          ) : null}
-                          Pay with Stripe
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => void handlePayNow(payment.id)}
+                            disabled={payingPaymentId === payment.id || mockPayingId === payment.id}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-navy-700 disabled:bg-navy-200 disabled:text-navy-400"
+                          >
+                            {payingPaymentId === payment.id ? (
+                              <div className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                            ) : null}
+                            Pay with Stripe
+                          </button>
+                          <button
+                            onClick={() => void handleMockPayNow(payment.id)}
+                            disabled={payingPaymentId === payment.id || mockPayingId === payment.id}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 transition-all hover:bg-navy-50 disabled:border-navy-200 disabled:text-navy-400"
+                          >
+                            {mockPayingId === payment.id ? (
+                              <div className="h-3.5 w-3.5 rounded-full border-2 border-navy-600 border-t-transparent animate-spin" />
+                            ) : null}
+                            Mock Pay (Test)
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

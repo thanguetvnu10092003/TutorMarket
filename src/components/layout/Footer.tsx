@@ -32,8 +32,19 @@ const footerLinks = {
 export default function Footer() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const isTutor = session?.user?.role === 'TUTOR';
   const visiblePlatformLinks = session?.user
-    ? footerLinks.platform.filter((link) => link.href !== '/become-a-tutor')
+    ? footerLinks.platform.filter((link) => {
+        if (link.href === '/become-a-tutor') {
+          return false;
+        }
+
+        if (isTutor && link.href === '/tutors') {
+          return false;
+        }
+
+        return true;
+      })
     : footerLinks.platform;
 
   if (pathname.startsWith('/onboarding') || pathname.startsWith('/auth/')) return null;

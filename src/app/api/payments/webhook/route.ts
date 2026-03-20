@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
+import { calculateCommission } from '@/lib/utils';
 import Stripe from 'stripe';
+
+function getCapturedPaymentSplit(amount: number) {
+  if (amount <= 0) {
+    return { platformFee: 0, tutorPayout: 0 };
+  }
+
+  return calculateCommission(amount, 2, 0);
+}
 
 export async function POST(request: Request) {
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -31,11 +40,28 @@ export async function POST(request: Request) {
         const paymentId = session.metadata?.paymentId || session.client_reference_id;
 
         if (paymentId) {
+          const payment = await prisma.payment.findUnique({
+            where: { id: paymentId },
+            select: {
+              id: true,
+              amount: true,
+              status: true,
+            },
+          });
+
+          if (!payment) {
+            break;
+          }
+
+          const split = getCapturedPaymentSplit(payment.amount);
+
           await prisma.payment.update({
             where: { id: paymentId },
             data: {
               status: 'CAPTURED',
               paidAt: new Date(),
+              platformFee: split.platformFee,
+              tutorPayout: split.tutorPayout,
               stripePaymentIntentId:
                 typeof session.payment_intent === 'string'
                   ? session.payment_intent

@@ -72,6 +72,7 @@ export default function HomePage() {
     .filter(t => t.isFeatured && t.verificationStatus === 'APPROVED')
     .map(getTutorCardData);
   const role = session?.user?.role;
+  const isTutor = role === 'TUTOR';
   const dashboardHref = `/dashboard/${role?.toLowerCase() || 'student'}`;
 
   const finalCta = !session?.user
@@ -145,46 +146,58 @@ export default function HomePage() {
 
             {/* Search Bar */}
             <div className="max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10">
-                <select
-                  value={searchSubject}
-                  onChange={(e) => setSearchSubject(e.target.value)}
-                  className="flex-1 px-4 py-3.5 rounded-xl bg-white/10 border border-white/10 text-cream-200 
-                             placeholder:text-cream-400/50 focus:outline-none focus:ring-2 focus:ring-gold-400/50
-                             appearance-none cursor-pointer text-sm font-medium"
-                >
-                  <option value="" className="bg-navy-600 text-cream-200">Select an exam...</option>
-                  {subjects.map((s) => (
-                    <option key={s.value} value={s.value} className="bg-navy-600 text-cream-200">
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                <Link
-                  href={searchSubject ? `/tutors?subject=${searchSubject}` : '/tutors'}
-                  className="btn-primary py-3.5 px-8 text-sm whitespace-nowrap"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  Find Tutors
-                </Link>
-              </div>
-
-              {/* Quick Links */}
-              <div className="flex flex-wrap justify-center gap-2 mt-5">
-                <span className="text-xs text-cream-400/50">Popular:</span>
-                {subjects.slice(0, 4).map((s) => (
-                  <Link
-                    key={s.value}
-                    href={`/tutors?subject=${s.value}`}
-                    className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-cream-300/70 
-                               hover:bg-gold-400/20 hover:text-gold-300 hover:border-gold-400/30 transition-all duration-200"
-                  >
-                    {s.label}
+              {isTutor ? (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link href="/dashboard/tutor" className="btn-primary py-3.5 px-8 text-sm whitespace-nowrap">
+                    Open Tutor Dashboard
                   </Link>
-                ))}
-              </div>
+                  <Link href="/dashboard/tutor?tab=messages" className="btn-outline border-white/20 text-cream-200 hover:bg-white/10 py-3.5 px-8 text-sm whitespace-nowrap">
+                    View Messages
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10">
+                    <select
+                      value={searchSubject}
+                      onChange={(e) => setSearchSubject(e.target.value)}
+                      className="flex-1 px-4 py-3.5 rounded-xl bg-white/10 border border-white/10 text-cream-200 
+                                 placeholder:text-cream-400/50 focus:outline-none focus:ring-2 focus:ring-gold-400/50
+                                 appearance-none cursor-pointer text-sm font-medium"
+                    >
+                      <option value="" className="bg-navy-600 text-cream-200">Select an exam...</option>
+                      {subjects.map((s) => (
+                        <option key={s.value} value={s.value} className="bg-navy-600 text-cream-200">
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Link
+                      href={searchSubject ? `/tutors?subject=${searchSubject}` : '/tutors'}
+                      className="btn-primary py-3.5 px-8 text-sm whitespace-nowrap"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                      Find Tutors
+                    </Link>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-2 mt-5">
+                    <span className="text-xs text-cream-400/50">Popular:</span>
+                    {subjects.slice(0, 4).map((s) => (
+                      <Link
+                        key={s.value}
+                        href={`/tutors?subject=${s.value}`}
+                        className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-cream-300/70 
+                                   hover:bg-gold-400/20 hover:text-gold-300 hover:border-gold-400/30 transition-all duration-200"
+                      >
+                        {s.label}
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -306,8 +319,8 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-10">
-            <Link href="/tutors" className="btn-outline">
-              Browse All Tutors
+            <Link href={isTutor ? '/dashboard/tutor' : '/tutors'} className="btn-outline">
+              {isTutor ? 'Open Tutor Dashboard' : 'Browse All Tutors'}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
               </svg>

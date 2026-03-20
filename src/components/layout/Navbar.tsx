@@ -48,9 +48,20 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const isStudent = session?.user?.role === 'STUDENT';
+  const isTutor = session?.user?.role === 'TUTOR';
   const dashboardHref = `/dashboard/${session?.user?.role?.toLowerCase() || 'student'}`;
   const visibleNavLinks = session?.user
-    ? navLinks.filter((link) => link.href !== '/become-a-tutor')
+    ? navLinks.filter((link) => {
+        if (link.href === '/become-a-tutor') {
+          return false;
+        }
+
+        if (isTutor && link.href === '/tutors') {
+          return false;
+        }
+
+        return true;
+      })
     : navLinks;
 
   useEffect(() => {

@@ -54,6 +54,10 @@ export function formatResponseTime(minutes: number): string {
   return hours === 1 ? '1 hour' : `${hours} hours`;
 }
 
+export function buildBookingRoomUrl(bookingId: string): string {
+  return `https://meet.jit.si/tutormarket-${bookingId}`;
+}
+
 export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }

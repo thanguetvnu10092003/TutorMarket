@@ -10,11 +10,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const role = searchParams.get('role') || session.user.role;
+    const isStudent = session.user.role === 'STUDENT';
 
     const conversations = await prisma.conversation.findMany({
-      where: role === 'STUDENT' ? { studentId: session.user.id } : { tutorProfileId: session.user.id },
+      where: isStudent
+        ? { studentId: session.user.id }
+        : { tutorProfile: { userId: session.user.id } },
       include: {
         tutorProfile: {
           include: {
@@ -34,7 +35,22 @@ export async function GET(req: NextRequest) {
       orderBy: { lastMessageAt: 'desc' }
     });
 
-    return NextResponse.json({ data: conversations });
+    return NextResponse.json({
+      data: conversations.map((conversation) => ({
+        ...conversation,
+        participant: isStudent
+          ? {
+              id: conversation.tutorProfile.userId,
+              name: conversation.tutorProfile.user.name,
+              avatarUrl: conversation.tutorProfile.user.avatarUrl,
+            }
+          : {
+              id: conversation.studentId,
+              name: conversation.student.name,
+              avatarUrl: conversation.student.avatarUrl,
+            },
+      })),
+    });
 
   } catch (error) {
     console.error('Get conversations error:', error);

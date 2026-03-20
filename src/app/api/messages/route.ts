@@ -8,8 +8,11 @@ const RECALL_WINDOW_MINUTES = 10;
 const RECALL_PLACEHOLDER = 'This message was unsent.';
 
 const messageSchema = z.object({
-  tutorProfileId: z.string(),
+  tutorProfileId: z.string().optional(),
+  conversationId: z.string().optional(),
   content: z.string().trim().min(1, 'Message cannot be empty'),
+}).refine((value) => Boolean(value.tutorProfileId || value.conversationId), {
+  message: 'Conversation or tutor profile is required',
 });
 
 const recallSchema = z.object({
@@ -98,52 +101,83 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireSession();
     const body = await req.json();
-    const { tutorProfileId, content } = messageSchema.parse(body);
+    const { tutorProfileId, conversationId, content } = messageSchema.parse(body);
 
-    const tutorProfile = await prisma.tutorProfile.findUnique({
-      where: { id: tutorProfileId },
-      select: { id: true, userId: true },
-    });
+    let conversation:
+      | {
+          id: string;
+          tutorProfileId: string;
+        }
+      | null = null;
 
-    if (!tutorProfile) {
-      return NextResponse.json({ error: 'Tutor profile not found' }, { status: 404 });
-    }
+    if (conversationId) {
+      const accessibleConversation = await getAccessibleConversation(session.user.id, { conversationId });
 
-    if (session.user.role === 'TUTOR' && tutorProfile.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+      if (!accessibleConversation) {
+        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+      }
 
-    const studentId =
-      session.user.role === 'STUDENT'
-        ? session.user.id
-        : null;
+      conversation = {
+        id: accessibleConversation.id,
+        tutorProfileId: accessibleConversation.tutorProfile.id,
+      };
+    } else if (tutorProfileId) {
+      const tutorProfile = await prisma.tutorProfile.findUnique({
+        where: { id: tutorProfileId },
+        select: { id: true, userId: true },
+      });
 
-    if (!studentId) {
-      return NextResponse.json({ error: 'Only students can start a new conversation here right now' }, { status: 400 });
-    }
+      if (!tutorProfile) {
+        return NextResponse.json({ error: 'Tutor profile not found' }, { status: 404 });
+      }
 
-    const conversation = await prisma.conversation.upsert({
-      where: {
-        studentId_tutorProfileId: {
-          studentId,
-          tutorProfileId,
+      if (session.user.role === 'TUTOR' && tutorProfile.userId !== session.user.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      if (session.user.role !== 'STUDENT') {
+        return NextResponse.json({ error: 'Tutors can only reply inside an existing conversation' }, { status: 400 });
+      }
+
+      const upsertedConversation = await prisma.conversation.upsert({
+        where: {
+          studentId_tutorProfileId: {
+            studentId: session.user.id,
+            tutorProfileId,
+          },
         },
-      },
-      update: {
-        lastMessageAt: new Date(),
-      },
-      create: {
-        studentId,
-        tutorProfileId,
-        lastMessageAt: new Date(),
-      },
-    });
+        update: {
+          lastMessageAt: new Date(),
+        },
+        create: {
+          studentId: session.user.id,
+          tutorProfileId,
+          lastMessageAt: new Date(),
+        },
+      });
+
+      conversation = {
+        id: upsertedConversation.id,
+        tutorProfileId: upsertedConversation.tutorProfileId,
+      };
+    }
+
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
 
     const message = await prisma.message.create({
       data: {
         conversationId: conversation.id,
         senderId: session.user.id,
         body: content,
+      },
+    });
+
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        lastMessageAt: message.sentAt,
       },
     });
 

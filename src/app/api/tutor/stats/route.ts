@@ -2,8 +2,17 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { calculateCommission } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+function getDisplayPayout(amount: number, tutorPayout: number) {
+  if (tutorPayout > 0 || amount <= 0) {
+    return tutorPayout;
+  }
+
+  return calculateCommission(amount, 2, 0).tutorPayout;
+}
 
 export async function GET() {
   try {
@@ -20,6 +29,32 @@ export async function GET() {
           include: { payment: true },
         },
         reviews: true,
+      },
+    });
+
+    const capturedPayments = await prisma.payment.findMany({
+      where: {
+        status: 'CAPTURED',
+        OR: [
+          {
+            booking: {
+              tutorProfile: {
+                userId: session.user.id,
+              },
+            },
+          },
+          {
+            package: {
+              tutorProfile: {
+                userId: session.user.id,
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        amount: true,
+        tutorPayout: true,
       },
     });
 
@@ -41,8 +76,8 @@ export async function GET() {
     const totalSessions = tutorProfile.bookings.length;
 
     // 4. Total earnings (net after platform fee)
-    const totalEarnings = tutorProfile.bookings.reduce((acc, b) => {
-      return acc + (b.payment?.tutorPayout || 0);
+    const totalEarnings = capturedPayments.reduce((acc, payment) => {
+      return acc + getDisplayPayout(payment.amount, payment.tutorPayout || 0);
     }, 0);
 
     return NextResponse.json({

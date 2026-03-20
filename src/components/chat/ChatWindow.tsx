@@ -91,6 +91,14 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
     }
 
     void loadMessages();
+
+    const intervalId = window.setInterval(() => {
+      void loadMessages();
+    }, 10000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, [conversationId, tutorProfileId]);
 
   useEffect(() => {
@@ -138,6 +146,7 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          conversationId,
           tutorProfileId,
           content: trimmed,
         }),

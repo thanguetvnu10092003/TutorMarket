@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createCheckoutSessionForStudentPayment } from '@/lib/payment-checkout';
+import { buildBookingRoomUrl } from '@/lib/utils';
 import { z } from 'zod';
 
 const bookingSchema = z.object({
@@ -150,6 +151,16 @@ export async function POST(req: NextRequest) {
         payment: true
       }
     });
+
+    if (!booking.meetingLink) {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          meetingLink: buildBookingRoomUrl(booking.id),
+        },
+      });
+      booking.meetingLink = buildBookingRoomUrl(booking.id);
+    }
 
     const bookingPayment = booking.payment;
     let checkoutUrl: string | null = null;
