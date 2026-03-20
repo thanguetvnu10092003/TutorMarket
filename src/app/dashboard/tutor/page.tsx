@@ -40,6 +40,7 @@ export default function TutorDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [selectedNotesBooking, setSelectedNotesBooking] = useState<any>(null);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
@@ -213,13 +214,18 @@ export default function TutorDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${
+              className={`px-6 py-3 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all inline-flex items-center justify-center ${
                 activeTab === tab.id
                   ? 'bg-navy-600 text-white shadow-xl scale-105'
                   : 'text-navy-400 dark:text-cream-400/60 hover:text-navy-600 dark:hover:text-cream-200 hover:bg-white dark:hover:bg-navy-700/50'
               }`}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              {tab.id === 'messages' && messageUnreadCount > 0 && (
+                <span className="ml-2 min-w-5 h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] font-black flex items-center justify-center">
+                  {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -500,12 +506,20 @@ export default function TutorDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[640px]">
             <div className={`lg:col-span-4 glass-card overflow-hidden flex flex-col ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
               <div className="p-4 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
-                <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Student Messages</h2>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Student Messages</h2>
+                  {messageUnreadCount > 0 && (
+                    <span className="min-w-6 h-6 px-2 rounded-full bg-blue-500 text-white text-[10px] font-black flex items-center justify-center">
+                      {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <ConversationList
                   onSelectConversation={(conversation) => setSelectedConversation(conversation)}
                   selectedId={selectedConversation?.id}
+                  onStatsChange={({ unreadCount }) => setMessageUnreadCount(unreadCount)}
                 />
               </div>
             </div>
