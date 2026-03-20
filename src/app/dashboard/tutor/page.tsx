@@ -14,12 +14,21 @@ import AvailabilityManager from '@/components/dashboard/tutor/AvailabilityManage
 import PricingManager from '@/components/dashboard/tutor/PricingManager';
 import ReviewsSection from '@/components/dashboard/tutor/ReviewsSection';
 
-const tutorTabs = ['overview', 'messages', 'availability', 'pricing', 'reviews'] as const;
+const tutorTabs = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'sessions', label: 'Sessions' },
+  { id: 'messages', label: 'Messages' },
+  { id: 'availability', label: 'Availability' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'reviews', label: 'Reviews' },
+] as const;
+
+type TutorTab = (typeof tutorTabs)[number]['id'];
 
 export default function TutorDashboard() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<(typeof tutorTabs)[number]>('overview');
+  const [activeTab, setActiveTab] = useState<TutorTab>('overview');
   const [verificationData, setVerificationData] = useState<{
     status: string;
     certifications: any[];
@@ -32,86 +41,116 @@ export default function TutorDashboard() {
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [selectedNotesBooking, setSelectedNotesBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+  const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
+
+  async function loadDashboardData() {
+    try {
+      const [verifyRes, availRes, bookingsRes, statsRes] = await Promise.all([
+        fetch('/api/tutor/verify', { cache: 'no-store' }),
+        fetch('/api/tutor/availability', { cache: 'no-store' }),
+        fetch('/api/tutor/bookings', { cache: 'no-store' }),
+        fetch('/api/tutor/stats', { cache: 'no-store' }),
+      ]);
+
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        setVerificationData(verifyData);
+      }
+
+      if (availRes.ok) {
+        const availData = await availRes.json();
+        setAvailability(availData.slots);
+      }
+
+      if (bookingsRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        setBookings(bookingsData);
+      }
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        const [verifyRes, availRes, bookingsRes, statsRes] = await Promise.all([
-          fetch('/api/tutor/verify', { cache: 'no-store' }),
-          fetch('/api/tutor/availability', { cache: 'no-store' }),
-          fetch('/api/tutor/bookings', { cache: 'no-store' }),
-          fetch('/api/tutor/stats', { cache: 'no-store' }),
-        ]);
-
-        if (verifyRes.ok) {
-          const verifyData = await verifyRes.json();
-          setVerificationData(verifyData);
-        }
-
-        if (availRes.ok) {
-          const availData = await availRes.json();
-          setAvailability(availData.slots);
-        }
-
-        if (bookingsRes.ok) {
-          const bookingsData = await bookingsRes.json();
-          setBookings(bookingsData);
-        }
-
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     if (session?.user) {
-      void fetchDashboardData();
+      void loadDashboardData();
     }
   }, [session]);
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
 
-    if (requestedTab && tutorTabs.includes(requestedTab as (typeof tutorTabs)[number])) {
-      setActiveTab(requestedTab as (typeof tutorTabs)[number]);
+    if (requestedTab && tutorTabs.some((tab) => tab.id === requestedTab)) {
+      setActiveTab(requestedTab as TutorTab);
     }
   }, [searchParams]);
 
-  const handleDeleteCredential = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this document? This will also remove it from the Admin review list.')) {
+  const handleDeleteDocument = async (id: string) => {
+    if (!confirm('Delete this submitted document and remove it from review?')) {
       return;
     }
 
     try {
+      setDeletingDocumentId(id);
       const response = await fetch(`/api/tutor/verify/${id}`, {
         method: 'DELETE',
       });
 
-      if (response.ok) {
-        toast.success('Document removed successfully');
-        setVerificationData((prev) =>
-          prev
-            ? {
-                ...prev,
-                documents: prev.documents.filter((credential) => credential.id !== id),
-              }
-            : null
-        );
-      } else {
-        toast.error('Failed to delete document');
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to delete document');
       }
-    } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('An error occurred during deletion');
+
+      toast.success('Document deleted');
+      await loadDashboardData();
+    } catch (error: any) {
+      console.error('Delete document error:', error);
+      toast.error(error.message || 'Could not delete document');
+    } finally {
+      setDeletingDocumentId(null);
     }
   };
 
-  const isVerified = verificationData?.status === 'APPROVED';
+  const handleCompleteSession = async (bookingId: string) => {
+    if (!confirm('Mark this session as complete? The student will be able to review the lesson afterward.')) {
+      return;
+    }
+
+    try {
+      setCompletingBookingId(bookingId);
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'complete' }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to complete session');
+      }
+
+      toast.success(json.message || 'Session marked as complete');
+      setSelectedNotesBooking(null);
+      await loadDashboardData();
+    } catch (error: any) {
+      console.error('Complete session error:', error);
+      toast.error(error.message || 'Could not complete session');
+    } finally {
+      setCompletingBookingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -124,11 +163,16 @@ export default function TutorDashboard() {
     );
   }
 
+  const isVerified = verificationData?.status === 'APPROVED';
+  const documents = verificationData?.documents || [];
+  const nextBooking = bookings?.[0] || null;
+  const activeAvailabilityCount = availability?.length || 0;
+
   return (
     <div className="min-h-screen pt-24 md:pt-32 pb-20 bg-cream-200 dark:bg-navy-600">
       <div className="page-container">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="flex items-center gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+          <div className="flex items-center gap-5">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-sage-400 to-sage-600 flex items-center justify-center text-3xl font-bold text-white overflow-hidden shadow-glass border-4 border-white dark:border-navy-500">
               {session?.user?.image ? (
                 <img src={session.user.image} alt="" className="w-full h-full object-cover" />
@@ -137,245 +181,362 @@ export default function TutorDashboard() {
               )}
             </div>
             <div>
-              <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200">
-                  Welcome back, {session?.user?.name?.split(' ')[0]}
+                  {session?.user?.name || 'Tutor Dashboard'}
                 </h1>
-                {isVerified ? (
-                  <div className="group relative">
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-sage-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-sage-500/20">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      Verified
-                    </div>
-                  </div>
-                ) : (
-                  <div className="group relative">
-                    <div className="unverified-badge px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-gold-500/10 flex items-center gap-1.5">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="animate-pulse">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                      </svg>
-                      Unverified
-                    </div>
-                  </div>
-                )}
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isVerified ? 'bg-sage-500 text-white' : 'bg-gold-100 text-gold-700 dark:bg-gold-500/20 dark:text-gold-400'}`}>
+                  {isVerified ? 'Verified' : 'Verification Pending'}
+                </span>
               </div>
-              <p className="text-navy-400 dark:text-cream-400/50 font-medium">Keep your schedule, messages, and sessions in sync.</p>
+              <p className="text-sm text-navy-400 dark:text-cream-300/70">
+                Sessions, student messages, submitted files, and payout tracking are managed here.
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1.5 bg-white/50 dark:bg-navy-700/50 backdrop-blur-md rounded-2xl border border-white dark:border-navy-500 shadow-sm overflow-x-auto">
-            {tutorTabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
-                  activeTab === tab
-                    ? 'bg-navy-600 text-white shadow-lg scale-[1.02]'
-                    : 'text-navy-400 hover:text-navy-600 dark:hover:text-cream-200'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/tutor/calendar" className="btn-outline border-navy-200 dark:border-navy-500 px-5 py-3 text-xs font-black uppercase tracking-widest">
+              Open Calendar
+            </Link>
+            <button
+              onClick={() => setActiveTab('sessions')}
+              className="btn-primary px-5 py-3 text-xs font-black uppercase tracking-widest"
+            >
+              Manage Sessions
+            </button>
           </div>
         </div>
 
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-          {activeTab === 'overview' && (
-            <div className="space-y-8">
-              {stats && <StatsOverview stats={stats} />}
+        <div className="flex gap-2 mb-8 bg-white/50 dark:bg-navy-800/30 backdrop-blur-md rounded-[24px] p-2 overflow-x-auto custom-scrollbar shadow-glass border border-white/50 dark:border-navy-500/20">
+          {tutorTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-3 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${
+                activeTab === tab.id
+                  ? 'bg-navy-600 text-white shadow-xl scale-105'
+                  : 'text-navy-400 dark:text-cream-400/60 hover:text-navy-600 dark:hover:text-cream-200 hover:bg-white dark:hover:bg-navy-700/50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                  <div className="glass-card p-8">
-                    <div className="flex items-center justify-between mb-8">
-                      <div>
-                        <h2 className="text-2xl font-display font-bold text-navy-600 dark:text-cream-200">Upcoming Sessions</h2>
-                        <p className="text-xs text-navy-300 dark:text-cream-400/40 mt-1">Don&apos;t forget to prepare for your next sessions.</p>
-                      </div>
-                      <Link href="/dashboard/tutor/calendar" className="text-[10px] font-black text-navy-400 hover:text-gold-500 transition-colors uppercase tracking-widest flex items-center gap-2">
-                        View Calendar
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5">
-                          <polyline points="9 18 15 12 9 6" />
-                        </svg>
-                      </Link>
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            {stats && <StatsOverview stats={stats} />}
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-4 space-y-8">
+                <div className="glass-card p-6">
+                  <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-5">Dashboard Snapshot</h2>
+                  <div className="space-y-4">
+                    <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Next Session</p>
+                      <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
+                        {nextBooking ? `${nextBooking.student.name} | ${formatDateTime(nextBooking.scheduledAt)}` : 'No upcoming session'}
+                      </p>
                     </div>
-
-                    {bookings && bookings.length > 0 ? (
-                      <div className="space-y-4">
-                        {bookings.map((booking) => {
-                          const date = new Date(booking.scheduledAt);
-                          const isToday = date.toDateString() === new Date().toDateString();
-
-                          return (
-                            <div key={booking.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 rounded-3xl border border-navy-100 dark:border-navy-400/10 bg-white/40 dark:bg-navy-600/30 hover:bg-white dark:hover:bg-navy-600 hover:shadow-xl hover:translate-x-1 transition-all group duration-300">
-                              <div className="flex items-center gap-5">
-                                <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-white transition-transform group-hover:rotate-3 ${isToday ? 'bg-gold-500 shadow-gold/30 shadow-lg' : 'bg-navy-600 dark:bg-navy-400'}`}>
-                                  <span className="text-[10px] font-black uppercase tracking-tighter opacity-80">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
-                                  <span className="text-xl font-display font-bold leading-none">{date.getDate()}</span>
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-3">
-                                    <h3 className="text-base font-bold text-navy-600 dark:text-cream-200">{booking.student.name}</h3>
-                                    <span className="px-2.5 py-0.5 rounded-lg bg-gold-400/10 text-gold-600 text-[9px] font-black uppercase tracking-widest border border-gold-400/20">
-                                      {booking.subject.replace(/_/g, ' ')}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-navy-400 dark:text-cream-400/50 font-medium">
-                                    {formatDateTime(booking.scheduledAt)} | {booking.durationMinutes} min session
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
-                                <button
-                                  onClick={() => setSelectedNotesBooking(booking)}
-                                  className="flex-1 sm:flex-none btn-outline py-2.5 px-6 text-xs font-bold border-navy-100 dark:border-navy-400 rounded-xl hover:border-gold-400"
-                                >
-                                  Notes
-                                </button>
-                                <a
-                                  href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="flex-1 sm:flex-none btn-primary py-2.5 px-6 text-xs font-bold shadow-gold/20 shadow-lg group-hover:scale-105 text-center"
-                                >
-                                  Join Room
-                                </a>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center py-16 border-2 border-dashed border-navy-100 dark:border-navy-400/10 rounded-[40px] bg-navy-50/30 dark:bg-navy-700/10">
-                        <div className="w-16 h-16 rounded-full bg-navy-100 dark:bg-navy-600 flex items-center justify-center mx-auto mb-4 text-navy-300">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                            <line x1="16" y1="2" x2="16" y2="6" />
-                            <line x1="8" y1="2" x2="8" y2="6" />
-                            <line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                        </div>
-                        <p className="text-base font-bold text-navy-400 dark:text-cream-400/60 mb-2">No upcoming sessions</p>
-                        <p className="text-xs text-navy-300 dark:text-cream-400/40 max-w-xs mx-auto">Update your availability and subjects to get more bookings.</p>
-                      </div>
-                    )}
+                    <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Availability Slots</p>
+                      <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">{activeAvailabilityCount} recurring slots active</p>
+                    </div>
+                    <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Submitted Files</p>
+                      <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">{documents.length} document{documents.length === 1 ? '' : 's'} on file</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-8">
-                  <CertificationStatus certifications={verificationData?.certifications || []} />
+                <CertificationStatus certifications={verificationData?.certifications || []} />
+              </div>
 
-                  <div className="glass-card p-6">
-                    <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200 mb-6 uppercase tracking-wider">Submitted Documents</h3>
-                    <div className="space-y-3">
-                      {(verificationData?.documents || []).length > 0 ? (
-                        verificationData?.documents.map((doc: any) => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl bg-navy-50/50 dark:bg-navy-700/30 border border-navy-100/50 dark:border-navy-500/20">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-white dark:bg-navy-600 flex items-center justify-center text-navy-400">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                  <polyline points="14 2 14 8 20 8" />
-                                </svg>
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-bold text-navy-600 dark:text-cream-200 truncate">{doc.fileName}</p>
-                                <p className="text-[9px] text-navy-300 dark:text-cream-400/40">{new Date(doc.uploadedAt).toLocaleDateString()}</p>
-                              </div>
+              <div className="lg:col-span-8 space-y-8">
+                <div className="glass-card p-6">
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                      <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Submitted Documents</h2>
+                      <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-2">
+                        Open the exact file you uploaded, or remove it from the review queue if it needs to be replaced.
+                      </p>
+                    </div>
+                    <Link href="/dashboard/tutor/verify" className="text-[10px] font-black uppercase tracking-widest text-gold-600 hover:text-gold-700 transition-colors">
+                      Upload More
+                    </Link>
+                  </div>
+
+                  {documents.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {documents.map((doc: any) => (
+                        <div key={doc.id} className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-navy-600 dark:text-cream-200 break-words">{doc.fileName}</p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {doc.subject && (
+                                <span className="px-2.5 py-1 rounded-full bg-gold-50 dark:bg-gold-500/10 text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">
+                                  {String(doc.subject).replaceAll('_', ' ')}
+                                </span>
+                              )}
+                              {doc.type && (
+                                <span className="px-2.5 py-1 rounded-full bg-navy-50 dark:bg-navy-600 text-[10px] font-black uppercase tracking-widest text-navy-500 dark:text-cream-300">
+                                  {String(doc.type).replaceAll('_', ' ')}
+                                </span>
+                              )}
                             </div>
-                            <button
-                              onClick={() => void handleDeleteCredential(doc.id)}
-                              className="p-1.5 text-navy-200 hover:text-red-500 transition-colors"
+                            <p className="mt-3 text-xs text-navy-300 dark:text-cream-400/50">
+                              Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center justify-center rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors"
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                              </svg>
+                              View File
+                            </a>
+                            <button
+                              onClick={() => void handleDeleteDocument(doc.id)}
+                              disabled={deletingDocumentId === doc.id}
+                              className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                            >
+                              {deletingDocumentId === doc.id ? 'Deleting...' : 'Delete'}
                             </button>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-[10px] text-center text-navy-300 py-4 italic">No documents uploaded yet.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="glass-card p-7 space-y-6">
-                    <h3 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest border-b border-navy-100 dark:border-navy-500/50 pb-4">Quick Links</h3>
-                    <div className="grid grid-cols-1 gap-3">
-                      {[
-                        { href: '/dashboard/tutor/students', label: 'My Students', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' },
-                        { href: '/dashboard/tutor/analytics', label: 'Performance', icon: 'M18 20V10M12 20V4M6 20v-6' },
-                        { href: '/dashboard/tutor/resources', label: 'Tutor Resources', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20' },
-                      ].map((link) => (
-                        <Link key={link.href} href={link.href} className="group flex items-center justify-between p-4 rounded-2xl bg-white/40 dark:bg-navy-600/30 border border-navy-50 dark:border-navy-500/30 hover:border-gold-400/50 hover:bg-white dark:hover:bg-navy-600 transition-all duration-300">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-navy-50 dark:bg-navy-500 flex items-center justify-center text-navy-400 group-hover:text-gold-500 transition-colors">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d={link.icon} />
-                              </svg>
-                            </div>
-                            <span className="text-sm font-bold text-navy-600 dark:text-cream-200">{link.label}</span>
-                          </div>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-navy-200 group-hover:text-gold-400 group-hover:translate-x-1 transition-all">
-                            <polyline points="9 18 15 12 9 6" />
-                          </svg>
-                        </Link>
+                        </div>
                       ))}
                     </div>
+                  ) : (
+                    <div className="rounded-[28px] border-2 border-dashed border-navy-100 dark:border-navy-500/20 bg-navy-50/40 dark:bg-navy-700/10 p-10 text-center">
+                      <p className="text-base font-bold text-navy-600 dark:text-cream-200">No submitted documents yet.</p>
+                      <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-2">
+                        Upload your score reports or certificates so admin can review them.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="glass-card p-6">
+                  <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-6">Quick Actions</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <button
+                      onClick={() => setActiveTab('sessions')}
+                      className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5 text-left hover:border-gold-400 transition-all"
+                    >
+                      <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Manage Sessions</p>
+                      <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">Open lesson actions, notes, room links, and completion.</p>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('messages')}
+                      className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5 text-left hover:border-gold-400 transition-all"
+                    >
+                      <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Reply to Students</p>
+                      <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">Jump straight into your conversation inbox.</p>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('availability')}
+                      className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5 text-left hover:border-gold-400 transition-all"
+                    >
+                      <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Update Availability</p>
+                      <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">Adjust your recurring time slots for new bookings.</p>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('pricing')}
+                      className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5 text-left hover:border-gold-400 transition-all"
+                    >
+                      <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Adjust Pricing</p>
+                      <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">Edit rates before your next bookings come in.</p>
+                    </button>
+                    <Link
+                      href="/dashboard/tutor/students"
+                      className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5 text-left hover:border-gold-400 transition-all"
+                    >
+                      <p className="text-sm font-bold text-navy-600 dark:text-cream-200">View Students</p>
+                      <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">See active students and recent session history.</p>
+                    </Link>
+                    <Link
+                      href="/dashboard/tutor/analytics"
+                      className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5 text-left hover:border-gold-400 transition-all"
+                    >
+                      <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Open Analytics</p>
+                      <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">Review earnings, ratings, and feedback trends.</p>
+                    </Link>
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'messages' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[640px]">
-              <div className={`lg:col-span-4 glass-card overflow-hidden flex flex-col ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
-                <div className="p-4 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
-                  <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Student Messages</h2>
+        {activeTab === 'sessions' && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <div className="xl:col-span-8 glass-card p-6">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Session Actions</h2>
+                  <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-2">
+                    Join the room, review student notes, and mark the lesson complete when it ends.
+                  </p>
                 </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                  <ConversationList
-                    onSelectConversation={(conversation) => setSelectedConversation(conversation)}
-                    selectedId={selectedConversation?.id}
-                  />
+                <Link href="/dashboard/tutor/calendar" className="text-[10px] font-black uppercase tracking-widest text-gold-600 hover:text-gold-700 transition-colors">
+                  Full Calendar
+                </Link>
+              </div>
+
+              {bookings && bookings.length > 0 ? (
+                <div className="space-y-4">
+                  {bookings.map((booking) => {
+                    const canComplete = new Date(booking.scheduledAt).getTime() <= Date.now();
+
+                    return (
+                      <div key={booking.id} className="rounded-3xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-5">
+                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <h3 className="text-lg font-bold text-navy-600 dark:text-cream-200">{booking.student.name}</h3>
+                              <span className="px-2.5 py-1 rounded-full bg-gold-50 dark:bg-gold-500/10 text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">
+                                {String(booking.subject).replaceAll('_', ' ')}
+                              </span>
+                              <span className="px-2.5 py-1 rounded-full bg-navy-50 dark:bg-navy-600 text-[10px] font-black uppercase tracking-widest text-navy-500 dark:text-cream-300">
+                                {booking.status}
+                              </span>
+                            </div>
+                            <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-3">
+                              {formatDateTime(booking.scheduledAt)} | {booking.durationMinutes} minutes
+                            </p>
+                            <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">
+                              {booking.notes?.trim() ? `Student notes: ${booking.notes}` : 'No student notes were added for this lesson.'}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              onClick={() => setSelectedNotesBooking(booking)}
+                              className="rounded-2xl border border-navy-200 dark:border-navy-500/20 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:border-gold-400 transition-colors"
+                            >
+                              Notes
+                            </button>
+                            <a
+                              href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors"
+                            >
+                              Join Room
+                            </a>
+                            <button
+                              onClick={() => void handleCompleteSession(booking.id)}
+                              disabled={!canComplete || completingBookingId === booking.id}
+                              className="rounded-2xl bg-gold-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 hover:bg-gold-500 transition-colors disabled:bg-navy-100 disabled:text-navy-400"
+                            >
+                              {completingBookingId === booking.id ? 'Completing...' : 'Complete Session'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {!canComplete && (
+                          <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+                            You can mark this session complete once its scheduled start time has begun.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-[28px] border-2 border-dashed border-navy-100 dark:border-navy-500/20 bg-navy-50/40 dark:bg-navy-700/10 p-10 text-center">
+                  <p className="text-base font-bold text-navy-600 dark:text-cream-200">No active sessions right now.</p>
+                  <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-2">
+                    New or confirmed lessons will appear here with room links and completion controls.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="xl:col-span-4 space-y-6">
+              <div className="glass-card p-6">
+                <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-5">Session Flow</h2>
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-white dark:bg-navy-700/30 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Step 1</p>
+                    <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">Open Notes and Join Room</p>
+                    <p className="mt-2 text-xs text-navy-300 dark:text-cream-400/50">Review the student brief, then enter the session room from this tab.</p>
+                  </div>
+                  <div className="rounded-2xl bg-white dark:bg-navy-700/30 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Step 2</p>
+                    <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">Teach the Lesson</p>
+                    <p className="mt-2 text-xs text-navy-300 dark:text-cream-400/50">Run the live session normally. The room link stays available here throughout the lesson.</p>
+                  </div>
+                  <div className="rounded-2xl bg-white dark:bg-navy-700/30 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Step 3</p>
+                    <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">Mark Complete</p>
+                    <p className="mt-2 text-xs text-navy-300 dark:text-cream-400/50">After the lesson ends, click `Complete Session`. The booking closes and the student can leave a review.</p>
+                  </div>
                 </div>
               </div>
 
-              <div className={`lg:col-span-8 h-full ${!selectedConversation ? 'hidden lg:flex items-center justify-center glass-card opacity-30 text-center p-10 bg-white dark:bg-navy-700/30' : 'flex flex-col'}`}>
-                {selectedConversation ? (
-                  <ChatWindow
-                    key={`${selectedConversation.id}-${selectedConversation.tutorProfile.id}`}
-                    conversationId={selectedConversation.id}
-                    tutorProfileId={selectedConversation.tutorProfile.id}
-                    tutorName={selectedConversation.participant?.name || selectedConversation.student?.name || 'Student'}
-                    tutorImage={selectedConversation.participant?.avatarUrl || selectedConversation.student?.avatarUrl}
-                    onClose={() => setSelectedConversation(null)}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="text-4xl text-gold-400">M</div>
-                    <p className="text-xs font-black uppercase tracking-widest leading-relaxed text-navy-400 dark:text-cream-400/40">
-                      Select a conversation
-                      <br />
-                      to reply to your students
-                    </p>
-                  </div>
-                )}
+              <div className="glass-card p-6">
+                <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-4">Need More Detail?</h2>
+                <div className="space-y-3">
+                  <Link href="/dashboard/tutor/students" className="block rounded-2xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-4 hover:border-gold-400 transition-all">
+                    <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Student List</p>
+                    <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">Browse active learners and recent session history.</p>
+                  </Link>
+                  <Link href="/dashboard/tutor/analytics" className="block rounded-2xl border border-navy-100/60 dark:border-navy-500/20 bg-white dark:bg-navy-700/30 p-4 hover:border-gold-400 transition-all">
+                    <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Performance Analytics</p>
+                    <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">Track ratings, completed sessions, and revenue over time.</p>
+                  </Link>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'availability' && <AvailabilityManager />}
-          {activeTab === 'pricing' && <PricingManager />}
-          {activeTab === 'reviews' && <ReviewsSection />}
-        </div>
+        {activeTab === 'messages' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[640px]">
+            <div className={`lg:col-span-4 glass-card overflow-hidden flex flex-col ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
+              <div className="p-4 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
+                <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Student Messages</h2>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <ConversationList
+                  onSelectConversation={(conversation) => setSelectedConversation(conversation)}
+                  selectedId={selectedConversation?.id}
+                />
+              </div>
+            </div>
+
+            <div className={`lg:col-span-8 h-full ${!selectedConversation ? 'hidden lg:flex items-center justify-center glass-card opacity-30 text-center p-10 bg-white dark:bg-navy-700/30' : 'flex flex-col'}`}>
+              {selectedConversation ? (
+                <ChatWindow
+                  key={`${selectedConversation.id}-${selectedConversation.tutorProfile.id}`}
+                  conversationId={selectedConversation.id}
+                  tutorProfileId={selectedConversation.tutorProfile.id}
+                  tutorName={selectedConversation.participant?.name || selectedConversation.student?.name || 'Student'}
+                  tutorImage={selectedConversation.participant?.avatarUrl || selectedConversation.student?.avatarUrl}
+                  onClose={() => setSelectedConversation(null)}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="text-4xl text-gold-400">M</div>
+                  <p className="text-xs font-black uppercase tracking-widest leading-relaxed text-navy-400 dark:text-cream-400/40">
+                    Select a conversation
+                    <br />
+                    to reply to your students
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'availability' && <AvailabilityManager />}
+        {activeTab === 'pricing' && <PricingManager />}
+        {activeTab === 'reviews' && <ReviewsSection />}
       </div>
 
       {selectedNotesBooking && (

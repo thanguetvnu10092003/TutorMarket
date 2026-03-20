@@ -3,6 +3,35 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+function getCertificationMatch(subject?: string | null) {
+  if (!subject) {
+    return null;
+  }
+
+  if (subject.startsWith('CFA')) {
+    return {
+      type: 'CFA' as const,
+      levelOrVariant: subject,
+    };
+  }
+
+  if (subject === 'GMAT') {
+    return {
+      type: 'GMAT' as const,
+      levelOrVariant: null,
+    };
+  }
+
+  if (subject === 'GRE') {
+    return {
+      type: 'GRE' as const,
+      levelOrVariant: null,
+    };
+  }
+
+  return null;
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
@@ -16,43 +45,66 @@ export async function DELETE(
 
     const { id } = params;
 
-    // Find the certification and ensure it belongs to the current tutor
-    const certification = await prisma.tutorCertification.findUnique({
+    const credential = await prisma.tutorCredential.findUnique({
       where: { id },
       include: {
-        tutorProfile: true
-      }
+        tutorProfile: true,
+      },
     });
 
-    if (!certification) {
-      return NextResponse.json({ error: 'Certification not found' }, { status: 404 });
+    if (!credential) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
-    if (certification.tutorProfile.userId !== session.user.id) {
+    if (credential.tutorProfile.userId !== session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Delete the certification
-    await prisma.tutorCertification.delete({
-      where: { id }
-    });
-
-    // Check if there are any certifications left
-    const remainingCount = await prisma.tutorCertification.count({
-      where: { tutorProfileId: certification.tutorProfileId }
-    });
-
-    // If no certifications left, reset the verification status
-    if (remainingCount === 0) {
-      await prisma.tutorProfile.update({
-        where: { id: certification.tutorProfileId },
-        data: { verificationStatus: 'PENDING' } 
+    await prisma.$transaction(async (tx) => {
+      await tx.tutorCredential.delete({
+        where: { id: credential.id },
       });
-    }
 
-    return NextResponse.json({ success: true, message: 'Certification deleted successfully' });
+      const certificationMatch = getCertificationMatch(credential.subject || null);
+
+      if (certificationMatch && credential.subject) {
+        const remainingSubjectDocuments = await tx.tutorCredential.count({
+          where: {
+            tutorProfileId: credential.tutorProfileId,
+            subject: credential.subject,
+          },
+        });
+
+        if (remainingSubjectDocuments === 0) {
+          await tx.tutorCertification.deleteMany({
+            where: {
+              tutorProfileId: credential.tutorProfileId,
+              type: certificationMatch.type,
+              ...(certificationMatch.levelOrVariant
+                ? { levelOrVariant: certificationMatch.levelOrVariant }
+                : {}),
+            },
+          });
+        }
+      }
+
+      const remainingCertificationCount = await tx.tutorCertification.count({
+        where: { tutorProfileId: credential.tutorProfileId },
+      });
+
+      if (remainingCertificationCount === 0) {
+        await tx.tutorProfile.update({
+          where: { id: credential.tutorProfileId },
+          data: {
+            verificationStatus: 'PENDING',
+          },
+        });
+      }
+    });
+
+    return NextResponse.json({ success: true, message: 'Document deleted successfully' });
   } catch (error) {
-    console.error('Tutor certification delete error:', error);
-    return NextResponse.json({ error: 'Failed to delete certification' }, { status: 500 });
+    console.error('Tutor document delete error:', error);
+    return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 });
   }
 }

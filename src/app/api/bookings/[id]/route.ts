@@ -1,43 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { bookings } from '@/lib/mock-data';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-// PATCH /api/bookings/:id — Cancel or complete
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const body = await request.json();
-  const { action } = body; // 'cancel' or 'complete'
-  const booking = bookings.find(b => b.id === params.id);
+  try {
+    const session = await getServerSession(authOptions);
 
-  if (!booking) {
-    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-  }
-
-  if (action === 'cancel') {
-    const scheduledTime = new Date(booking.scheduledAt).getTime();
-    const now = Date.now();
-    const hoursUntil = (scheduledTime - now) / (1000 * 60 * 60);
-
-    let refundPercentage = 0;
-    if (hoursUntil > 24) {
-      refundPercentage = 100; // Full refund
-    } else if (hoursUntil > 0) {
-      refundPercentage = 50; // 50% refund
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return NextResponse.json({
-      data: { ...booking, status: 'CANCELLED', cancelledAt: new Date().toISOString() },
-      refund: { percentage: refundPercentage, message: `${refundPercentage}% refund will be processed` },
-    });
-  }
+    const body = await request.json();
+    const action = body?.action;
 
-  if (action === 'complete') {
-    return NextResponse.json({
-      data: { ...booking, status: 'COMPLETED', completedAt: new Date().toISOString() },
-      message: 'Session marked as complete. Student will be prompted to leave a review.',
-    });
-  }
+    if (!action || !['cancel', 'complete'].includes(action)) {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
 
-  return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    const booking = await prisma.booking.findUnique({
+      where: { id: params.id },
+      include: {
+        tutorProfile: true,
+        student: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    const isStudentOwner = booking.studentId === session.user.id;
+    const isTutorOwner = booking.tutorProfile.userId === session.user.id;
+
+    if (!isStudentOwner && !isTutorOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (action === 'cancel') {
+      if (booking.status === 'CANCELLED') {
+        return NextResponse.json({ error: 'Booking is already cancelled' }, { status: 400 });
+      }
+
+      const updatedBooking = await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: isTutorOwner ? booking.studentId : booking.tutorProfile.userId,
+          type: 'BOOKING_CANCELLED',
+          title: 'Session cancelled',
+          body: `${booking.student.name}'s session has been cancelled.`,
+          link: '/dashboard/student?tab=bookings',
+        },
+      });
+
+      return NextResponse.json({
+        data: updatedBooking,
+        message: 'Booking cancelled successfully',
+      });
+    }
+
+    if (!isTutorOwner) {
+      return NextResponse.json({ error: 'Only the tutor can mark a session as complete' }, { status: 403 });
+    }
+
+    if (booking.status === 'COMPLETED') {
+      return NextResponse.json({ error: 'Booking is already completed' }, { status: 400 });
+    }
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.bookingEvent.create({
+      data: {
+        bookingId: booking.id,
+        eventType: 'SESSION_COMPLETED',
+        title: 'Session completed',
+        details: `Tutor marked the session with ${booking.student.name} as completed.`,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: booking.studentId,
+        type: 'SESSION_COMPLETED',
+        title: 'Your session is complete',
+        body: `Your lesson with ${booking.tutorProfile.headline || 'your tutor'} has been marked as completed. You can now leave a review.`,
+        link: '/dashboard/student?tab=bookings',
+      },
+    });
+
+    return NextResponse.json({
+      data: updatedBooking,
+      message: 'Session marked as complete. The student can now leave a review.',
+    });
+  } catch (error) {
+    console.error('Update booking error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
