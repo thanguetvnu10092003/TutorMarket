@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { createCheckoutSessionForStudentPayment } from '@/lib/payment-checkout';
 import { z } from 'zod';
 
 const bookingSchema = z.object({
@@ -66,9 +67,27 @@ export async function POST(req: NextRequest) {
         }
       });
 
+      const packagePayment = pkg.payment;
+      let checkoutUrl: string | null = null;
+
+      if (packagePayment && packagePayment.amount > 0) {
+        try {
+          const { session: checkoutSession } = await createCheckoutSessionForStudentPayment({
+            paymentId: packagePayment.id,
+            studentId,
+            studentEmail: session.user.email,
+          });
+
+          checkoutUrl = checkoutSession.url || null;
+        } catch (checkoutError) {
+          console.error('Package Stripe checkout creation error:', checkoutError);
+        }
+      }
+
       return NextResponse.json({
         success: true,
-        data: pkg
+        data: pkg,
+        checkoutUrl,
       });
     }
 
@@ -132,9 +151,27 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    const bookingPayment = booking.payment;
+    let checkoutUrl: string | null = null;
+
+    if (bookingPayment && bookingPayment.amount > 0) {
+      try {
+        const { session: checkoutSession } = await createCheckoutSessionForStudentPayment({
+          paymentId: bookingPayment.id,
+          studentId,
+          studentEmail: session.user.email,
+        });
+
+        checkoutUrl = checkoutSession.url || null;
+      } catch (checkoutError) {
+        console.error('Booking Stripe checkout creation error:', checkoutError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: booking
+      data: booking,
+      checkoutUrl,
     });
 
   } catch (error: any) {

@@ -121,6 +121,18 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
         throw new Error(data.error || 'Failed to process request');
       }
 
+      if (data.checkoutUrl) {
+        toast.success('Redirecting to Stripe checkout...');
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      if (selectedType !== 'TRIAL' && data.data?.payment?.amount > 0) {
+        toast.success('Booking created. Complete payment from Payments & Billing.');
+        onClose();
+        return;
+      }
+
       toast.success(selectedType === 'PACKAGE' ? 'Package purchased successfully!' : 'Booking requested successfully!');
       onClose();
     } catch (error: any) {

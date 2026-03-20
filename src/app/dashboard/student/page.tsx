@@ -27,6 +27,7 @@ export default function StudentDashboard() {
   const [selectedReportBooking, setSelectedReportBooking] = useState<any>(null);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [directMessageTutor, setDirectMessageTutor] = useState<any>(null);
+  const [payingPaymentId, setPayingPaymentId] = useState<string | null>(null);
   const [data, setData] = useState({
     bookings: [] as any[],
     packages: [] as any[],
@@ -36,35 +37,35 @@ export default function StudentDashboard() {
     isLoading: true,
   });
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [bookingsRes, referralRes, favoritesRes, paymentsRes] = await Promise.all([
-          fetch('/api/bookings?role=STUDENT'),
-          fetch('/api/student/referral'),
-          fetch('/api/student/favorites'),
-          fetch('/api/payments'),
-        ]);
+  async function loadData() {
+    try {
+      const [bookingsRes, referralRes, favoritesRes, paymentsRes] = await Promise.all([
+        fetch('/api/bookings?role=STUDENT', { cache: 'no-store' }),
+        fetch('/api/student/referral', { cache: 'no-store' }),
+        fetch('/api/student/favorites', { cache: 'no-store' }),
+        fetch('/api/payments', { cache: 'no-store' }),
+      ]);
 
-        const bookingsJson = await bookingsRes.json();
-        const referralJson = await referralRes.json();
-        const favoritesJson = await favoritesRes.json();
-        const paymentsJson = await paymentsRes.json();
+      const bookingsJson = await bookingsRes.json();
+      const referralJson = await referralRes.json();
+      const favoritesJson = await favoritesRes.json();
+      const paymentsJson = await paymentsRes.json();
 
-        setData({
-          bookings: bookingsJson.data || [],
-          packages: bookingsJson.packages || [],
-          favorites: favoritesJson.data || [],
-          payments: paymentsJson.data || [],
-          referral: referralJson.data || null,
-          isLoading: false,
-        });
-      } catch (error) {
-        console.error('Error loading student dashboard:', error);
-        setData((prev) => ({ ...prev, isLoading: false }));
-      }
+      setData({
+        bookings: bookingsJson.data || [],
+        packages: bookingsJson.packages || [],
+        favorites: favoritesJson.data || [],
+        payments: paymentsJson.data || [],
+        referral: referralJson.data || null,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Error loading student dashboard:', error);
+      setData((prev) => ({ ...prev, isLoading: false }));
     }
+  }
 
+  useEffect(() => {
     if (session?.user) {
       void loadData();
     }
@@ -75,6 +76,20 @@ export default function StudentDashboard() {
 
     if (requestedTab && tabs.some((tab) => tab.id === requestedTab)) {
       setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const stripeStatus = searchParams.get('stripe');
+
+    if (stripeStatus === 'success') {
+      toast.success('Stripe payment completed. Updating your billing history...');
+      void loadData();
+      return;
+    }
+
+    if (stripeStatus === 'cancelled') {
+      toast('Stripe checkout was cancelled.');
     }
   }, [searchParams]);
 
@@ -119,6 +134,35 @@ export default function StudentDashboard() {
       ignore = true;
     };
   }, [searchParams, session]);
+
+  async function handlePayNow(paymentId: string) {
+    try {
+      setPayingPaymentId(paymentId);
+
+      const response = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to start Stripe checkout');
+      }
+
+      if (!json.data?.checkoutUrl) {
+        throw new Error('Stripe checkout URL was not returned');
+      }
+
+      window.location.href = json.data.checkoutUrl;
+    } catch (error: any) {
+      console.error('Stripe checkout launch error:', error);
+      toast.error(error.message || 'Could not start Stripe checkout');
+    } finally {
+      setPayingPaymentId(null);
+    }
+  }
 
   if (data.isLoading) {
     return (
@@ -354,7 +398,22 @@ export default function StudentDashboard() {
             <div className="p-6 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
               <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Payments & Billing</h2>
             </div>
-            <div className="p-6 divide-y divide-navy-100/50 dark:divide-navy-500/10">
+            <div className="p-6 space-y-6">
+              <div className="rounded-[24px] border border-gold-200/70 dark:border-gold-500/20 bg-gold-50/70 dark:bg-navy-700/40 p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Payment Method</p>
+                  <h3 className="mt-2 text-lg font-black text-navy-600 dark:text-cream-200">Stripe Checkout</h3>
+                  <p className="mt-1 text-sm text-navy-400 dark:text-cream-300/70">
+                    Secure card checkout for single lessons and lesson packages. Trial lessons stay free.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white dark:bg-navy-800/60 px-4 py-3 border border-white/70 dark:border-navy-500/20">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Status</p>
+                  <p className="mt-1 text-sm font-bold text-navy-600 dark:text-cream-200">Ready for checkout</p>
+                </div>
+              </div>
+
+              <div className="divide-y divide-navy-100/50 dark:divide-navy-500/10">
               {data.payments.length > 0 ? (
                 data.payments.map((payment) => (
                   <div key={payment.id} className="py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -366,10 +425,25 @@ export default function StudentDashboard() {
                         {payment.subject ? `${SUBJECT_LABELS[payment.subject as keyof typeof SUBJECT_LABELS]} | ` : ''}
                         {formatDate(payment.paidAt || payment.createdAt)}
                       </p>
+                      <p className="text-xs text-navy-400 dark:text-cream-300/70 mt-2">
+                        Method: {payment.paymentMethod === 'FREE_TRIAL' ? 'Free trial' : 'Stripe Checkout'}
+                      </p>
                     </div>
-                    <div className="text-left md:text-right">
+                    <div className="text-left md:text-right space-y-2">
                       <p className="text-lg font-black text-navy-600 dark:text-cream-200">{formatCurrency(payment.amount)}</p>
                       <p className="text-[10px] font-black uppercase tracking-widest text-gold-600 mt-1">{payment.status.replaceAll('_', ' ')}</p>
+                      {payment.canPayNow && (
+                        <button
+                          onClick={() => void handlePayNow(payment.id)}
+                          disabled={payingPaymentId === payment.id}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-navy-700 disabled:bg-navy-200 disabled:text-navy-400"
+                        >
+                          {payingPaymentId === payment.id ? (
+                            <div className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                          ) : null}
+                          Pay with Stripe
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -381,6 +455,7 @@ export default function StudentDashboard() {
                   </p>
                 </div>
               )}
+              </div>
             </div>
           </div>
         )}
