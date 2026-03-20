@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
-import { calculateCommission } from '@/lib/utils';
+import { buildBookingRoomUrl, calculateCommission } from '@/lib/utils';
+import {
+  createStudentBookingConfirmedNotification,
+  createStudentPaymentNotification,
+  createTutorPaymentNotification,
+} from '@/lib/payment-notifications';
 import Stripe from 'stripe';
 
 function getCapturedPaymentSplit(amount: number) {
@@ -42,24 +47,60 @@ export async function POST(request: Request) {
         if (paymentId) {
           const payment = await prisma.payment.findUnique({
             where: { id: paymentId },
-            select: {
-              id: true,
-              amount: true,
-              status: true,
+            include: {
+              booking: {
+                include: {
+                  student: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                  tutorProfile: {
+                    select: {
+                      userId: true,
+                      user: {
+                        select: {
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              package: {
+                include: {
+                  student: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                  tutorProfile: {
+                    select: {
+                      userId: true,
+                      user: {
+                        select: {
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           });
 
-          if (!payment) {
+          if (!payment || payment.status === 'CAPTURED') {
             break;
           }
 
           const split = getCapturedPaymentSplit(payment.amount);
+          const paidAt = new Date();
 
           await prisma.payment.update({
             where: { id: paymentId },
             data: {
               status: 'CAPTURED',
-              paidAt: new Date(),
+              paidAt,
               platformFee: split.platformFee,
               tutorPayout: split.tutorPayout,
               stripePaymentIntentId:
@@ -67,6 +108,89 @@ export async function POST(request: Request) {
                   ? session.payment_intent
                   : undefined,
             },
+          });
+
+          if (payment.bookingId) {
+            await prisma.booking.updateMany({
+              where: {
+                id: payment.bookingId,
+                status: {
+                  in: ['PENDING', 'CONFIRMED'],
+                },
+              },
+              data: {
+                status: 'CONFIRMED',
+                confirmedAt: paidAt,
+                meetingLink: payment.booking?.meetingLink || buildBookingRoomUrl(payment.bookingId),
+              },
+            });
+          }
+
+          await createTutorPaymentNotification({
+            paymentAmount: payment.amount,
+            tutorPayout: split.tutorPayout,
+            paidAt,
+            booking: payment.booking
+              ? {
+                  id: payment.booking.id,
+                  studentId: payment.booking.studentId,
+                  subject: payment.booking.subject,
+                  scheduledAt: payment.booking.scheduledAt,
+                  student: payment.booking.student,
+                  tutorProfile: payment.booking.tutorProfile,
+                }
+              : null,
+            package: payment.package
+              ? {
+                  id: payment.package.id,
+                  studentId: payment.package.studentId,
+                  totalSessions: payment.package.totalSessions,
+                  student: payment.package.student,
+                  tutorProfile: payment.package.tutorProfile,
+                }
+              : null,
+          });
+
+          await createStudentPaymentNotification({
+            paymentAmount: payment.amount,
+            tutorPayout: split.tutorPayout,
+            paidAt,
+            booking: payment.booking
+              ? {
+                  id: payment.booking.id,
+                  studentId: payment.booking.studentId,
+                  subject: payment.booking.subject,
+                  scheduledAt: payment.booking.scheduledAt,
+                  student: payment.booking.student,
+                  tutorProfile: payment.booking.tutorProfile,
+                }
+              : null,
+            package: payment.package
+              ? {
+                  id: payment.package.id,
+                  studentId: payment.package.studentId,
+                  totalSessions: payment.package.totalSessions,
+                  student: payment.package.student,
+                  tutorProfile: payment.package.tutorProfile,
+                }
+              : null,
+          });
+
+          await createStudentBookingConfirmedNotification({
+            paymentAmount: payment.amount,
+            tutorPayout: split.tutorPayout,
+            paidAt,
+            booking: payment.booking
+              ? {
+                  id: payment.booking.id,
+                  studentId: payment.booking.studentId,
+                  subject: payment.booking.subject,
+                  scheduledAt: payment.booking.scheduledAt,
+                  student: payment.booking.student,
+                  tutorProfile: payment.booking.tutorProfile,
+                }
+              : null,
+            package: null,
           });
         }
 

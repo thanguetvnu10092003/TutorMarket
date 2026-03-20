@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/admin';
+import { createInAppNotification } from '@/lib/in-app-notifications';
+import { formatDateTime } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,8 @@ export async function PATCH(
     }
 
     let certification: any;
+    let tutorUserId: string | null = null;
+    let shouldNotifyTutorApproval = false;
 
     await prisma.$transaction(async (tx) => {
       const existingCertification: any = await tx.tutorCertification.findUnique({
@@ -33,6 +37,7 @@ export async function PATCH(
       }
 
       const isGmatCertification = existingCertification.type === 'GMAT' && existingCertification.gmatVerification;
+      tutorUserId = existingCertification.tutorProfile.userId;
 
       if (isGmatCertification && status === 'VERIFIED') {
         const documentReviewedAt = new Date();
@@ -131,7 +136,21 @@ export async function PATCH(
           badgeType: newBadgeType,
         }
       });
+
+      shouldNotifyTutorApproval =
+        existingCertification.tutorProfile.verificationStatus !== 'APPROVED' &&
+        newVerificationStatus === 'APPROVED';
     });
+
+    if (shouldNotifyTutorApproval && tutorUserId) {
+      await createInAppNotification({
+        userId: tutorUserId,
+        type: 'TUTOR_VERIFIED',
+        title: 'Your tutor profile is verified',
+        body: `Your tutor profile was approved on ${formatDateTime(new Date().toISOString())}. Your verified badge is active and students can now find you in search.`,
+        link: '/dashboard/tutor?tab=overview',
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -209,7 +209,7 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-navy-800 rounded-[32px] overflow-hidden shadow-2xl border border-navy-100/50 dark:border-navy-500/20">
+    <div className="flex min-w-0 min-h-0 flex-col h-full bg-white dark:bg-navy-800 rounded-[32px] overflow-hidden shadow-2xl border border-navy-100/50 dark:border-navy-500/20">
       <div className="p-4 bg-navy-50/50 dark:bg-navy-900/50 border-b border-navy-100/50 dark:border-navy-500/20 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gold-100 dark:bg-navy-700 overflow-hidden flex items-center justify-center font-bold text-navy-600 dark:text-gold-400">
@@ -229,7 +229,7 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
 
       <div
         ref={scrollRef}
-        className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar bg-cream-50/30 dark:bg-navy-800/20"
+        className="min-h-0 flex-1 p-6 overflow-x-hidden overflow-y-auto space-y-4 custom-scrollbar bg-cream-50/30 dark:bg-navy-800/20"
       >
         {isLoading ? (
           <div className="flex justify-center py-10">

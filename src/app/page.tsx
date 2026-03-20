@@ -65,6 +65,24 @@ const howItWorks = [
   },
 ];
 
+const platformHighlights = [
+  {
+    title: 'Stay Shortlisted',
+    description: 'Save tutors you want to compare, then reopen the shortlist from the navbar without digging back through search results.',
+    actionLabel: 'Review tutors',
+  },
+  {
+    title: 'Keep Every Conversation',
+    description: 'Messages, read status, timestamps, and follow-ups stay in one place so students and tutors keep the full thread context.',
+    actionLabel: 'Open messages',
+  },
+  {
+    title: 'Track Sessions and Billing',
+    description: 'Bookings, room links, payments, and earnings all move through the same workflow instead of separate disconnected pages.',
+    actionLabel: 'Open dashboard',
+  },
+];
+
 export default function HomePage() {
   const { data: session } = useSession();
   const [searchSubject, setSearchSubject] = useState('');
@@ -381,62 +399,52 @@ export default function HomePage() {
       <section className="section-padding bg-cream-200 dark:bg-navy-600">
         <div className="page-container">
           <div className="text-center mb-14">
-            <span className="badge-navy mb-4 inline-block">Exam Specializations</span>
+            <span className="badge-navy mb-4 inline-block">Platform Workflow</span>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-navy-600 dark:text-cream-200 mb-4">
-              Expert Tutors for Every Exam
+              Everything Important Stays Connected
             </h2>
+            <p className="mx-auto max-w-2xl text-sm text-navy-300 dark:text-cream-400/60 leading-relaxed">
+              Shortlists, messages, bookings, room links, and billing should work as one flow. This section now explains the actual product workflow instead of repeating exam categories.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* CFA */}
-            <div className="glass-card p-8 text-center group">
-              <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                </svg>
-              </div>
-              <h3 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200 mb-2">CFA Program</h3>
-              <p className="text-sm text-navy-300 dark:text-cream-400/60 mb-4">Level I, II, and III preparation with CFA charterholders</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <Link href="/tutors?subject=CFA_LEVEL_1" className="text-xs px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
-                  Level I
-                </Link>
-                <Link href="/tutors?subject=CFA_LEVEL_2" className="text-xs px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors">
-                  Level II
-                </Link>
-                <Link href="/tutors?subject=CFA_LEVEL_3" className="text-xs px-3 py-1.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors">
-                  Level III
-                </Link>
-              </div>
-            </div>
+            {platformHighlights.map((item, index) => {
+              const accentClass =
+                index === 0
+                  ? 'from-blue-100 to-blue-200 text-blue-600 dark:from-blue-900/30 dark:to-blue-800/20 dark:text-blue-300'
+                  : index === 1
+                    ? 'from-gold-100 to-gold-200 text-gold-700 dark:from-gold-500/20 dark:to-gold-500/10 dark:text-gold-300'
+                    : 'from-sage-100 to-sage-200 text-sage-700 dark:from-sage-500/20 dark:to-sage-500/10 dark:text-sage-300';
+              const href =
+                index === 0
+                  ? isTutor
+                    ? '/dashboard/tutor?tab=overview'
+                    : '/tutors'
+                  : index === 1
+                    ? session?.user
+                      ? `/dashboard/${role?.toLowerCase()}?tab=messages`
+                      : '/auth/register'
+                    : session?.user
+                      ? `/dashboard/${role?.toLowerCase()}`
+                      : '/auth/register';
 
-            {/* GMAT */}
-            <div className="glass-card p-8 text-center group">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600 dark:text-emerald-400">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-              </div>
-              <h3 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200 mb-2">GMAT Prep</h3>
-              <p className="text-sm text-navy-300 dark:text-cream-400/60 mb-4">Comprehensive GMAT preparation with 700+ scorers</p>
-              <Link href="/tutors?subject=GMAT" className="text-xs px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
-                Browse GMAT Tutors
-              </Link>
-            </div>
-
-            {/* GRE */}
-            <div className="glass-card p-8 text-center group">
-              <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-              </div>
-              <h3 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200 mb-2">GRE Prep</h3>
-              <p className="text-sm text-navy-300 dark:text-cream-400/60 mb-4">Verbal and quantitative expertise with 330+ scorers</p>
-              <Link href="/tutors?subject=GRE" className="text-xs px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors">
-                Browse GRE Tutors
-              </Link>
-            </div>
+              return (
+                <div key={item.title} className="glass-card p-8 group">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${accentClass} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                    <span className="text-xl font-black">{index + 1}</span>
+                  </div>
+                  <h3 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200 mb-3">{item.title}</h3>
+                  <p className="text-sm text-navy-300 dark:text-cream-400/60 leading-relaxed mb-5">{item.description}</p>
+                  <Link
+                    href={href}
+                    className="inline-flex items-center text-xs font-black uppercase tracking-widest text-gold-600 hover:text-gold-700 transition-colors"
+                  >
+                    {item.actionLabel}
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

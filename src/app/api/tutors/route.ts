@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { getPublicTutorCards } from '@/lib/admin-dashboard';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
 
     const filters = {
@@ -26,8 +30,30 @@ export async function GET(request: NextRequest) {
     const start = (page - 1) * limit;
     const paginated = results.slice(start, start + limit);
 
+    let trialTutorIds = new Set<string>();
+
+    if (session?.user?.role === 'STUDENT' && paginated.length > 0) {
+      const trialBookings = await prisma.booking.findMany({
+        where: {
+          studentId: session.user.id,
+          tutorProfileId: { in: paginated.map((tutor) => tutor.id) },
+          isFreeSession: true,
+          status: { not: 'CANCELLED' },
+        },
+        select: {
+          tutorProfileId: true,
+        },
+        distinct: ['tutorProfileId'],
+      });
+
+      trialTutorIds = new Set(trialBookings.map((booking) => booking.tutorProfileId));
+    }
+
     return NextResponse.json({
-      data: paginated,
+      data: paginated.map((tutor) => ({
+        ...tutor,
+        hasUsedTrialLesson: trialTutorIds.has(tutor.id),
+      })),
       meta: {
         total: results.length,
         page,

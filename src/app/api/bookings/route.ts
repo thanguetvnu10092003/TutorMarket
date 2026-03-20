@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createCheckoutSessionForStudentPayment } from '@/lib/payment-checkout';
-import { buildBookingRoomUrl } from '@/lib/utils';
+import { buildBookingRoomUrl, formatDateTime } from '@/lib/utils';
+import { createInAppNotification } from '@/lib/in-app-notifications';
 import { z } from 'zod';
 
 const bookingSchema = z.object({
@@ -31,6 +32,13 @@ export async function POST(req: NextRequest) {
     // 1. Fetch tutor profile
     const tutorProfile = await prisma.tutorProfile.findUnique({
       where: { id: tutorProfileId },
+      include: {
+        user: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     if (!tutorProfile) {
@@ -161,6 +169,18 @@ export async function POST(req: NextRequest) {
       });
       booking.meetingLink = buildBookingRoomUrl(booking.id);
     }
+
+    await createInAppNotification({
+      userId: studentId,
+      preferenceType: 'SESSION_UPDATES',
+      type: 'BOOKING_CREATED',
+      title: type === 'TRIAL' ? 'Trial lesson booked' : 'Booking created',
+      body:
+        price === 0
+          ? `Your ${type === 'TRIAL' ? 'trial lesson' : 'lesson'} with ${tutorProfile.user.name} for ${subject.replace(/_/g, ' ')} is scheduled for ${formatDateTime(booking.scheduledAt.toISOString())}. Payment status: free trial.`
+          : `Your lesson with ${tutorProfile.user.name} for ${subject.replace(/_/g, ' ')} is scheduled for ${formatDateTime(booking.scheduledAt.toISOString())}. Payment status: pending Stripe checkout.`,
+      link: '/dashboard/student?tab=bookings',
+    });
 
     const bookingPayment = booking.payment;
     let checkoutUrl: string | null = null;

@@ -349,10 +349,20 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                 <div className="space-y-3 mb-8">
                     <button 
                         onClick={handleBookingClick}
-                        className="w-full bg-gold-500 hover:bg-gold-600 text-navy-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-gold transition-all"
+                        disabled={profile.hasUsedTrialLesson}
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
+                          profile.hasUsedTrialLesson
+                            ? 'bg-navy-100 dark:bg-navy-700 text-navy-400 dark:text-cream-400/50 cursor-not-allowed'
+                            : 'bg-gold-500 hover:bg-gold-600 text-navy-600 shadow-gold'
+                        }`}
                     >
-                        Book Trial Lesson ($0)
+                        {profile.hasUsedTrialLesson ? 'Free Trial Used' : 'Book Trial Lesson ($0)'}
                     </button>
+                    {profile.hasUsedTrialLesson && (
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/40 text-center">
+                        Trial already used with this tutor
+                      </p>
+                    )}
                     <button 
                         onClick={handleBookingClick}
                         className="w-full bg-navy-50/50 dark:bg-navy-600/50 text-navy-600 dark:text-cream-200 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-navy-100 transition-all"

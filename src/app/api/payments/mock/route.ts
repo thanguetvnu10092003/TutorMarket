@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { calculateCommission } from '@/lib/utils';
+import { buildBookingRoomUrl, calculateCommission } from '@/lib/utils';
+import {
+  createStudentBookingConfirmedNotification,
+  createStudentPaymentNotification,
+  createTutorPaymentNotification,
+} from '@/lib/payment-notifications';
 
 function getCapturedPaymentSplit(amount: number) {
   if (amount <= 0) {
@@ -29,8 +34,44 @@ export async function POST(req: NextRequest) {
     const payment = await prisma.payment.findUnique({
       where: { id: paymentId },
       include: {
-        booking: true,
-        package: true,
+        booking: {
+          include: {
+            student: {
+              select: {
+                name: true,
+              },
+            },
+            tutorProfile: {
+              select: {
+                userId: true,
+                user: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        package: {
+          include: {
+            student: {
+              select: {
+                name: true,
+              },
+            },
+            tutorProfile: {
+              select: {
+                userId: true,
+                user: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -52,12 +93,13 @@ export async function POST(req: NextRequest) {
 
     // 1. Mark payment as CAPTURED
     const split = getCapturedPaymentSplit(payment.amount);
+    const paidAt = new Date();
 
     const updatedPayment = await prisma.payment.update({
       where: { id: paymentId },
       data: {
         status: 'CAPTURED',
-        paidAt: new Date(),
+        paidAt,
         platformFee: split.platformFee,
         tutorPayout: split.tutorPayout,
       },
@@ -66,9 +108,18 @@ export async function POST(req: NextRequest) {
     // 2. Fulfill the purchase based on type
     if (payment.bookingId) {
       // Single Lesson: Update booking status to CONFIRMED
-      await prisma.booking.update({
-        where: { id: payment.bookingId },
-        data: { status: 'CONFIRMED' },
+      await prisma.booking.updateMany({
+        where: {
+          id: payment.bookingId,
+          status: {
+            in: ['PENDING', 'CONFIRMED'],
+          },
+        },
+        data: {
+          status: 'CONFIRMED',
+          confirmedAt: paidAt,
+          meetingLink: payment.booking?.meetingLink || buildBookingRoomUrl(payment.bookingId),
+        },
       });
     } else if (payment.packageId) {
       // Package: The package is effectively "active" once paid.
@@ -78,6 +129,73 @@ export async function POST(req: NextRequest) {
       
       // Update tutor's total students/sessions stats optionally, or just wait for completed sessions.
     }
+
+    await createTutorPaymentNotification({
+      paymentAmount: payment.amount,
+      tutorPayout: split.tutorPayout,
+      paidAt,
+      booking: payment.booking
+        ? {
+            id: payment.booking.id,
+            studentId: payment.booking.studentId,
+            subject: payment.booking.subject,
+            scheduledAt: payment.booking.scheduledAt,
+            student: payment.booking.student,
+            tutorProfile: payment.booking.tutorProfile,
+          }
+        : null,
+      package: payment.package
+        ? {
+            id: payment.package.id,
+            studentId: payment.package.studentId,
+            totalSessions: payment.package.totalSessions,
+            student: payment.package.student,
+            tutorProfile: payment.package.tutorProfile,
+          }
+        : null,
+    });
+
+    await createStudentPaymentNotification({
+      paymentAmount: payment.amount,
+      tutorPayout: split.tutorPayout,
+      paidAt,
+      booking: payment.booking
+        ? {
+            id: payment.booking.id,
+            studentId: payment.booking.studentId,
+            subject: payment.booking.subject,
+            scheduledAt: payment.booking.scheduledAt,
+            student: payment.booking.student,
+            tutorProfile: payment.booking.tutorProfile,
+          }
+        : null,
+      package: payment.package
+        ? {
+            id: payment.package.id,
+            studentId: payment.package.studentId,
+            totalSessions: payment.package.totalSessions,
+            student: payment.package.student,
+            tutorProfile: payment.package.tutorProfile,
+          }
+        : null,
+    });
+
+    await createStudentBookingConfirmedNotification({
+      paymentAmount: payment.amount,
+      tutorPayout: split.tutorPayout,
+      paidAt,
+      booking: payment.booking
+        ? {
+            id: payment.booking.id,
+            studentId: payment.booking.studentId,
+            subject: payment.booking.subject,
+            scheduledAt: payment.booking.scheduledAt,
+            student: payment.booking.student,
+            tutorProfile: payment.booking.tutorProfile,
+          }
+        : null,
+      package: null,
+    });
 
     return NextResponse.json({ success: true, data: updatedPayment });
 

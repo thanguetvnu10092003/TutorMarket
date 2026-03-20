@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdminSession, recordAdminAction } from '@/lib/admin';
 import { decrypt } from '@/lib/encryption';
+import { createInAppNotification } from '@/lib/in-app-notifications';
+import { formatDateTime } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +77,16 @@ export async function PATCH(
     const gmatRequest = await prisma.gmatVerificationRequest.findUnique({
       where: { id: params.id },
       include: {
-        tutorCertification: true
+        tutorCertification: {
+          include: {
+            tutorProfile: {
+              select: {
+                userId: true,
+                verificationStatus: true,
+              },
+            },
+          },
+        },
       }
     });
 
@@ -84,6 +95,9 @@ export async function PATCH(
     }
 
     let finalCertificationStatus = gmatRequest.tutorCertification.status;
+    let tutorUserId: string | null = gmatRequest.tutorCertification.tutorProfile?.userId || null;
+    let previousVerificationStatus = gmatRequest.tutorCertification.tutorProfile?.verificationStatus || null;
+    let shouldNotifyTutorApproval = false;
 
     await prisma.$transaction(async (tx) => {
       const freshRequest: any = await tx.gmatVerificationRequest.findUnique({
@@ -164,7 +178,21 @@ export async function PATCH(
           badgeType: hasVerifiedCert ? 'VERIFIED' : allRejected ? 'NOT_VERIFIED' : 'NONE',
         },
       });
+
+      shouldNotifyTutorApproval =
+        previousVerificationStatus !== 'APPROVED' &&
+        hasVerifiedCert;
     });
+
+    if (shouldNotifyTutorApproval && tutorUserId) {
+      await createInAppNotification({
+        userId: tutorUserId,
+        type: 'TUTOR_VERIFIED',
+        title: 'Your tutor profile is verified',
+        body: `Your tutor profile was approved on ${formatDateTime(new Date().toISOString())}. Your verified badge is active and students can now find you in search.`,
+        link: '/dashboard/tutor?tab=overview',
+      });
+    }
 
     await recordAdminAction({
       adminId: session.user.id,

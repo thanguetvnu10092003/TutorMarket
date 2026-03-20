@@ -87,6 +87,44 @@ export default function TutorDashboard() {
   }, [session]);
 
   useEffect(() => {
+    if (!session?.user) {
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadUnreadCount() {
+      try {
+        const response = await fetch('/api/conversations', { cache: 'no-store' });
+        const json = await response.json();
+
+        if (!response.ok) {
+          throw new Error(json.error || 'Failed to load unread messages');
+        }
+
+        if (!ignore) {
+          setMessageUnreadCount(json.unreadCount || 0);
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error('Failed to load unread message count:', error);
+        }
+      }
+    }
+
+    void loadUnreadCount();
+    const intervalId = window.setInterval(() => {
+      void loadUnreadCount();
+    }, 5000);
+
+    return () => {
+      ignore = true;
+      window.clearInterval(intervalId);
+    };
+  }, [session?.user]);
+
+  useEffect(() => {
     const requestedTab = searchParams.get('tab');
 
     if (requestedTab && tutorTabs.some((tab) => tab.id === requestedTab)) {
@@ -183,7 +221,7 @@ export default function TutorDashboard() {
             </div>
             <div>
               <div className="flex items-center gap-3 mb-2 flex-wrap">
-                <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200">
+                <h1 className="text-3xl font-body font-bold tracking-tight text-navy-600 dark:text-cream-200">
                   {session?.user?.name || 'Tutor Dashboard'}
                 </h1>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isVerified ? 'bg-sage-500 text-white' : 'bg-gold-100 text-gold-700 dark:bg-gold-500/20 dark:text-gold-400'}`}>
@@ -503,8 +541,8 @@ export default function TutorDashboard() {
         )}
 
         {activeTab === 'messages' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[640px]">
-            <div className={`lg:col-span-4 glass-card overflow-hidden flex flex-col ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px] lg:h-[640px]">
+            <div className={`lg:col-span-4 min-w-0 min-h-0 glass-card overflow-hidden flex flex-col ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
               <div className="p-4 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Student Messages</h2>
@@ -524,7 +562,7 @@ export default function TutorDashboard() {
               </div>
             </div>
 
-            <div className={`lg:col-span-8 h-full ${!selectedConversation ? 'hidden lg:flex items-center justify-center glass-card opacity-30 text-center p-10 bg-white dark:bg-navy-700/30' : 'flex flex-col'}`}>
+            <div className={`lg:col-span-8 min-w-0 min-h-0 h-full overflow-hidden ${!selectedConversation ? 'hidden lg:flex items-center justify-center glass-card opacity-30 text-center p-10 bg-white dark:bg-navy-700/30' : 'flex flex-col'}`}>
               {selectedConversation ? (
                 <ChatWindow
                   key={`${selectedConversation.id}-${selectedConversation.tutorProfile.id}`}

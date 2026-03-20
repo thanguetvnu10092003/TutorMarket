@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import Link from 'next/link';
 import { format, subDays } from 'date-fns';
 
 export default async function TutorAnalyticsPage() {
@@ -53,9 +54,17 @@ export default async function TutorAnalyticsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200">Performance Analytics</h1>
-        <p className="text-navy-300 dark:text-cream-400/60 mt-1">Track your earnings, session history, and student feedback.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200">Performance Analytics</h1>
+          <p className="text-navy-300 dark:text-cream-400/60 mt-1">Track your earnings, session history, and student feedback.</p>
+        </div>
+        <Link
+          href="/dashboard/tutor?tab=overview"
+          className="inline-flex items-center justify-center rounded-2xl border border-navy-200/70 dark:border-navy-500/30 bg-white dark:bg-navy-700/30 px-4 py-3 text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 transition-colors hover:border-gold-400 hover:text-gold-600"
+        >
+          Back to Dashboard
+        </Link>
       </div>
 
       {/* KPI Cards */}

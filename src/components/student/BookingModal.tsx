@@ -32,6 +32,7 @@ interface BookingModalProps {
     verifiedCertifications?: string[];
     availability: any[];
     timezone: string;
+    hasUsedTrialLesson?: boolean;
   };
 }
 
@@ -57,6 +58,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState('');
+  const trialUnavailable = Boolean(tutor.hasUsedTrialLesson);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,8 +67,9 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       setSelectedSlot(null);
       setSelectedPackage(null);
       setNotes('');
+      setSelectedType(trialUnavailable ? 'SINGLE' : 'SINGLE');
     }
-  }, [isOpen]);
+  }, [isOpen, trialUnavailable]);
 
   const daysInWeek = eachDayOfInterval({
     start: currentWeekStart,
@@ -220,19 +223,35 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <button
                     onClick={() => {
+                      if (trialUnavailable) {
+                        return;
+                      }
                       setSelectedType('TRIAL');
                       setStep(STEPS.TIME);
                     }}
-                    className="group p-6 rounded-3xl border-2 border-navy-100 dark:border-navy-500/20 hover:border-gold-400 dark:hover:border-gold-500/50 bg-white dark:bg-navy-700/30 text-left transition-all hover:shadow-gold-sm"
+                    disabled={trialUnavailable}
+                    className={`group p-6 rounded-3xl border-2 text-left transition-all ${
+                      trialUnavailable
+                        ? 'border-navy-100/70 dark:border-navy-500/10 bg-navy-50/60 dark:bg-navy-800/40 opacity-50 cursor-not-allowed'
+                        : 'border-navy-100 dark:border-navy-500/20 hover:border-gold-400 dark:hover:border-gold-500/50 bg-white dark:bg-navy-700/30 hover:shadow-gold-sm'
+                    }`}
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-gold-50 dark:bg-gold-500/10 flex items-center justify-center text-sm font-black text-gold-600 mb-5 group-hover:scale-110 transition-transform">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black mb-5 transition-transform ${
+                      trialUnavailable
+                        ? 'bg-navy-100 dark:bg-navy-700 text-navy-400 dark:text-cream-400/50'
+                        : 'bg-gold-50 dark:bg-gold-500/10 text-gold-600 group-hover:scale-110'
+                    }`}>
                       TRIAL
                     </div>
                     <h4 className="font-bold text-navy-600 dark:text-cream-200 text-base">Free Trial</h4>
                     <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-2">
-                      A short intro lesson to assess fit and set your study plan.
+                      {trialUnavailable
+                        ? 'You have already used your free trial with this tutor.'
+                        : 'A short intro lesson to assess fit and set your study plan.'}
                     </p>
-                    <div className="mt-5 text-sm font-black text-gold-600">$0</div>
+                    <div className={`mt-5 text-sm font-black ${trialUnavailable ? 'text-navy-400 dark:text-cream-400/50' : 'text-gold-600'}`}>
+                      {trialUnavailable ? 'Unavailable' : '$0'}
+                    </div>
                   </button>
 
                   <button
@@ -272,7 +291,9 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
 
                 <div className="pt-8 text-center">
                   <p className="text-sm font-medium text-navy-400 dark:text-cream-300/70 leading-relaxed px-8">
-                    Not sure yet? Start with a trial lesson first, then decide whether you want single lessons or a package.
+                    {trialUnavailable
+                      ? 'Your free trial with this tutor has already been used. You can continue with a regular lesson or a package.'
+                      : 'Not sure yet? Start with a trial lesson first, then decide whether you want single lessons or a package.'}
                   </p>
                 </div>
               </motion.div>

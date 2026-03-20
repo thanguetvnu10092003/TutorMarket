@@ -6,7 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { FAVORITES_UPDATED_EVENT } from '@/lib/favorite-events';
-import { formatRelativeTime, getInitials } from '@/lib/utils';
+import { formatDateTime, formatRelativeTime, getInitials } from '@/lib/utils';
 
 const navLinks = [
   { href: '/tutors', label: 'Find Tutors' },
@@ -85,9 +85,12 @@ export default function Navbar() {
     }
 
     let ignore = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    async function loadNavbarData() {
-      setNotificationsLoading(true);
+    async function loadNotifications(showLoading = true) {
+      if (showLoading) {
+        setNotificationsLoading(true);
+      }
 
       try {
         const notificationsRes = await fetch('/api/notifications?limit=8', { cache: 'no-store' });
@@ -107,16 +110,22 @@ export default function Navbar() {
           console.error('Navbar data load error:', error);
         }
       } finally {
-        if (!ignore) {
+        if (!ignore && showLoading) {
           setNotificationsLoading(false);
         }
       }
     }
 
-    void loadNavbarData();
+    void loadNotifications();
+    intervalId = setInterval(() => {
+      void loadNotifications(false);
+    }, 15000);
 
     return () => {
       ignore = true;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, [session?.user]);
 
@@ -408,6 +417,9 @@ export default function Navbar() {
                             </p>
                             <p className="text-xs text-gold-500 mt-1">
                               {formatRelativeTime(notification.createdAt)}
+                            </p>
+                            <p className="text-[11px] text-navy-300 dark:text-cream-400/50 mt-1">
+                              {formatDateTime(notification.createdAt)}
                             </p>
                           </>
                         );

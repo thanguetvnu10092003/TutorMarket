@@ -155,10 +155,20 @@ export default function HorizontalTutorCard({
 
         <div className="flex flex-col gap-2 mt-auto">
             <button 
-                onClick={(e) => { e.stopPropagation(); onBookTrial(tutor.id); }}
-                className="w-full bg-[#FF77B6] hover:bg-[#FF8DC2] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg hover:translate-y-[-2px] active:translate-y-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!tutor.hasUsedTrialLesson) {
+                    onBookTrial(tutor.id);
+                  }
+                }}
+                disabled={tutor.hasUsedTrialLesson}
+                className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
+                  tutor.hasUsedTrialLesson
+                    ? 'bg-navy-100 dark:bg-navy-700 text-navy-400 dark:text-cream-400/50 cursor-not-allowed'
+                    : 'bg-[#FF77B6] hover:bg-[#FF8DC2] text-white shadow-lg hover:translate-y-[-2px] active:translate-y-0'
+                }`}
             >
-                Book trial lesson
+                {tutor.hasUsedTrialLesson ? 'Free trial used' : 'Book trial lesson'}
             </button>
             <button 
                 onClick={(e) => { e.stopPropagation(); onSendMessage(tutor.id); }}

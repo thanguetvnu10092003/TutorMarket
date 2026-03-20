@@ -74,6 +74,44 @@ export default function StudentDashboard() {
   }, [session]);
 
   useEffect(() => {
+    if (!session?.user) {
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadUnreadCount() {
+      try {
+        const response = await fetch('/api/conversations', { cache: 'no-store' });
+        const json = await response.json();
+
+        if (!response.ok) {
+          throw new Error(json.error || 'Failed to load unread messages');
+        }
+
+        if (!ignore) {
+          setMessageUnreadCount(json.unreadCount || 0);
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error('Failed to load unread message count:', error);
+        }
+      }
+    }
+
+    void loadUnreadCount();
+    const intervalId = window.setInterval(() => {
+      void loadUnreadCount();
+    }, 5000);
+
+    return () => {
+      ignore = true;
+      window.clearInterval(intervalId);
+    };
+  }, [session?.user]);
+
+  useEffect(() => {
     const requestedTab = searchParams.get('tab');
 
     if (requestedTab && tabs.some((tab) => tab.id === requestedTab)) {
@@ -383,8 +421,8 @@ export default function StudentDashboard() {
         )}
 
         {activeTab === 'messages' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[600px]">
-            <div className={`lg:col-span-4 glass-card overflow-hidden flex flex-col ${chatTarget ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px] lg:h-[640px]">
+            <div className={`lg:col-span-4 min-w-0 min-h-0 glass-card overflow-hidden flex flex-col ${chatTarget ? 'hidden lg:flex' : 'flex'}`}>
               <div className="p-4 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Conversations</h2>
@@ -407,7 +445,7 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            <div className={`lg:col-span-8 h-full ${!chatTarget ? 'hidden lg:flex items-center justify-center glass-card opacity-30 text-center p-10 bg-white dark:bg-navy-700/30' : 'flex flex-col'}`}>
+            <div className={`lg:col-span-8 min-w-0 min-h-0 h-full overflow-hidden ${!chatTarget ? 'hidden lg:flex items-center justify-center glass-card opacity-30 text-center p-10 bg-white dark:bg-navy-700/30' : 'flex flex-col'}`}>
               {chatTarget ? (
                 <ChatWindow
                   key={`${chatTarget.conversationId || 'direct'}-${chatTarget.tutorProfileId}`}
