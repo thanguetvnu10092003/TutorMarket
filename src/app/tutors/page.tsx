@@ -24,7 +24,7 @@ type TutorFilters = {
   search: string;
 };
 
-function getFiltersFromSearchParams(searchParams: ReadonlyURLSearchParams): TutorFilters {
+function getFiltersFromSearchParams(searchParams: Pick<ReadonlyURLSearchParams | URLSearchParams, 'get'>): TutorFilters {
   return {
     subject: searchParams.get('subject') || '',
     minPrice: '' as number | '',
@@ -102,7 +102,7 @@ function TutorsContent() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const nextFilters = getFiltersFromSearchParams(searchParams);
+    const nextFilters = getFiltersFromSearchParams(new URLSearchParams(searchParamsKey));
 
     setFilters((current) => (areFiltersEqual(current, nextFilters) ? current : nextFilters));
     setSelectedTutorId(null);

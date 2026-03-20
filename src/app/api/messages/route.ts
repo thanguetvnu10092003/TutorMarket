@@ -4,30 +4,111 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
+const RECALL_WINDOW_MINUTES = 10;
+const RECALL_PLACEHOLDER = 'This message was unsent.';
+
 const messageSchema = z.object({
   tutorProfileId: z.string(),
-  content: z.string().min(1, 'Message cannot be empty'),
+  content: z.string().trim().min(1, 'Message cannot be empty'),
 });
 
-// POST /api/messages — Send message
+const recallSchema = z.object({
+  messageId: z.string().min(1),
+});
+
+async function requireSession() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    throw new Error('UNAUTHORIZED');
+  }
+
+  return session;
+}
+
+async function getAccessibleConversation(sessionUserId: string, options: { conversationId?: string | null; tutorProfileId?: string | null }) {
+  const accessWhere = {
+    OR: [
+      { studentId: sessionUserId },
+      { tutorProfile: { userId: sessionUserId } },
+    ],
+  };
+
+  if (options.conversationId) {
+    return prisma.conversation.findFirst({
+      where: {
+        id: options.conversationId,
+        ...accessWhere,
+      },
+      include: {
+        tutorProfile: {
+          select: {
+            id: true,
+            userId: true,
+          },
+        },
+      },
+    });
+  }
+
+  if (options.tutorProfileId) {
+    return prisma.conversation.findFirst({
+      where: {
+        tutorProfileId: options.tutorProfileId,
+        ...accessWhere,
+      },
+      include: {
+        tutorProfile: {
+          select: {
+            id: true,
+            userId: true,
+          },
+        },
+      },
+    });
+  }
+
+  return null;
+}
+
+function isWithinRecallWindow(sentAt: Date) {
+  return Date.now() - sentAt.getTime() <= RECALL_WINDOW_MINUTES * 60 * 1000;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const session = await requireSession();
     const body = await req.json();
     const { tutorProfileId, content } = messageSchema.parse(body);
-    const studentId = session.user.id;
 
-    // 1. Find or Create Conversation
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { id: tutorProfileId },
+      select: { id: true, userId: true },
+    });
+
+    if (!tutorProfile) {
+      return NextResponse.json({ error: 'Tutor profile not found' }, { status: 404 });
+    }
+
+    if (session.user.role === 'TUTOR' && tutorProfile.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const studentId =
+      session.user.role === 'STUDENT'
+        ? session.user.id
+        : null;
+
+    if (!studentId) {
+      return NextResponse.json({ error: 'Only students can start a new conversation here right now' }, { status: 400 });
+    }
+
     const conversation = await prisma.conversation.upsert({
       where: {
         studentId_tutorProfileId: {
           studentId,
           tutorProfileId,
-        }
+        },
       },
       update: {
         lastMessageAt: new Date(),
@@ -36,69 +117,158 @@ export async function POST(req: NextRequest) {
         studentId,
         tutorProfileId,
         lastMessageAt: new Date(),
-      }
+      },
     });
 
-    // 2. Create the message
     const message = await prisma.message.create({
       data: {
         conversationId: conversation.id,
-        senderId: studentId,
+        senderId: session.user.id,
         body: content,
-      }
+      },
     });
 
-    return NextResponse.json({ success: true, data: message });
-
-  } catch (error: any) {
+    return NextResponse.json({
+      success: true,
+      data: message,
+      meta: {
+        recallWindowMinutes: RECALL_WINDOW_MINUTES,
+      },
+    });
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
+
+    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     console.error('Send message error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// GET /api/messages — Load thread by conversationId or tutorProfileId
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const session = await requireSession();
     const { searchParams } = new URL(req.url);
     const conversationId = searchParams.get('conversationId');
     const tutorProfileId = searchParams.get('tutorProfileId');
 
-    let thread: any[] = [];
+    const conversation = await getAccessibleConversation(session.user.id, { conversationId, tutorProfileId });
 
-    if (conversationId) {
-      thread = await prisma.message.findMany({
-        where: { conversationId },
-        orderBy: { sentAt: 'asc' }
-      });
-    } else if (tutorProfileId) {
-      const conv = await prisma.conversation.findUnique({
-        where: {
-          studentId_tutorProfileId: {
-            studentId: session.user.id,
-            tutorProfileId,
-          }
+    if (!conversation) {
+      return NextResponse.json({
+        data: [],
+        meta: {
+          recallWindowMinutes: RECALL_WINDOW_MINUTES,
         },
-        include: {
-          messages: {
-            orderBy: { sentAt: 'asc' }
-          }
-        }
       });
-      thread = conv?.messages || [];
     }
 
-    return NextResponse.json({ data: thread });
+    await prisma.message.updateMany({
+      where: {
+        conversationId: conversation.id,
+        senderId: { not: session.user.id },
+        readAt: null,
+      },
+      data: {
+        readAt: new Date(),
+      },
+    });
 
+    const thread = await prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { sentAt: 'asc' },
+    });
+
+    return NextResponse.json({
+      data: thread,
+      meta: {
+        recallWindowMinutes: RECALL_WINDOW_MINUTES,
+        recallPlaceholder: RECALL_PLACEHOLDER,
+      },
+    });
   } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     console.error('Get messages error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await requireSession();
+    const body = await req.json();
+    const { messageId } = recallSchema.parse(body);
+
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        conversation: {
+          include: {
+            tutorProfile: {
+              select: {
+                userId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!message) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+    }
+
+    const hasAccess =
+      message.conversation.studentId === session.user.id ||
+      message.conversation.tutorProfile.userId === session.user.id;
+
+    if (!hasAccess || message.senderId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (message.recalledAt) {
+      return NextResponse.json({ error: 'Message has already been unsent' }, { status: 400 });
+    }
+
+    if (!isWithinRecallWindow(message.sentAt)) {
+      return NextResponse.json(
+        { error: `Messages can only be unsent within ${RECALL_WINDOW_MINUTES} minutes` },
+        { status: 400 }
+      );
+    }
+
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        body: RECALL_PLACEHOLDER,
+        recalledAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: updatedMessage,
+      meta: {
+        recallWindowMinutes: RECALL_WINDOW_MINUTES,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.error('Recall message error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -164,6 +164,7 @@ export interface Message {
   body: string;
   sentAt: string;
   readAt?: string;
+  recalledAt?: string;
 }
 
 // ─── Notification ─────────────────────────────────

@@ -465,6 +465,7 @@ model Message {
   body           String
   sentAt         DateTime     @default(now())
   readAt         DateTime?
+  recalledAt     DateTime?
 
   @@index([conversationId, sentAt])
 }

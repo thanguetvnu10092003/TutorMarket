@@ -16,6 +16,7 @@ interface Conversation {
   lastMessageAt: string | Date;
   messages: {
     body: string;
+    recalledAt?: string | Date | null;
   }[];
 }
 
@@ -86,7 +87,7 @@ export default function ConversationList({ onSelectConversation, selectedId }: C
               </span>
             </div>
             <p className="text-xs text-navy-400 dark:text-cream-400/60 truncate">
-               {conv.messages?.[0]?.body || 'Start the conversation...'}
+               {conv.messages?.[0]?.recalledAt ? 'Message unsent' : (conv.messages?.[0]?.body || 'Start the conversation...')}
             </p>
           </div>
         </button>
