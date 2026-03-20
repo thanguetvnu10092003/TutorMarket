@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { SUBJECT_LABELS } from '@/types';
-import { formatCurrency, formatDate, formatRelativeTime, formatTime, getInitials } from '@/lib/utils';
+import { formatCurrency, formatDate, formatTime, getInitials } from '@/lib/utils';
 import ContinueLearningPrompt from '@/components/student/ContinueLearningPrompt';
 import ReportIssueModal from '@/components/student/ReportIssueModal';
 import ConversationList from '@/components/chat/ConversationList';
@@ -15,11 +15,9 @@ import { toast } from 'react-hot-toast';
 const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'bookings', label: 'Bookings' },
-  { id: 'favorites', label: 'Favorites' },
   { id: 'messages', label: 'Messages' },
   { id: 'payments', label: 'Payments' },
   { id: 'referral', label: 'Referral' },
-  { id: 'settings', label: 'Settings' },
 ];
 
 export default function StudentDashboard() {
@@ -307,55 +305,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {activeTab === 'favorites' && (
-          <div className="max-w-5xl mx-auto space-y-6 pb-10">
-            {data.favorites.length > 0 ? (
-              data.favorites.map((tutor) => (
-                <div key={tutor.id} className="glass-card p-6 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-black text-navy-600 dark:text-cream-200">{tutor.name}</h3>
-                    <p className="text-xs text-navy-300 dark:text-cream-400/40 font-bold uppercase tracking-widest mt-1">
-                      Saved {formatRelativeTime(tutor.savedAt)}
-                    </p>
-                    <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-2 line-clamp-2">
-                      {tutor.headline || tutor.bio || 'No introduction available yet.'}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <Link href={`/tutors/${tutor.id}`} className="btn-outline px-5 py-3 text-[10px] font-black uppercase tracking-widest">
-                      View Profile
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setActiveTab('messages');
-                        setSelectedConversation(null);
-                        setDirectMessageTutor({
-                          tutorProfileId: tutor.id,
-                          tutorName: tutor.name,
-                          tutorImage: tutor.avatarUrl,
-                        });
-                      }}
-                      className="btn-secondary px-5 py-3 text-[10px] font-black uppercase tracking-widest"
-                    >
-                      Send Message
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="glass-card p-12 text-center">
-                <p className="text-sm font-bold text-navy-600 dark:text-cream-200">You haven&apos;t saved any tutors yet.</p>
-                <p className="text-[10px] font-black text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mt-2">
-                  Save tutors from Find Tutors and they will appear here.
-                </p>
-                <Link href="/tutors" className="btn-primary mt-6 text-xs font-black uppercase tracking-widest">
-                  Browse Tutors
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'messages' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[600px]">
             <div className={`lg:col-span-4 glass-card overflow-hidden flex flex-col ${chatTarget ? 'hidden lg:flex' : 'flex'}`}>
@@ -444,15 +393,6 @@ export default function StudentDashboard() {
             </p>
             <p className="mt-2 text-sm text-navy-400 dark:text-cream-300/70">
               Total earned: <span className="font-black text-navy-600 dark:text-cream-200">{formatCurrency(data.referral?.totalCredits || 0)}</span>
-            </p>
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="max-w-3xl mx-auto glass-card p-8">
-            <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Settings</h2>
-            <p className="mt-3 text-sm text-navy-400 dark:text-cream-300/70">
-              Notification and learning preferences are still simple here, but the student dashboard now includes working favorites, messages, and payments flows.
             </p>
           </div>
         )}

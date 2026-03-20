@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { getInitials } from '@/lib/utils';
 import PasswordInput from '@/components/ui/PasswordInput';
@@ -21,10 +22,44 @@ const tabs = [
   )},
 ];
 
+const notificationOptions = [
+  {
+    type: 'SESSION_UPDATES',
+    title: 'Session Updates',
+    desc: 'Get notified about session bookings, rescheduling, and cancellations.',
+  },
+  {
+    type: 'MESSAGES',
+    title: 'Messages',
+    desc: 'Receive alerts when you get a new message.',
+  },
+  {
+    type: 'MARKETING',
+    title: 'Marketing',
+    desc: 'News about feature updates and platform promotions.',
+  },
+  {
+    type: 'PAYMENT_ALERTS',
+    title: 'Payment Alerts',
+    desc: 'Confirmations and receipts for your transactions.',
+  },
+];
+
+const defaultNotificationPreferences = notificationOptions.reduce<Record<string, { emailEnabled: boolean; inAppEnabled: boolean }>>(
+  (accumulator, option) => {
+    accumulator[option.type] = { emailEnabled: true, inAppEnabled: true };
+    return accumulator;
+  },
+  {}
+);
+
 export default function SettingsPage() {
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState(defaultNotificationPreferences);
+  const [savingNotificationType, setSavingNotificationType] = useState<string | null>(null);
   
   const [profileData, setProfileData] = useState({
     name: session?.user?.name || '',
@@ -54,6 +89,56 @@ export default function SettingsPage() {
       }
     };
     fetchTutorProfile();
+  }, [session]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+
+    if (requestedTab && tabs.some((tab) => tab.id === requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!session?.user) {
+      return;
+    }
+
+    let ignore = false;
+
+    async function fetchNotificationPreferences() {
+      try {
+        const response = await fetch('/api/student/notifications/preferences', { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error('Failed to load notification preferences');
+        }
+
+        const json = await response.json();
+        const nextPreferences = { ...defaultNotificationPreferences };
+
+        for (const preference of json.data || []) {
+          nextPreferences[preference.notificationType] = {
+            emailEnabled: preference.emailEnabled,
+            inAppEnabled: preference.inAppEnabled,
+          };
+        }
+
+        if (!ignore) {
+          setNotificationPreferences(nextPreferences);
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error('Notification preferences load error:', error);
+        }
+      }
+    }
+
+    void fetchNotificationPreferences();
+
+    return () => {
+      ignore = true;
+    };
   }, [session]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -94,6 +179,40 @@ export default function SettingsPage() {
       toast.error('Failed to update profile');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleNotificationToggle = async (notificationType: string, nextValue: boolean) => {
+    setSavingNotificationType(notificationType);
+
+    try {
+      const response = await fetch('/api/student/notifications/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notificationType,
+          emailEnabled: nextValue,
+          inAppEnabled: nextValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update notification preference');
+      }
+
+      setNotificationPreferences((current) => ({
+        ...current,
+        [notificationType]: {
+          emailEnabled: nextValue,
+          inAppEnabled: nextValue,
+        },
+      }));
+    } catch (error) {
+      toast.error('Failed to update notification preference');
+    } finally {
+      setSavingNotificationType(null);
     }
   };
 
@@ -268,21 +387,31 @@ export default function SettingsPage() {
                 <div className="space-y-8">
                   <h2 className="text-xl font-bold text-navy-600 dark:text-cream-200 mb-6">Notification Preferences</h2>
                   <div className="space-y-6">
-                    {[
-                      { title: 'Session Updates', desc: 'Get notified about session bookings, rescheduling, and cancellations.' },
-                      { title: 'Messages', desc: 'Receive emails when you get a new message from a tutor/student.' },
-                      { title: 'Marketing', desc: 'News about feature updates and platform promotions.' },
-                      { title: 'Payment Alerts', desc: 'Confirmations and receipts for your transactions.' }
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between py-4 border-b border-navy-100 dark:border-navy-400/20 last:border-0">
+                    {notificationOptions.map((item) => (
+                      <div key={item.type} className="flex items-center justify-between gap-4 py-4 border-b border-navy-100 dark:border-navy-400/20 last:border-0">
                         <div>
                           <p className="text-sm font-bold text-navy-600 dark:text-cream-200">{item.title}</p>
                           <p className="text-xs text-navy-300 dark:text-cream-400/60 mt-0.5">{item.desc}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-gold-600 mt-2">
+                            Email + in-app
+                          </p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" defaultChecked className="sr-only peer" />
-                          <div className="w-11 h-6 bg-navy-200 peer-focus:outline-none dark:bg-navy-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-gold-400"></div>
-                        </label>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {savingNotificationType === item.type && (
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/60">
+                              Saving
+                            </span>
+                          )}
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={notificationPreferences[item.type]?.inAppEnabled ?? true}
+                              onChange={(event) => handleNotificationToggle(item.type, event.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-navy-200 peer-focus:outline-none dark:bg-navy-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-gold-400"></div>
+                          </label>
+                        </div>
                       </div>
                     ))}
                   </div>
