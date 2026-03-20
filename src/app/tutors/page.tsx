@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, type ReadonlyURLSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { SUBJECT_LABELS, type Subject } from '@/types';
 import TutorFilterBar from '@/components/tutors/TutorFilterBar';
@@ -10,12 +10,22 @@ import BookingModal from '@/components/student/BookingModal';
 import { dispatchFavoritesUpdated } from '@/lib/favorite-events';
 import { toast } from 'react-hot-toast';
 
-function TutorsContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const { data: session } = useSession();
-  
-  const [filters, setFilters] = useState({
+type TutorFilters = {
+  subject: string;
+  minPrice: number | '';
+  maxPrice: number | '';
+  language: string;
+  country: string;
+  availability: string;
+  specialty: string;
+  nativeSpeaker: boolean;
+  category: string;
+  sortBy: string;
+  search: string;
+};
+
+function getFiltersFromSearchParams(searchParams: ReadonlyURLSearchParams): TutorFilters {
+  return {
     subject: searchParams.get('subject') || '',
     minPrice: '' as number | '',
     maxPrice: '' as number | '',
@@ -27,13 +37,76 @@ function TutorsContent() {
     category: '',
     sortBy: 'default',
     search: '',
-  });
+  };
+}
+
+function areFiltersEqual(current: TutorFilters, next: TutorFilters) {
+  return JSON.stringify(current) === JSON.stringify(next);
+}
+
+function TutorsPageSkeleton() {
+  return (
+    <div className="min-h-screen bg-cream-50/50 dark:bg-navy-900 pt-32 pb-16 transition-colors duration-500">
+      <div className="max-w-[1400px] mx-auto px-4 lg:px-8">
+        <div className="space-y-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-16 rounded-2xl bg-white dark:bg-navy-800 animate-pulse border border-navy-100/50 dark:border-navy-500/10" />
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="h-10 w-28 rounded-xl bg-white dark:bg-navy-800 animate-pulse border border-navy-100/50 dark:border-navy-500/10" />
+            ))}
+          </div>
+          <div className="h-8 w-56 rounded-xl bg-white dark:bg-navy-800 animate-pulse border border-navy-100/50 dark:border-navy-500/10" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 items-start mt-8">
+          <div className="space-y-6">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="glass-card h-64 animate-pulse rounded-[32px] bg-white dark:bg-navy-800" />
+            ))}
+          </div>
+          <aside className="hidden lg:block">
+            <div className="glass-card h-[420px] animate-pulse rounded-[32px] bg-white dark:bg-navy-800" />
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TutorListLoadingCards() {
+  return (
+    <>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="glass-card h-64 animate-pulse rounded-[32px] bg-white dark:bg-navy-800" />
+      ))}
+    </>
+  );
+}
+
+function TutorsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const searchParamsKey = searchParams.toString();
+  
+  const [filters, setFilters] = useState<TutorFilters>(() => getFiltersFromSearchParams(searchParams));
 
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTutorId, setSelectedTutorId] = useState<string | null>(null);
   const [bookingTutor, setBookingTutor] = useState<any>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const nextFilters = getFiltersFromSearchParams(searchParams);
+
+    setFilters((current) => (areFiltersEqual(current, nextFilters) ? current : nextFilters));
+    setSelectedTutorId(null);
+  }, [searchParamsKey]);
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -126,9 +199,17 @@ function TutorsContent() {
         const json = await response.json();
         const data = json.data || [];
         setResults(data);
-        if (data.length > 0 && !selectedTutorId) {
-            setSelectedTutorId(data[0].id);
-        }
+        setSelectedTutorId((current) => {
+          if (data.length === 0) {
+            return null;
+          }
+
+          if (!current || !data.some((tutor: any) => tutor.id === current)) {
+            return data[0].id;
+          }
+
+          return current;
+        });
       } catch (err) {
         if (err instanceof Error && err.name !== 'AbortError') {
           console.error(err);
@@ -190,9 +271,7 @@ function TutorsContent() {
           {/* Main Listing */}
           <div className="space-y-6">
             {loading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="glass-card h-64 animate-pulse rounded-[32px] bg-white dark:bg-navy-800" />
-              ))
+              <TutorListLoadingCards />
             ) : results.length > 0 ? (
               results.map((tutor) => (
                 <div 
@@ -267,7 +346,7 @@ function TutorsContent() {
 
 export default function TutorsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-cream-200 dark:bg-navy-600" />}>
+    <Suspense fallback={<TutorsPageSkeleton />}>
       <TutorsContent />
     </Suspense>
   );
