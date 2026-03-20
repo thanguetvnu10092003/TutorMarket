@@ -1,70 +1,192 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { bookings } from '@/lib/mock-data';
-import { calculateCommission, generateId } from '@/lib/utils';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { z } from 'zod';
 
-// POST /api/bookings — Create booking
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { studentId, tutorProfileId, scheduledAt, subject, durationMinutes = 60 } = body;
+const bookingSchema = z.object({
+  tutorProfileId: z.string(),
+  scheduledAt: z.string().optional(), // Optional for packages
+  type: z.enum(['TRIAL', 'SINGLE', 'PACKAGE']),
+  subject: z.string(),
+  notes: z.string().optional(),
+  packageSessions: z.number().optional(),
+  discount: z.number().optional(),
+});
 
-  // Determine session number for this student-tutor pair
-  const existingBookings = bookings.filter(
-    b => b.studentId === studentId && b.tutorProfileId === tutorProfileId
-  );
-  const sessionNumber = existingBookings.length + 1;
-  const isFreeSession = sessionNumber === 1;
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const newBooking = {
-    id: generateId(),
-    studentId,
-    tutorProfileId,
-    scheduledAt,
-    durationMinutes,
-    status: 'PENDING' as const,
-    sessionNumber,
-    isFreeSession,
-    subject,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+    const body = await req.json();
+    const { tutorProfileId, scheduledAt, type, subject, notes, packageSessions, discount } = bookingSchema.parse(body);
 
-  // Commission calculation (for paid sessions)
-  let payment = null;
-  if (!isFreeSession) {
-    const hourlyRate = 150; // Would come from tutor profile
-    const amount = (hourlyRate * durationMinutes) / 60;
-    const cumulativeFees = 0; // Would come from DB
-    const { platformFee, tutorPayout } = calculateCommission(amount, sessionNumber, cumulativeFees);
+    const studentId = session.user.id;
 
-    payment = {
-      id: generateId(),
-      bookingId: newBooking.id,
-      amount,
-      platformFee,
-      tutorPayout,
-      status: 'PENDING' as const,
-      createdAt: new Date().toISOString(),
-    };
+    // 1. Fetch tutor profile
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { id: tutorProfileId },
+    });
+
+    if (!tutorProfile) {
+      return NextResponse.json({ error: 'Tutor not found' }, { status: 404 });
+    }
+
+    // 2. Handle Package Purchase
+    if (type === 'PACKAGE') {
+      if (!packageSessions) {
+        return NextResponse.json({ error: 'Package sessions count is required' }, { status: 400 });
+      }
+
+      const totalAmount = (tutorProfile.hourlyRate * packageSessions) * (1 - (discount || 0));
+
+      const pkg = await prisma.bookingPackage.create({
+        data: {
+          studentId,
+          tutorProfileId,
+          totalSessions: packageSessions,
+          sessionsRemaining: packageSessions,
+          pricePerSession: totalAmount / packageSessions,
+          totalPaid: totalAmount,
+          packageDiscount: discount || 0,
+          payment: {
+            create: {
+              amount: totalAmount,
+              status: 'PENDING',
+              platformFee: 0,
+              tutorPayout: 0,
+            }
+          }
+        },
+        include: {
+          payment: true
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: pkg
+      });
+    }
+
+    // 3. Handle Single or Trial Booking
+    if (!scheduledAt) {
+      return NextResponse.json({ error: 'Scheduled time is required' }, { status: 400 });
+    }
+    const scheduledDate = new Date(scheduledAt);
+
+    // If it's a trial session, check eligibility
+    if (type === 'TRIAL') {
+      const existingTrial = await prisma.booking.findFirst({
+        where: {
+          studentId,
+          tutorProfileId,
+          isFreeSession: true,
+          status: { not: 'CANCELLED' }
+        }
+      });
+
+      if (existingTrial) {
+        return NextResponse.json({ 
+          error: 'You have already had a trial session with this tutor.' 
+        }, { status: 400 });
+      }
+    }
+
+    // Calculate price
+    let price = 0;
+    let isFreeSession = false;
+
+    if (type === 'TRIAL') {
+      price = 0;
+      isFreeSession = true;
+    } else {
+      price = tutorProfile.hourlyRate;
+    }
+
+    // Create the booking
+    const booking = await prisma.booking.create({
+      data: {
+        studentId,
+        tutorProfileId,
+        scheduledAt: scheduledDate,
+        durationMinutes: type === 'TRIAL' ? 30 : 60,
+        status: 'PENDING',
+        isFreeSession,
+        subject: subject as any,
+        notes,
+        payment: {
+          create: {
+            amount: price,
+            status: price === 0 ? 'CAPTURED' : 'PENDING',
+            platformFee: 0,
+            tutorPayout: 0,
+          }
+        }
+      },
+      include: {
+        payment: true
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: booking
+    });
+
+  } catch (error: any) {
+    console.error('Booking error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  return NextResponse.json({
-    data: newBooking,
-    payment,
-    message: isFreeSession
-      ? 'Free trial session booked! No payment required.'
-      : `Session booked. Amount: $${payment?.amount}`,
-  }, { status: 201 });
 }
 
-// GET /api/bookings — List own bookings
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId') || 'student-001'; // Would come from session
-  const role = searchParams.get('role') || 'STUDENT';
+export async function GET(req: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-  const filtered = bookings.filter(b =>
-    role === 'STUDENT' ? b.studentId === userId : b.tutorProfileId === userId
-  );
+        const { searchParams } = new URL(req.url);
+        const role = searchParams.get('role') || session.user.role;
 
-  return NextResponse.json({ data: filtered });
+        const bookings = await prisma.booking.findMany({
+            where: role === 'STUDENT' ? { studentId: session.user.id } : { tutorProfileId: session.user.id },
+            include: {
+                tutorProfile: {
+                    include: { user: true }
+                },
+                student: {
+                    select: { id: true, name: true, avatarUrl: true, email: true }
+                },
+                payment: true
+            },
+            orderBy: { scheduledAt: 'desc' }
+        });
+
+        // Also fetch active packages if student
+        let packages: any[] = [];
+        if (role === 'STUDENT') {
+            packages = await prisma.bookingPackage.findMany({
+                where: { studentId: session.user.id, sessionsRemaining: { gt: 0 } },
+                include: {
+                    tutorProfile: { include: { user: true } }
+                }
+            });
+        }
+
+        return NextResponse.json({ 
+            data: bookings,
+            packages: packages
+        });
+    } catch (error: any) {
+        console.error('GET bookings error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }

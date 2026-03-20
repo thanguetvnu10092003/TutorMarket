@@ -27,9 +27,13 @@ function VerifyEmailContent() {
       if (!session && !searchParams.get('email')) {
         router.push('/auth/login');
       } else if (session?.user?.isVerified) {
-        // Redirect to dashboard if already verified in session
+        // Redirect to dashboard or onboarding if already verified in session
         const role = (session.user as any).role;
-        router.push(`/dashboard/${role?.toLowerCase() || 'student'}`);
+        if (role === 'STUDENT') {
+          router.push('/onboarding/student');
+        } else {
+          router.push(`/dashboard/${role?.toLowerCase() || 'student'}`);
+        }
       }
     }
   }, [searchParams, session, router, isLoading]);
@@ -105,7 +109,11 @@ function VerifyEmailContent() {
             router.push('/auth/choose-role');
           } else {
             const role = (session.user as any).role;
-            router.push(`/dashboard/${role?.toLowerCase() || 'student'}`);
+            if (role === 'STUDENT') {
+              router.push('/onboarding/student');
+            } else {
+              router.push(`/dashboard/${role?.toLowerCase() || 'student'}`);
+            }
           }
         } else {
           router.push('/auth/login?verified=true');

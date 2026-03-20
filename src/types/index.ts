@@ -188,6 +188,8 @@ export interface TutorSearchFilters {
   minRating?: number;
   language?: string;
   availability?: string;
+  country?: string;
+  search?: string;
   sortBy?: 'price_asc' | 'price_desc' | 'rating' | 'experience' | 'sessions';
   page?: number;
   limit?: number;
@@ -209,6 +211,9 @@ export interface TutorCardData {
   verificationStatus: VerificationStatus;
   isFeatured: boolean;
   yearsOfExperience: number;
+  country?: string;
+  countryFlag?: string;
+  videoUrl?: string;
 }
 
 // ─── Subject Labels ───────────────────────────────

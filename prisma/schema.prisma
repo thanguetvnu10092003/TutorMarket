@@ -147,8 +147,11 @@ model User {
   otpExpires    DateTime?
   otpLastResent DateTime?
   lastActiveAt  DateTime?
+  country       String?
+  countryFlag   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  referralCode  String?  @unique
 
   // Relations
   tutorProfile                TutorProfile?
@@ -173,11 +176,22 @@ model User {
   issuedStrikes             UserStrike[]          @relation("StrikeIssuer")
   receivedStrikes           UserStrike[]          @relation("StrikeRecipient")
 
+  // Student Experience Relations
+  studentPreference           StudentPreference?
+  savedTutors                 StudentSavedTutor[]
+  bookingPackages             BookingPackage[]
+  referralsMade               Referral[]            @relation("Referrer")
+  referralReceived            Referral?             @relation("Referred")
+  credits                     StudentCredit[]
+  notificationPreferences     NotificationPreference[]
+
   @@index([email])
   @@index([role])
   @@index([isBanned])
   @@index([suspendedUntil])
   @@index([lastActiveAt])
+  @@index([referralCode])
+  @@index([country])
 }
 
 model TutorProfile {
@@ -227,6 +241,10 @@ model TutorProfile {
   contentFlags       ContentFlag[]        @relation("ContentFlagTutorProfile")
   reports            UserReport[]         @relation("ReportTutorProfile")
   verificationLogs   TutorVerificationLog[]
+  
+  // Student Experience Relations
+  savedByStudents    StudentSavedTutor[]
+  bookingPackages    BookingPackage[]
 
   @@index([verificationStatus])
   @@index([rating])
@@ -380,22 +398,24 @@ model Booking {
 }
 
 model Payment {
-  id                    String        @id @default(cuid())
-  bookingId             String        @unique
-  booking               Booking       @relation(fields: [bookingId], references: [id])
+  id                    String          @id @default(cuid())
+  bookingId             String?         @unique
+  booking               Booking?        @relation(fields: [bookingId], references: [id])
+  packageId             String?         @unique
+  package               BookingPackage? @relation(fields: [packageId], references: [id])
   stripePaymentIntentId String?
   amount                Float
-  platformFee           Float         @default(0)
-  tutorPayout           Float         @default(0)
-  status                PaymentStatus @default(PENDING)
-  payoutStatus          PayoutStatus  @default(PENDING)
-  refundedAmount        Float         @default(0)
+  platformFee           Float           @default(0)
+  tutorPayout           Float           @default(0)
+  status                PaymentStatus   @default(PENDING)
+  payoutStatus          PayoutStatus    @default(PENDING)
+  refundedAmount        Float           @default(0)
   refundReason          String?
   payoutAt              DateTime?
   stripeTransferId      String?
   paidAt                DateTime?
   refundedAt            DateTime?
-  createdAt             DateTime      @default(now())
+  createdAt             DateTime        @default(now())
 
   @@index([status])
   @@index([payoutStatus])
@@ -415,6 +435,7 @@ model Review {
   repliedAt      DateTime?
   isPublic       Boolean      @default(true)
   createdAt      DateTime     @default(now())
+  tags           ReviewTag[]
 
   @@index([tutorProfileId])
   @@index([studentId])
@@ -613,4 +634,96 @@ model GmatVerificationRequest {
   usedAt              DateTime?
   deletedAt           DateTime?
   createdAt           DateTime          @default(now())
+}
+
+model StudentPreference {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetSubjects Subject[]
+  examDates      Json?    // e.g. {"CFA_L1": "2025-06", "GMAT": "2025-09"}
+  timezone       String   @default("UTC")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model StudentSavedTutor {
+  id             String       @id @default(cuid())
+  studentId      String
+  student        User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tutorProfileId String
+  tutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  savedAt        DateTime     @default(now())
+
+  @@unique([studentId, tutorProfileId])
+  @@index([studentId])
+}
+
+model BookingPackage {
+  id                String       @id @default(cuid())
+  studentId         String
+  student           User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tutorProfileId    String
+  tutorProfile      TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  totalSessions     Int
+  sessionsRemaining Int
+  pricePerSession   Float
+  totalPaid         Float
+  currency          String       @default("USD")
+  packageDiscount   Float        @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  payment           Payment?
+
+  @@index([studentId])
+  @@index([tutorProfileId])
+}
+
+model ReviewTag {
+  id       String @id @default(cuid())
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  tag      String
+
+  @@index([reviewId])
+}
+
+model Referral {
+  id              String    @id @default(cuid())
+  referrerId      String
+  referrer        User      @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUserId  String    @unique
+  referredUser    User      @relation("Referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  referralCode    String    @unique
+  creditAmount    Float
+  creditGranted   Boolean   @default(false)
+  grantedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([referrerId])
+  @@index([referralCode])
+}
+
+model StudentCredit {
+  id        String    @id @default(cuid())
+  studentId String
+  student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount    Float
+  source    String    // REFERRAL | PROMO | REFUND
+  usedAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([studentId])
+}
+
+model NotificationPreference {
+  id               String  @id @default(cuid())
+  userId           String
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationType String
+  emailEnabled     Boolean @default(true)
+  inAppEnabled     Boolean @default(true)
+
+  @@unique([userId, notificationType])
 }

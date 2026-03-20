@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { generateOTP, sendOTP } from '@/lib/mail';
 import { addMinutes } from 'date-fns';
+import { generateReferralCode } from '@/lib/utils';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -11,6 +12,7 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   role: z.enum(['STUDENT', 'TUTOR', 'ADMIN']),
   adminSecret: z.string().optional(),
+  inviteCode: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -19,7 +21,7 @@ export async function POST(request: NextRequest) {
     
     // Validate input
     const validatedData = registerSchema.parse(body);
-    const { name, email, password, role, adminSecret } = validatedData;
+    const { name, email, password, role, adminSecret, inviteCode } = validatedData;
 
     // Check admin secret if registering as admin
     if (role === 'ADMIN') {
@@ -53,6 +55,8 @@ export async function POST(request: NextRequest) {
 
     // Create user and profile in a transaction
     const result = await prisma.$transaction(async (tx) => {
+      const newUserReferralCode = generateReferralCode(name);
+      
       const newUser = await tx.user.create({
         data: {
           name,
@@ -63,8 +67,38 @@ export async function POST(request: NextRequest) {
           isVerified: false,
           otpCode: otp,
           otpExpires: otpExpires,
+          referralCode: newUserReferralCode,
         },
       });
+
+      // Handle Referral if inviteCode is provided
+      if (inviteCode && role === 'STUDENT') {
+        const referrer = await tx.user.findUnique({
+          where: { referralCode: inviteCode }
+        });
+
+        if (referrer) {
+          await tx.referral.create({
+            data: {
+              referrerId: referrer.id,
+              referredUserId: newUser.id,
+              referralCode: inviteCode,
+              creditAmount: 10, // Default $10 credit
+              creditGranted: false,
+            }
+          });
+        }
+      }
+
+      // If user is a student, create a preference record
+      if (role === 'STUDENT') {
+        await tx.studentPreference.create({
+          data: {
+            userId: newUser.id,
+            targetSubjects: [],
+          },
+        });
+      }
 
       // If user is a tutor or admin, create a profile
       if (role === 'TUTOR' || role === 'ADMIN') {

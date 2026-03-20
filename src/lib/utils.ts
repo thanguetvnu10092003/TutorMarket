@@ -108,3 +108,9 @@ export function getDayName(dayOfWeek: number): string {
 export function getStarDisplay(rating: number): string {
   return '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
 }
+
+export function generateReferralCode(name: string): string {
+  const prefix = name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}${random}`;
+}

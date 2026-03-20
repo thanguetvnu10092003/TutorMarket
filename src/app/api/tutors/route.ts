@@ -13,6 +13,11 @@ export async function GET(request: NextRequest) {
       maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
       minRating: searchParams.get('minRating') ? Number(searchParams.get('minRating')) : undefined,
       sortBy: searchParams.get('sortBy') || undefined,
+      language: searchParams.get('language') || undefined,
+      isVerified: searchParams.get('isVerified') === 'true',
+      country: searchParams.get('country') || undefined,
+      search: searchParams.get('search') || undefined,
+      availability: searchParams.get('availability') || undefined,
     };
 
     const results = await getPublicTutorCards(filters);

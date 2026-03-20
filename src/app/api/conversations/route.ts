@@ -1,20 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { conversations, users, tutorProfiles } from '@/lib/mock-data';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-// GET /api/conversations — List own conversations
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId') || 'student-001';
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const userConvos = conversations
-    .filter(c => c.studentId === userId || tutorProfiles.some(p => p.id === c.tutorProfileId && p.userId === userId))
-    .map(c => {
-      const student = users.find(u => u.id === c.studentId);
-      const profile = tutorProfiles.find(p => p.id === c.tutorProfileId);
-      const tutor = profile ? users.find(u => u.id === profile.userId) : null;
-      return { ...c, student, tutor };
-    })
-    .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    const { searchParams } = new URL(req.url);
+    const role = searchParams.get('role') || session.user.role;
 
-  return NextResponse.json({ data: userConvos });
+    const conversations = await prisma.conversation.findMany({
+      where: role === 'STUDENT' ? { studentId: session.user.id } : { tutorProfileId: session.user.id },
+      include: {
+        tutorProfile: {
+          include: {
+            user: {
+              select: { name: true, avatarUrl: true }
+            }
+          }
+        },
+        student: {
+            select: { name: true, avatarUrl: true }
+        },
+        messages: {
+          orderBy: { sentAt: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { lastMessageAt: 'desc' }
+    });
+
+    return NextResponse.json({ data: conversations });
+
+  } catch (error) {
+    console.error('Get conversations error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
