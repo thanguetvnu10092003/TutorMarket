@@ -1,26 +1,30 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import { Subject, SUBJECT_LABELS, SUBJECT_COLORS } from '@/types';
+import { Subject, SUBJECT_LABELS } from '@/types';
 import { formatCurrency, getInitials } from '@/lib/utils';
 
 interface HorizontalTutorCardProps {
   tutor: any;
   onBookTrial: (tutorId: string) => void;
   onSendMessage: (tutorId: string) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (tutorId: string) => void;
 }
 
-export default function HorizontalTutorCard({ tutor, onBookTrial, onSendMessage }: HorizontalTutorCardProps) {
-  const [isFavorite, setIsFavorite] = React.useState(false);
+export default function HorizontalTutorCard({
+  tutor,
+  onBookTrial,
+  onSendMessage,
+  isFavorite = false,
+  onToggleFavorite,
+}: HorizontalTutorCardProps) {
   const router = useRouter(); 
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorite(!isFavorite);
-    toast.success(!isFavorite ? 'Saved to favorites' : 'Removed from favorites');
+    onToggleFavorite?.(tutor.id);
   };
 
   const handleProfileClick = (e: React.MouseEvent) => {

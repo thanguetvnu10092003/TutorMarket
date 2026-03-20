@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import { SUBJECT_LABELS, type Subject } from '@/types';
 import TutorFilterBar from '@/components/tutors/TutorFilterBar';
 import HorizontalTutorCard from '@/components/tutors/HorizontalTutorCard';
@@ -11,6 +12,7 @@ import { toast } from 'react-hot-toast';
 function TutorsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session } = useSession();
   
   const [filters, setFilters] = useState({
     subject: searchParams.get('subject') || '',
@@ -30,6 +32,7 @@ function TutorsContent() {
   const [loading, setLoading] = useState(true);
   const [selectedTutorId, setSelectedTutorId] = useState<string | null>(null);
   const [bookingTutor, setBookingTutor] = useState<any>(null);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -53,7 +56,46 @@ function TutorsContent() {
   };
 
   const handleSendMessage = (tutorId: string) => {
+    if (!session?.user) {
+      signIn(undefined, { callbackUrl: window.location.pathname + window.location.search });
+      return;
+    }
+
     router.push(`/dashboard/student?tab=messages&tutorId=${tutorId}`);
+  };
+
+  const handleToggleFavorite = async (tutorId: string) => {
+    if (!session?.user) {
+      signIn(undefined, { callbackUrl: window.location.pathname + window.location.search });
+      return;
+    }
+
+    if (session.user.role !== 'STUDENT') {
+      toast.error('Only students can save favorite tutors.');
+      return;
+    }
+
+    const isFavorite = favoriteIds.includes(tutorId);
+
+    try {
+      const response = await fetch('/api/student/favorites', {
+        method: isFavorite ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tutorProfileId: tutorId }),
+      });
+
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to update favorites');
+      }
+
+      setFavoriteIds((prev) =>
+        isFavorite ? prev.filter((id) => id !== tutorId) : [...prev, tutorId]
+      );
+      toast.success(isFavorite ? 'Removed from favorites' : 'Saved to favorites');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update favorites');
+    }
   };
 
   const navigateToProfile = (tutorId: string) => {
@@ -98,6 +140,37 @@ function TutorsContent() {
     return () => controller.abort();
   }, [filters]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadFavorites() {
+      if (!session?.user || session.user.role !== 'STUDENT') {
+        setFavoriteIds([]);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/student/favorites', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const json = await response.json();
+        if (!response.ok) {
+          throw new Error(json.error || 'Failed to load favorites');
+        }
+
+        setFavoriteIds((json.data || []).map((tutor: any) => tutor.id));
+      } catch (error) {
+        if (!(error instanceof Error && error.name === 'AbortError')) {
+          console.error('Failed to load favorites:', error);
+        }
+      }
+    }
+
+    void loadFavorites();
+    return () => controller.abort();
+  }, [session]);
+
   const selectedTutor = results.find(t => t.id === selectedTutorId) || results[0];
 
   return (
@@ -129,6 +202,8 @@ function TutorsContent() {
                         tutor={tutor} 
                         onBookTrial={() => setBookingTutor(tutor)}
                         onSendMessage={() => handleSendMessage(tutor.id)}
+                        isFavorite={favoriteIds.includes(tutor.id)}
+                        onToggleFavorite={handleToggleFavorite}
                     />
                 </div>
               ))

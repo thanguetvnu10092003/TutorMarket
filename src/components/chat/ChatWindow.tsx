@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSession } from 'next-auth/react';
 import { formatRelativeTime, getInitials } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 
@@ -21,6 +22,7 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ tutorProfileId, conversationId, tutorName, tutorImage, onClose }: ChatWindowProps) {
+  const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +118,7 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
             </div>
         ) : (
             messages.map((msg) => {
-                const isMe = msg.senderId !== 'tutor-id'; // Simplified logic, replace with real session ID check
+                const isMe = msg.senderId === session?.user?.id;
                 return (
                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[80%] p-4 rounded-[20px] ${

@@ -31,6 +31,16 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
     setIsBookingModalOpen(true);
   };
 
+  const handleSendMessage = () => {
+    if (!session) {
+      const currentPath = window.location.pathname;
+      signIn(undefined, { callbackUrl: currentPath });
+      return;
+    }
+
+    router.push(`/dashboard/student?tab=messages&tutorId=${params.id}`);
+  };
+
   useEffect(() => {
     async function load() {
       setIsLoading(true);
@@ -106,7 +116,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-3xl lg:text-4xl font-display font-bold text-navy-600 dark:text-cream-200 leading-tight">
+                    <h1 className="text-3xl lg:text-4xl font-body font-black text-navy-600 dark:text-cream-200 leading-tight tracking-tight">
                       {profile.user.name}
                     </h1>
                     {profile.verificationStatus === 'APPROVED' && (
@@ -370,7 +380,10 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                 </div>
 
                 <div className="pt-6">
-                    <button className="w-full flex items-center justify-center gap-2 text-xs font-bold text-navy-400 hover:text-navy-600 transition-colors">
+                    <button
+                        onClick={handleSendMessage}
+                        className="w-full flex items-center justify-center gap-2 text-xs font-bold text-navy-400 hover:text-navy-600 transition-colors"
+                    >
                         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                         </svg>
