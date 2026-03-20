@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { tutorProfiles, users, getTutorCardData } from '@/lib/mock-data';
 import { SUBJECT_LABELS, SUBJECT_COLORS, type Subject } from '@/types';
 import { formatCurrency, formatResponseTime } from '@/lib/utils';
@@ -65,10 +66,49 @@ const howItWorks = [
 ];
 
 export default function HomePage() {
+  const { data: session } = useSession();
   const [searchSubject, setSearchSubject] = useState('');
   const featuredTutors = tutorProfiles
     .filter(t => t.isFeatured && t.verificationStatus === 'APPROVED')
     .map(getTutorCardData);
+  const role = session?.user?.role;
+  const dashboardHref = `/dashboard/${role?.toLowerCase() || 'student'}`;
+
+  const finalCta = !session?.user
+    ? {
+        title: 'Ready to Ace Your Exam?',
+        description: 'Join thousands of students who transformed their preparation with expert guidance. Your first session is always free.',
+        primaryHref: '/auth/register',
+        primaryLabel: 'Start for Free',
+        secondaryHref: '/become-a-tutor',
+        secondaryLabel: 'Become a Tutor',
+      }
+    : role === 'TUTOR'
+      ? {
+          title: 'Ready to Meet Your Next Student?',
+          description: 'Keep your profile sharp, respond to messages, and manage bookings from your tutor dashboard.',
+          primaryHref: '/dashboard/tutor',
+          primaryLabel: 'Open Tutor Dashboard',
+          secondaryHref: '/settings?tab=profile',
+          secondaryLabel: 'Account Settings',
+        }
+      : role === 'STUDENT'
+        ? {
+            title: 'Ready for Your Next Lesson?',
+            description: 'Your saved tutors, messages, and payments are already in place. Pick up your prep from where you left off.',
+            primaryHref: '/tutors',
+            primaryLabel: 'Find Tutors',
+            secondaryHref: '/dashboard/student',
+            secondaryLabel: 'Open Dashboard',
+          }
+        : {
+            title: 'Ready to Continue?',
+            description: 'Open your dashboard and keep moving.',
+            primaryHref: dashboardHref,
+            primaryLabel: 'Open Dashboard',
+            secondaryHref: '',
+            secondaryLabel: '',
+          };
 
   return (
     <div className="min-h-screen">
@@ -399,25 +439,32 @@ export default function HomePage() {
         <div className="page-container relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl md:text-5xl font-display font-bold text-cream-200 mb-6">
-              Ready to{' '}
-              <span className="gradient-text">Ace Your Exam</span>?
+              {finalCta.title.includes('Ace Your Exam') ? (
+                <>
+                  Ready to <span className="gradient-text">Ace Your Exam</span>?
+                </>
+              ) : (
+                finalCta.title
+              )}
             </h2>
             <p className="text-lg text-cream-400/70 mb-10 max-w-xl mx-auto">
-              Join thousands of students who transformed their preparation with expert guidance. Your first session is always free.
+              {finalCta.description}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/auth/register" className="btn-primary text-base py-4 px-8">
-                Start for Free
+              <Link href={finalCta.primaryHref} className="btn-primary text-base py-4 px-8">
+                {finalCta.primaryLabel}
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2">
                   <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
                 </svg>
               </Link>
-              <Link href="/become-a-tutor" className="inline-flex items-center text-cream-300/70 hover:text-gold-400 transition-colors font-medium">
-                Or become a tutor
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                </svg>
-              </Link>
+              {finalCta.secondaryHref && (
+                <Link href={finalCta.secondaryHref} className="inline-flex items-center text-cream-300/70 hover:text-gold-400 transition-colors font-medium">
+                  {finalCta.secondaryLabel}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </Link>
+              )}
             </div>
           </div>
         </div>

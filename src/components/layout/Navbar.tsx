@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { FAVORITES_UPDATED_EVENT } from '@/lib/favorite-events';
 import { formatRelativeTime, getInitials } from '@/lib/utils';
 
 const navLinks = [
@@ -48,6 +49,9 @@ export default function Navbar() {
 
   const isStudent = session?.user?.role === 'STUDENT';
   const dashboardHref = `/dashboard/${session?.user?.role?.toLowerCase() || 'student'}`;
+  const visibleNavLinks = session?.user
+    ? navLinks.filter((link) => link.href !== '/become-a-tutor')
+    : navLinks;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -64,7 +68,6 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!session?.user) {
-      setFavoriteTutors([]);
       setNotifications([]);
       setUnreadCount(0);
       return;
@@ -74,16 +77,9 @@ export default function Navbar() {
 
     async function loadNavbarData() {
       setNotificationsLoading(true);
-      setFavoritesLoading(isStudent);
 
       try {
-        const requests: Promise<Response>[] = [fetch('/api/notifications?limit=8', { cache: 'no-store' })];
-
-        if (isStudent) {
-          requests.push(fetch('/api/student/favorites', { cache: 'no-store' }));
-        }
-
-        const [notificationsRes, favoritesRes] = await Promise.all(requests);
+        const notificationsRes = await fetch('/api/notifications?limit=8', { cache: 'no-store' });
 
         if (!notificationsRes.ok) {
           throw new Error('Failed to load notifications');
@@ -95,18 +91,6 @@ export default function Navbar() {
           setNotifications(notificationsJson.data || []);
           setUnreadCount(notificationsJson.unreadCount || 0);
         }
-
-        if (isStudent && favoritesRes) {
-          if (!favoritesRes.ok) {
-            throw new Error('Failed to load favorites');
-          }
-
-          const favoritesJson = await favoritesRes.json();
-
-          if (!ignore) {
-            setFavoriteTutors(favoritesJson.data || []);
-          }
-        }
       } catch (error) {
         if (!ignore) {
           console.error('Navbar data load error:', error);
@@ -114,7 +98,6 @@ export default function Navbar() {
       } finally {
         if (!ignore) {
           setNotificationsLoading(false);
-          setFavoritesLoading(false);
         }
       }
     }
@@ -123,6 +106,54 @@ export default function Navbar() {
 
     return () => {
       ignore = true;
+    };
+  }, [session?.user]);
+
+  useEffect(() => {
+    if (!isStudent || !session?.user) {
+      setFavoriteTutors([]);
+      setFavoritesLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadFavorites() {
+      setFavoritesLoading(true);
+
+      try {
+        const response = await fetch('/api/student/favorites', { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error('Failed to load favorites');
+        }
+
+        const json = await response.json();
+
+        if (!ignore) {
+          setFavoriteTutors(json.data || []);
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error('Navbar favorites load error:', error);
+        }
+      } finally {
+        if (!ignore) {
+          setFavoritesLoading(false);
+        }
+      }
+    }
+
+    function handleFavoritesUpdated() {
+      void loadFavorites();
+    }
+
+    window.addEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
+    void loadFavorites();
+
+    return () => {
+      ignore = true;
+      window.removeEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
     };
   }, [isStudent, session?.user]);
 
@@ -195,7 +226,7 @@ export default function Navbar() {
 
           {!pathname.startsWith('/dashboard') && (
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => (
+              {visibleNavLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -500,7 +531,7 @@ export default function Navbar() {
           <div className="md:hidden pb-6 animate-slide-down">
             {!pathname.startsWith('/dashboard') && (
               <div className="flex flex-col gap-1 mb-4">
-                {navLinks.map((link) => (
+                {visibleNavLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

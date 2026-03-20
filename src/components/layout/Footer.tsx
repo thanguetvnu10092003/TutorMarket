@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 
 const footerLinks = {
@@ -29,7 +30,12 @@ const footerLinks = {
 };
 
 export default function Footer() {
+  const { data: session } = useSession();
   const pathname = usePathname();
+  const visiblePlatformLinks = session?.user
+    ? footerLinks.platform.filter((link) => link.href !== '/become-a-tutor')
+    : footerLinks.platform;
+
   if (pathname.startsWith('/onboarding') || pathname.startsWith('/auth/')) return null;
 
   return (
@@ -74,7 +80,7 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-bold text-cream-200 mb-4 uppercase tracking-wider">Platform</h4>
             <ul className="space-y-3">
-              {footerLinks.platform.map((link) => (
+              {visiblePlatformLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm hover:text-gold-400 transition-colors duration-200">
                     {link.label}

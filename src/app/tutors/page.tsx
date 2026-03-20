@@ -7,6 +7,7 @@ import { SUBJECT_LABELS, type Subject } from '@/types';
 import TutorFilterBar from '@/components/tutors/TutorFilterBar';
 import HorizontalTutorCard from '@/components/tutors/HorizontalTutorCard';
 import BookingModal from '@/components/student/BookingModal';
+import { dispatchFavoritesUpdated } from '@/lib/favorite-events';
 import { toast } from 'react-hot-toast';
 
 function TutorsContent() {
@@ -92,6 +93,7 @@ function TutorsContent() {
       setFavoriteIds((prev) =>
         isFavorite ? prev.filter((id) => id !== tutorId) : [...prev, tutorId]
       );
+      dispatchFavoritesUpdated();
       toast.success(isFavorite ? 'Removed from favorites' : 'Saved to favorites');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update favorites');

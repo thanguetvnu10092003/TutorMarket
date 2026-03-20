@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'How It Works',
@@ -28,7 +30,24 @@ const faqs = [
   { q: 'How do tutors get paid?', a: 'Tutors are paid via Stripe Connect with weekly rolling payouts. Instant payouts are also available for an additional fee.' },
 ];
 
-export default function HowItWorksPage() {
+export default async function HowItWorksPage() {
+  const session = await getServerSession(authOptions);
+  const role = session?.user?.role;
+  const primaryHref = !session?.user
+    ? '/auth/register'
+    : role === 'TUTOR'
+      ? '/dashboard/tutor'
+      : role === 'STUDENT'
+        ? '/tutors'
+        : `/dashboard/${role?.toLowerCase() || 'student'}`;
+  const primaryLabel = !session?.user
+    ? 'Find a Tutor'
+    : role === 'TUTOR'
+      ? 'Open Tutor Dashboard'
+      : role === 'STUDENT'
+        ? 'Find Tutors'
+        : 'Open Dashboard';
+
   return (
     <div className="min-h-screen bg-cream-200 dark:bg-navy-600 pt-24 md:pt-28">
       {/* Header */}
@@ -112,8 +131,10 @@ export default function HowItWorksPage() {
           <h2 className="text-2xl md:text-3xl font-display font-bold text-cream-200 mb-4">Ready to Get Started?</h2>
           <p className="text-cream-400/70 mb-8 max-w-xl mx-auto">Join thousands who have transformed their exam preparation.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/register" className="btn-primary py-3 px-8">Find a Tutor</Link>
-            <Link href="/become-a-tutor" className="btn-outline border-cream-300/30 text-cream-300 hover:bg-cream-300/10 py-3 px-8">Become a Tutor</Link>
+            <Link href={primaryHref} className="btn-primary py-3 px-8">{primaryLabel}</Link>
+            {!session?.user && (
+              <Link href="/become-a-tutor" className="btn-outline border-cream-300/30 text-cream-300 hover:bg-cream-300/10 py-3 px-8">Become a Tutor</Link>
+            )}
           </div>
         </div>
       </section>

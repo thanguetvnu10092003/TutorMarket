@@ -368,8 +368,6 @@ export default function SettingsPage() {
                             <span className="w-2 h-2 rounded-full bg-gold-400" />
                             {session?.user?.role || 'STUDENT'}
                           </p>
-                          <p className="text-xs text-navy-400 dark:text-cream-400/60 mt-1">You can change your role if you want to become a tutor.</p>
-                          <button type="button" className="mt-3 text-xs font-bold text-gold-500 hover:text-gold-600">Upgrade to Tutor Account</button>
                         </div>
                       </div>
                     </div>
