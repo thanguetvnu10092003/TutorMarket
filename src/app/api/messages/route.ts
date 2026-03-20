@@ -16,6 +16,25 @@ const recallSchema = z.object({
   messageId: z.string().min(1),
 });
 
+type MessageRow = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  sentAt: Date;
+  readAt: Date | null;
+  recalledAt: Date | null;
+};
+
+type RecallCandidateRow = {
+  id: string;
+  senderId: string;
+  sentAt: Date;
+  recalledAt: Date | null;
+  studentId: string;
+  tutorUserId: string;
+};
+
 async function requireSession() {
   const session = await getServerSession(authOptions);
 
@@ -178,10 +197,19 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const thread = await prisma.message.findMany({
-      where: { conversationId: conversation.id },
-      orderBy: { sentAt: 'asc' },
-    });
+    const thread = await prisma.$queryRaw<MessageRow[]>`
+      SELECT
+        "id",
+        "conversationId",
+        "senderId",
+        "body",
+        "sentAt",
+        "readAt",
+        "recalledAt"
+      FROM "Message"
+      WHERE "conversationId" = ${conversation.id}
+      ORDER BY "sentAt" ASC
+    `;
 
     return NextResponse.json({
       data: thread,
@@ -206,28 +234,28 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { messageId } = recallSchema.parse(body);
 
-    const message = await prisma.message.findUnique({
-      where: { id: messageId },
-      include: {
-        conversation: {
-          include: {
-            tutorProfile: {
-              select: {
-                userId: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const [message] = await prisma.$queryRaw<RecallCandidateRow[]>`
+      SELECT
+        m."id",
+        m."senderId",
+        m."sentAt",
+        m."recalledAt",
+        c."studentId",
+        tp."userId" AS "tutorUserId"
+      FROM "Message" m
+      INNER JOIN "Conversation" c ON c."id" = m."conversationId"
+      INNER JOIN "TutorProfile" tp ON tp."id" = c."tutorProfileId"
+      WHERE m."id" = ${messageId}
+      LIMIT 1
+    `;
 
     if (!message) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }
 
     const hasAccess =
-      message.conversation.studentId === session.user.id ||
-      message.conversation.tutorProfile.userId === session.user.id;
+      message.studentId === session.user.id ||
+      message.tutorUserId === session.user.id;
 
     if (!hasAccess || message.senderId !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -244,13 +272,29 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updatedMessage = await prisma.message.update({
-      where: { id: messageId },
-      data: {
-        body: RECALL_PLACEHOLDER,
-        recalledAt: new Date(),
-      },
-    });
+    const recalledAt = new Date();
+
+    await prisma.$executeRaw`
+      UPDATE "Message"
+      SET
+        "body" = ${RECALL_PLACEHOLDER},
+        "recalledAt" = ${recalledAt}
+      WHERE "id" = ${messageId}
+    `;
+
+    const [updatedMessage] = await prisma.$queryRaw<MessageRow[]>`
+      SELECT
+        "id",
+        "conversationId",
+        "senderId",
+        "body",
+        "sentAt",
+        "readAt",
+        "recalledAt"
+      FROM "Message"
+      WHERE "id" = ${messageId}
+      LIMIT 1
+    `;
 
     return NextResponse.json({
       success: true,
