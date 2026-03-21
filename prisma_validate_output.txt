@@ -1,38 +1,0 @@
-Environment variables loaded from .env
-Prisma schema loaded from prisma\schema.prisma
-
-Error: Prisma schema validation - (validate wasm)
-Error code: P1012
-[1;91merror[0m: [1mError validating field `tags` in model `TutorEducation`: The relation field `tags` on model `TutorEducation` is missing an opposite relation field on the model `ReviewTag`. Either run `prisma format` or add it manually.[0m
-  [1;94m-->[0m  [4mprisma\schema.prisma:297[0m
-[1;94m   | [0m
-[1;94m296 | [0m  createdAt      DateTime     @default(now())
-[1;94m297 | [0m  [1;91mtags           ReviewTag[][0m
-[1;94m298 | [0m
-[1;94m   | [0m
-[1;91merror[0m: [1mError validating field `tags` in model `Conversation`: The relation field `tags` on model `Conversation` is missing an opposite relation field on the model `ReviewTag`. Either run `prisma format` or add it manually.[0m
-  [1;94m-->[0m  [4mprisma\schema.prisma:442[0m
-[1;94m   | [0m
-[1;94m441 | [0m  createdAt      DateTime     @default(now())
-[1;94m442 | [0m  [1;91mtags           ReviewTag[][0m
-[1;94m443 | [0m
-[1;94m   | [0m
-[1;91merror[0m: [1mError validating field `tutorProfile` in model `StudentSavedTutor`: The relation field `tutorProfile` on model `StudentSavedTutor` is missing an opposite relation field on the model `TutorProfile`. Either run `prisma format` or add it manually.[0m
-  [1;94m-->[0m  [4mprisma\schema.prisma:646[0m
-[1;94m   | [0m
-[1;94m645 | [0m  tutorProfileId String
-[1;94m646 | [0m  [1;91mtutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)[0m
-[1;94m647 | [0m  savedAt        DateTime     @default(now())
-[1;94m   | [0m
-[1;91merror[0m: [1mError validating field `tutorProfile` in model `BookingPackage`: The relation field `tutorProfile` on model `BookingPackage` is missing an opposite relation field on the model `TutorProfile`. Either run `prisma format` or add it manually.[0m
-  [1;94m-->[0m  [4mprisma\schema.prisma:658[0m
-[1;94m   | [0m
-[1;94m657 | [0m  tutorProfileId    String
-[1;94m658 | [0m  [1;91mtutorProfile      TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)[0m
-[1;94m659 | [0m  totalSessions     Int
-[1;94m   | [0m
-
-Validation Error Count: 4
-[Context: validate]
-
-Prisma CLI Version : 5.22.0
