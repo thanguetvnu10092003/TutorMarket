@@ -461,7 +461,7 @@ model Message {
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId       String
-  sender         User         @relation("MessagesSent", fields: [senderId], references: [id])
+  sender         User         @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
   body           String
   sentAt         DateTime     @default(now())
   readAt         DateTime?
@@ -613,7 +613,7 @@ model UserStrike {
   recipient User     @relation("StrikeRecipient", fields: [userId], references: [id], onDelete: Cascade)
   reason    String
   issuedById String
-  issuer    User     @relation("StrikeIssuer", fields: [issuedById], references: [id])
+  issuer    User     @relation("StrikeIssuer", fields: [issuedById], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])

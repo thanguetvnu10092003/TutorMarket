@@ -269,7 +269,7 @@ export default function TutorFilterBar({
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 mt-4 md:mt-0">
           <div className="relative">
             <select
               value={filters.sortBy}

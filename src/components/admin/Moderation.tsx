@@ -103,7 +103,7 @@ export function Moderation({ data, onRefresh }: { data: any; onRefresh: () => Pr
   return (
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
-        <div className="glass-card p-6">
+        <div className="glass-card p-6 min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">User list</h2>
             <div className="flex flex-wrap gap-2">
@@ -177,7 +177,7 @@ export function Moderation({ data, onRefresh }: { data: any; onRefresh: () => Pr
           </div>
         </div>
 
-        <div className="glass-card p-6">
+        <div className="glass-card p-6 min-w-0">
           <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">User details</h2>
           {selectedUser ? (
             <div className="mt-6 space-y-6">

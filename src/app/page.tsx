@@ -296,10 +296,10 @@ export default function HomePage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-bold text-navy-600 dark:text-cream-200 group-hover:text-gold-500 transition-colors truncate">
+                    <h3 className="text-base font-bold text-navy-600 dark:text-cream-200 group-hover:text-gold-500 transition-colors truncate break-words">
                       {tutor.name}
                     </h3>
-                    <p className="text-sm text-navy-300 dark:text-cream-400/60 line-clamp-2 mt-0.5 leading-snug">
+                    <p className="text-sm text-navy-300 dark:text-cream-400/60 break-words line-clamp-2 mt-0.5 leading-snug">
                       {tutor.headline}
                     </p>
                   </div>

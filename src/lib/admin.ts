@@ -338,13 +338,21 @@ export async function processVerificationDecision(input: {
       for (const cert of tutor.certifications) {
         // Only verify if it was pending or self-reported, don't automatically override rejections
         if (cert.status === 'PENDING_VERIFICATION' || cert.status === 'SELF_REPORTED') {
-          const nextStatus = cert.fileUrl ? 'VERIFIED' : 'SELF_REPORTED';
+          // If it has a file, it's verified. 
+          // If it's GMAT/GRE and was already PENDING_VERIFICATION (awaiting portal), keep it that way.
+          let nextStatus = cert.fileUrl ? 'VERIFIED' : cert.status;
+          
+          if (!cert.fileUrl && cert.status === 'SELF_REPORTED' && cert.type !== 'GMAT' && cert.type !== 'GRE') {
+             // For generic certs with no file, stay self-reported
+             nextStatus = 'SELF_REPORTED';
+          }
+
           await tx.tutorCertification.update({
             where: { id: cert.id },
             data: {
-              status: nextStatus,
-              verifiedAt: new Date(),
-              verifiedById: input.adminId,
+              status: nextStatus as any,
+              verifiedAt: nextStatus === 'VERIFIED' ? new Date() : cert.verifiedAt,
+              verifiedById: nextStatus === 'VERIFIED' ? input.adminId : cert.verifiedById,
               notes: input.notes ?? cert.notes,
             },
           });
@@ -357,7 +365,7 @@ export async function processVerificationDecision(input: {
           adminId: input.adminId,
           action: 'APPROVED',
           notes: input.notes,
-          metadata: input.certificationChecklist,
+          metadata: (input.certificationChecklist as any) ?? undefined,
         },
       });
     });
@@ -369,7 +377,7 @@ export async function processVerificationDecision(input: {
       targetUserId: tutor.userId,
       actionType: 'APPROVE_TUTOR_APPLICATION',
       reason: input.notes,
-      metadata: input.certificationChecklist ?? null,
+      metadata: (input.certificationChecklist as any) ?? null,
     });
 
     return;
@@ -402,7 +410,7 @@ export async function processVerificationDecision(input: {
         reasonCategory: input.reasonCategory,
         notes: input.notes,
         requestedDocument: input.requestedDocument,
-        metadata: input.certificationChecklist,
+        metadata: (input.certificationChecklist as any) ?? undefined,
       },
     });
   });
@@ -418,7 +426,7 @@ export async function processVerificationDecision(input: {
       reasonCategory: input.reasonCategory,
       requestedDocument: input.requestedDocument,
       certificationChecklist: input.certificationChecklist,
-    },
+    } as any,
   });
 }
 

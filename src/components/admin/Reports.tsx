@@ -121,13 +121,13 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-3xl bg-navy-50/80 p-5 dark:bg-navy-700/20">
                 <div className="text-[10px] font-black uppercase tracking-[0.16em] text-navy-300">Reporter</div>
-                <div className="mt-3 text-sm font-bold text-navy-600 dark:text-cream-200">{selectedReport.reporter.name}</div>
-                <div className="mt-1 text-xs text-navy-400 dark:text-cream-400/60">{selectedReport.reporter.email}</div>
+                <div className="mt-3 text-sm font-bold text-navy-600 dark:text-cream-200 break-words">{selectedReport.reporter.name}</div>
+                <div className="mt-1 text-xs break-all text-navy-400 dark:text-cream-400/60">{selectedReport.reporter.email}</div>
               </div>
               <div className="rounded-3xl bg-navy-50/80 p-5 dark:bg-navy-700/20">
                 <div className="text-[10px] font-black uppercase tracking-[0.16em] text-navy-300">Reported user</div>
-                <div className="mt-3 text-sm font-bold text-navy-600 dark:text-cream-200">{selectedReport.reportedParty.name}</div>
-                <div className="mt-1 text-xs text-navy-400 dark:text-cream-400/60">{selectedReport.reportedParty.email}</div>
+                <div className="mt-3 text-sm font-bold text-navy-600 dark:text-cream-200 break-words">{selectedReport.reportedParty.name}</div>
+                <div className="mt-1 text-xs break-all text-navy-400 dark:text-cream-400/60">{selectedReport.reportedParty.email}</div>
               </div>
             </div>
 
@@ -147,7 +147,7 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
               </div>
               <div className="rounded-3xl bg-white/70 p-5 border border-navy-100 dark:border-navy-500/20 dark:bg-navy-600/20">
                 <div className="text-[10px] font-black uppercase tracking-[0.16em] text-navy-300">Description</div>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-navy-600 dark:text-cream-200">{selectedReport.description}</p>
+                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-navy-600 dark:text-cream-200">{selectedReport.description}</p>
               </div>
             </div>
 

@@ -366,7 +366,7 @@ export default function StudentDashboard() {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-cream-400/60">Payments</p>
-                      <p className="text-xl font-bold">{data.payments.length}</p>
+                      <p className="text-xl font-bold">{data.payments.filter(p => p.status !== 'CANCELLED').length}</p>
                     </div>
                   </div>
                 </div>
@@ -531,7 +531,9 @@ export default function StudentDashboard() {
                     </div>
                     <div className="text-left md:text-right space-y-2">
                       <p className="text-lg font-black text-navy-600 dark:text-cream-200">{formatCurrency(payment.amount)}</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gold-600 mt-1">{payment.status.replaceAll('_', ' ')}</p>
+                      <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${payment.status === 'CANCELLED' ? 'text-red-500' : 'text-gold-600'}`}>
+                        {payment.status.replaceAll('_', ' ')}
+                      </p>
                       {payment.canPayNow && (
                         <div className="flex flex-col gap-2">
                           <button

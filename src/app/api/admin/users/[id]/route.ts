@@ -150,55 +150,24 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const deletedEmail = `deleted+${user.id}@deleted.local`;
-    const deletedName = `Deleted User ${user.id.slice(-6)}`;
-
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: user.id },
-        data: {
-          email: deletedEmail,
-          name: deletedName,
-          avatarUrl: null,
-          bio: null,
-          passwordHash: null,
-          isBanned: true,
-          banReason: 'Account deleted by admin',
-          suspendedUntil: null,
-          suspensionReason: null,
-          warningCount: 0,
-          strikeCount: 0,
-          otpCode: null,
-          otpExpires: null,
-          otpLastResent: null,
-          referralCode: null,
-        },
-      });
-
-      if (user.tutorProfile?.id) {
-        await tx.tutorProfile.update({
-          where: { id: user.tutorProfile.id },
-          data: {
-            hiddenFromSearch: true,
-            suspendedAt: new Date(),
-            headline: 'Deleted tutor profile',
-            about: 'This account was removed by admin.',
-          },
-        });
-      }
-    });
-
     await recordAdminAction({
       adminId: session.user.id,
-      targetUserId: user.id,
-      actionType: 'SOFT_DELETE_USER',
-      reason: 'Account deleted by admin',
+      targetUserId: null, // User will be deleted, so we can't reference their ID
+      actionType: 'HARD_DELETE_USER',
+      reason: 'Account permanently deleted by admin',
       metadata: {
+        deletedUserId: user.id,
+        deletedUserEmail: user.email,
+        deletedUserName: user.name,
         messageCount: user._count.messagesSent,
         sessionCount: user._count.bookingsAsStudent,
         reviewCount: user._count.reviewsGiven,
         reportCount: user._count.reportsFiled,
       },
+    });
+
+    await prisma.user.delete({
+      where: { id: user.id }
     });
 
     return NextResponse.json({

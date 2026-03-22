@@ -112,7 +112,10 @@ export async function POST(req: NextRequest) {
       }
 
       const pricePerSession = selectedPricingOption.price;
-      const totalAmount = pricePerSession * packageSessions * (1 - (discount || 0));
+      const rawTotalAmount = pricePerSession * packageSessions * (1 - (discount || 0));
+      const exchangeRate = 25500;
+      const isVnd = selectedPricingOption.currency === 'VND';
+      const usdTotalAmount = isVnd ? Math.round((rawTotalAmount / exchangeRate) * 100) / 100 : rawTotalAmount;
 
       const pkg = await prisma.bookingPackage.create({
         data: {
@@ -121,12 +124,12 @@ export async function POST(req: NextRequest) {
           totalSessions: packageSessions,
           sessionsRemaining: packageSessions,
           pricePerSession,
-          totalPaid: totalAmount,
+          totalPaid: rawTotalAmount,
           currency: selectedPricingOption.currency,
           packageDiscount: discount || 0,
           payment: {
             create: {
-              amount: totalAmount,
+              amount: usdTotalAmount,
               status: 'PENDING',
               platformFee: 0,
               tutorPayout: 0,
@@ -203,8 +206,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tutor is not available on this date', code: 'SLOT_UNAVAILABLE' }, { status: 409 });
     }
 
-    const price = type === 'TRIAL' ? 0 : selectedPricingOption?.price || 0;
+    const rawPrice = type === 'TRIAL' ? 0 : selectedPricingOption?.price || 0;
     const isFreeSession = type === 'TRIAL';
+    const exchangeRate = 25500;
+    const isVnd = selectedPricingOption?.currency === 'VND';
+    const usdPrice = isVnd ? Math.round((rawPrice / exchangeRate) * 100) / 100 : rawPrice;
+
     const booking = await prisma.booking.create({
       data: {
         studentId,
@@ -219,8 +226,8 @@ export async function POST(req: NextRequest) {
         notes,
         payment: {
           create: {
-            amount: price,
-            status: price === 0 ? 'CAPTURED' : 'PENDING',
+            amount: usdPrice,
+            status: usdPrice === 0 ? 'CAPTURED' : 'PENDING',
             platformFee: 0,
             tutorPayout: 0,
           },
@@ -253,7 +260,7 @@ export async function POST(req: NextRequest) {
       type: 'BOOKING_CREATED',
       title: type === 'TRIAL' ? 'Trial lesson requested' : 'Booking request created',
       body:
-        price === 0
+        rawPrice === 0
           ? `Your ${type === 'TRIAL' ? 'trial lesson' : 'lesson'} with ${tutorProfile.user.name} for ${subject.replace(/_/g, ' ')} was requested for ${formatDateTime(booking.scheduledAt.toISOString())}. Waiting for tutor confirmation.`
           : `Your lesson with ${tutorProfile.user.name} for ${subject.replace(/_/g, ' ')} was requested for ${formatDateTime(booking.scheduledAt.toISOString())}. Complete payment, then wait for tutor confirmation.`,
       link: '/dashboard/student?tab=bookings',

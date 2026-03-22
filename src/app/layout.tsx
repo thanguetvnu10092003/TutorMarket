@@ -40,7 +40,7 @@ export default function RootLayout({
       <body className="font-body grain-overlay min-h-screen flex flex-col">
         <Providers>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 overflow-x-hidden">{children}</main>
           <Footer />
         </Providers>
       </body>

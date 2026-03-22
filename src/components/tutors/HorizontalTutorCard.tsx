@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { SUBJECT_LABELS, type Subject } from '@/types';
-import { getInitials } from '@/lib/utils';
+import { formatCurrency, getInitials } from '@/lib/utils';
 
 interface HorizontalTutorCardProps {
   tutor: any;
@@ -76,7 +76,7 @@ export default function HorizontalTutorCard({
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <h3
-            className="text-xl lg:text-2xl font-body font-black text-navy-600 dark:text-cream-200 tracking-tight cursor-pointer hover:text-gold-500 transition-colors"
+            className="text-xl lg:text-2xl font-body font-black text-navy-600 dark:text-cream-200 tracking-tight cursor-pointer hover:text-gold-500 transition-colors line-clamp-1 break-words"
             onClick={handleProfileClick}
           >
             {tutor.user?.name}
@@ -109,26 +109,34 @@ export default function HorizontalTutorCard({
             </svg>
             <span>{SUBJECT_LABELS[primarySubject as Subject] || primarySubject}</span>
           </div>
-          <div className="flex items-center gap-2 text-navy-400 dark:text-cream-400/40">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <div className="flex items-center gap-2 text-navy-400 dark:text-cream-400/40 min-w-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="flex-shrink-0">
               <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.783.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
             </svg>
-            <span>{languagesText}</span>
+            <span className="truncate break-words">{languagesText}</span>
           </div>
         </div>
 
         {verifiedResults.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
-            {verifiedResults.slice(0, 2).map((result: any) => (
+            {verifiedResults.slice(0, 3).map((result: any) => (
               <div
                 key={result.id}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-sage-50 dark:bg-sage-500/10 rounded-full border border-sage-200/70 dark:border-sage-500/20"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
+                  result.isVerified
+                    ? 'bg-sage-50 dark:bg-sage-500/10 border-sage-200/70 dark:border-sage-500/20'
+                    : 'bg-blue-50 dark:bg-blue-400/10 border-blue-200/70 dark:border-blue-400/20'
+                }`}
               >
-                <span className="text-[10px] font-black uppercase tracking-widest text-sage-700 dark:text-sage-300">
+                <span className={`text-[10px] font-black uppercase tracking-widest ${
+                  result.isVerified ? 'text-sage-700 dark:text-sage-300' : 'text-blue-700 dark:text-blue-300'
+                }`}>
                   {result.scoreText}
                 </span>
                 {result.detailText && (
-                  <span className="text-[10px] font-bold text-sage-600/80 dark:text-sage-200/70">
+                  <span className={`text-[10px] font-bold ${
+                    result.isVerified ? 'text-sage-600/80 dark:text-sage-200/70' : 'text-blue-600/80 dark:text-blue-400/70'
+                  }`}>
                     {result.detailText}
                   </span>
                 )}
@@ -137,7 +145,7 @@ export default function HorizontalTutorCard({
           </div>
         )}
 
-        <p className="text-sm text-navy-400 dark:text-cream-400/60 leading-relaxed mb-4 line-clamp-3">
+        <p className="text-sm text-navy-400 dark:text-cream-400/60 leading-relaxed mb-4 line-clamp-3 break-words">
           {tutor.bio || tutor.about || 'No introduction provided.'}
           <button onClick={handleProfileClick} className="ml-2 text-gold-500 font-black hover:underline focus:outline-none">
             Learn more
@@ -189,13 +197,31 @@ export default function HorizontalTutorCard({
           </button>
         </div>
 
-        <div className="mb-6 rounded-2xl bg-navy-50/50 dark:bg-navy-800/50 border border-navy-100/60 dark:border-navy-500/20 p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-2">
-            Pricing options
+        <div className="mb-6 rounded-2xl bg-navy-50/50 dark:bg-navy-800/50 border border-navy-100/60 dark:border-navy-500/20 p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-3">
+            Lesson Options
           </p>
-          <p className="text-xs font-bold text-navy-600 dark:text-cream-200 leading-relaxed">
-            {pricingSummary}
-          </p>
+          <div className="flex flex-wrap gap-2.5">
+            {tutor.pricing?.filter((p: any) => p.isEnabled).sort((a: any, b: any) => a.durationMinutes - b.durationMinutes).map((p: any) => (
+              <div 
+                key={p.id}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl transition-all hover:border-gold-400 hover:shadow-lg group/price"
+              >
+                <div className="w-6 h-6 rounded-lg bg-gold-50 dark:bg-gold-500/10 flex items-center justify-center text-gold-600 group-hover/price:bg-gold-400 group-hover/price:text-navy-600 transition-colors">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </div>
+                <div className="flex flex-col -space-y-0.5">
+                  <span className="text-[10px] font-black text-navy-600 dark:text-cream-200 uppercase tracking-tighter">{p.durationMinutes}m</span>
+                  <span className="text-xs font-black text-gold-600 dark:text-gold-400">{formatCurrency(p.price)}</span>
+                </div>
+              </div>
+            ))}
+            {(!tutor.pricing || tutor.pricing.filter((p: any) => p.isEnabled).length === 0) && (
+              <p className="text-xs text-navy-300 dark:text-cream-400/60 font-medium">Standard rates apply.</p>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-3 lg:grid-cols-1 gap-4 mb-8">

@@ -277,7 +277,7 @@ function TutorsContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 items-start mt-8">
           {/* Main Listing */}
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {loading ? (
               <TutorListLoadingCards />
             ) : results.length > 0 ? (
@@ -285,7 +285,7 @@ function TutorsContent() {
                 <div 
                     key={tutor.id} 
                     onClick={() => setSelectedTutorId(tutor.id)}
-                    className={`cursor-pointer transition-all ${selectedTutorId === tutor.id ? 'ring-4 ring-gold-400 rounded-[32px]' : ''}`}
+                    className={`cursor-pointer min-w-0 transition-all ${selectedTutorId === tutor.id ? 'ring-4 ring-gold-400 rounded-[32px]' : ''}`}
                 >
                     <HorizontalTutorCard 
                         tutor={tutor} 

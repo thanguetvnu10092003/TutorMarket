@@ -79,24 +79,32 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      data: payments.map((payment: any) => ({
-        id: payment.id,
-        amount: payment.amount,
-        refundedAmount: payment.refundedAmount,
-        currency: 'USD',
-        paymentMethod: payment.amount === 0 ? 'FREE_TRIAL' : 'STRIPE_CHECKOUT',
-        status: payment.amount === 0 ? 'FREE_TRIAL' : payment.status,
-        payoutStatus: payment.payoutStatus,
-        paidAt: payment.paidAt,
-        createdAt: payment.createdAt,
-        refundedAt: payment.refundedAt,
-        canPayNow: session.user.role === 'STUDENT' && payment.status === 'PENDING' && payment.amount > 0,
-        kind: payment.bookingId ? 'BOOKING' : 'PACKAGE',
-        subject: payment.booking?.subject || null,
-        tutorName: payment.booking?.tutorProfile?.user?.name || payment.package?.tutorProfile?.user?.name || null,
-        tutorAvatarUrl: payment.booking?.tutorProfile?.user?.avatarUrl || payment.package?.tutorProfile?.user?.avatarUrl || null,
-        packageSessions: payment.package?.totalSessions || null,
-      })),
+      data: payments.map((payment: any) => {
+        const isCancelledBooking = payment.booking?.status === 'CANCELLED';
+        const displayStatus = isCancelledBooking
+          ? 'CANCELLED'
+          : payment.amount === 0 ? 'FREE_TRIAL' : payment.status;
+        const canPay = !isCancelledBooking && session.user.role === 'STUDENT' && payment.status === 'PENDING' && payment.amount > 0;
+
+        return {
+          id: payment.id,
+          amount: payment.amount,
+          refundedAmount: payment.refundedAmount,
+          currency: 'USD',
+          paymentMethod: payment.amount === 0 ? 'FREE_TRIAL' : 'STRIPE_CHECKOUT',
+          status: displayStatus,
+          payoutStatus: payment.payoutStatus,
+          paidAt: payment.paidAt,
+          createdAt: payment.createdAt,
+          refundedAt: payment.refundedAt,
+          canPayNow: canPay,
+          kind: payment.bookingId ? 'BOOKING' : 'PACKAGE',
+          subject: payment.booking?.subject || null,
+          tutorName: payment.booking?.tutorProfile?.user?.name || payment.package?.tutorProfile?.user?.name || null,
+          tutorAvatarUrl: payment.booking?.tutorProfile?.user?.avatarUrl || payment.package?.tutorProfile?.user?.avatarUrl || null,
+          packageSessions: payment.package?.totalSessions || null,
+        };
+      }),
     });
   } catch (error) {
     console.error('Payment history fetch error:', error);

@@ -102,6 +102,7 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
     seoMetadata,
     strikes,
     gmatRequests,
+    packages,
     platformSettings,
   ] = await Promise.all([
     prisma.user.findMany({
@@ -177,6 +178,9 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
       orderBy: { createdAt: 'desc' },
     }),
     prisma.userReport.findMany({
+      where: {
+        status: { in: ['OPEN', 'UNDER_REVIEW'] },
+      },
       include: {
         reporter: true,
         reportedUser: true,
@@ -244,6 +248,12 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
     prisma.seoMetadata.findMany({
       orderBy: { subject: 'asc' },
     }),
+    prisma.bookingPackage.findMany({
+      include: {
+        payment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
     // @ts-ignore
     prisma.userStrike.findMany({
       include: {
@@ -282,8 +292,11 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
 
   const nonAdminUsers = users.filter((user: any) => user.role !== 'ADMIN');
   const activeUsers = nonAdminUsers.filter((user: any) => getUserStatus(user) === 'ACTIVE');
-  const totalGrossRevenue = sum(bookings.map((booking: any) => booking.payment?.amount || 0));
-  const totalNetRevenue = sum(bookings.map((booking: any) => booking.payment?.platformFee || 0));
+  const capturedBookings = bookings.filter((b: any) => b.payment && b.payment.status === 'CAPTURED');
+  const capturedPackages = packages.filter((p: any) => p.payment && p.payment.status === 'CAPTURED');
+  
+  const totalGrossRevenue = sum(capturedBookings.map((booking: any) => booking.payment?.amount || 0)) + sum(capturedPackages.map((pkg: any) => pkg.payment?.amount || 0));
+  const totalNetRevenue = sum(capturedBookings.map((booking: any) => booking.payment?.platformFee || 0)) + sum(capturedPackages.map((pkg: any) => pkg.payment?.platformFee || 0));
   const openTicketsCount =
     contentFlags.filter((flag: any) => flag.status === 'OPEN').length +
     reports.filter((report: any) => report.status === 'OPEN' || report.status === 'UNDER_REVIEW').length;
@@ -689,10 +702,10 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
 
   const formattedGmatRequests = gmatRequests.map((r: any) => ({
     id: r.id,
-    tutorName: r.tutorCertification.tutorProfile.user.name,
-    tutorId: r.tutorCertification.tutorProfileId,
+    tutorName: r.tutorCertification?.tutorProfile?.user?.name || 'Unknown Tutor',
+    tutorId: r.tutorCertification?.tutorProfileId || 'Unknown',
     tutorCertificationId: r.tutorCertificationId,
-    status: r.tutorCertification.status,
+    status: r.tutorCertification?.status || 'UNKNOWN',
     portalVerifiedAt: r.portalVerifiedAt,
     documentReviewedAt: r.documentReviewedAt,
     reviewNotes: r.reviewNotes,
@@ -829,20 +842,42 @@ function getPercentileValue(percentiles: any, keys: string[]) {
 }
 
 function buildCertificationSummary(certification: any) {
-  if (certification.status !== 'VERIFIED') {
+  // We show all except rejected or none
+  if (certification.status === 'REJECTED' || certification.status === 'NONE') {
     return null;
   }
 
   const label = getCertificationDisplayLabel(certification);
   const percentiles = certification.percentiles || {};
+  const isVerified = certification.status === 'VERIFIED';
 
   if (certification.type === 'GMAT') {
     const totalPercentile = getPercentileValue(percentiles, ['totalPercentile', 'totalPct', 'total']);
+    const q = percentiles.quantScore ? `Q${percentiles.quantScore}` : null;
+    const v = percentiles.verbalScore ? `V${percentiles.verbalScore}` : null;
+    const di = percentiles.dataInsightsScore ? `DI${percentiles.dataInsightsScore}` : null;
+    const subScores = [q, v, di].filter(Boolean).join(' ');
+    
     return {
       id: certification.id,
       label,
-      scoreText: certification.score ? `GMAT: ${certification.score}` : 'GMAT verified',
-      detailText: totalPercentile ? `${certification.score || ''} (${totalPercentile}th percentile)`.trim() : null,
+      isVerified,
+      type: 'GMAT',
+      scoreText: certification.score ? `GMAT: ${certification.score}` : 'GMAT submitted',
+      detailText: [
+        totalPercentile ? `${totalPercentile}th percentile` : null,
+        subScores ? `(${subScores})` : null
+      ].filter(Boolean).join(' '),
+      breakdown: {
+        total: certification.score,
+        totalPercentile,
+        quant: percentiles.quantScore,
+        quantPercentile: percentiles.quantPercentile,
+        verbal: percentiles.verbalScore,
+        verbalPercentile: percentiles.verbalPercentile,
+        dataInsights: percentiles.dataInsightsScore,
+        dataInsightsPercentile: percentiles.dataInsightsPercentile,
+      }
     };
   }
 
@@ -853,23 +888,37 @@ function buildCertificationSummary(certification: any) {
     const quantPercentile = percentiles?.quantPercentile ?? percentiles?.quantPct ?? null;
     const writing = percentiles?.writing ?? percentiles?.writingScore ?? null;
     const writingPercentile = percentiles?.writingPercentile ?? percentiles?.writingPct ?? null;
-    const combinedScore = [verbal, quant].filter(Boolean).join(' / ');
-    const percentileSummary = [verbalPercentile ? `V ${verbalPercentile}th` : null, quantPercentile ? `Q ${quantPercentile}th` : null, writingPercentile ? `AWA ${writingPercentile}th` : null]
-      .filter(Boolean)
-      .join(' • ');
+    
+    const combinedScore = [verbal ? `V${verbal}` : null, quant ? `Q${quant}` : null].filter(Boolean).join(' / ');
+    const percentileSummary = [
+      verbalPercentile ? `V ${verbalPercentile}%` : null, 
+      quantPercentile ? `Q ${quantPercentile}%` : null, 
+      writingPercentile ? `AWA ${writingPercentile}%` : null
+    ].filter(Boolean).join(' • ');
 
     return {
       id: certification.id,
       label,
-      scoreText: combinedScore ? `GRE: ${combinedScore}` : 'GRE verified',
+      isVerified,
+      type: 'GRE',
+      scoreText: combinedScore ? `GRE: ${combinedScore}` : 'GRE submitted',
       detailText: [writing ? `AWA ${writing}` : null, percentileSummary].filter(Boolean).join(' • ') || null,
+      breakdown: {
+        verbal,
+        verbalPercentile,
+        quant,
+        quantPercentile,
+        writing,
+        writingPercentile
+      }
     };
   }
 
   return {
     id: certification.id,
     label,
-    scoreText: certification.score ? `${label}: ${certification.score}` : `${label} verified`,
+    isVerified,
+    scoreText: certification.score ? `${label}: ${certification.score}` : `${label} submitted`,
     detailText: null,
   };
 }
@@ -1151,7 +1200,7 @@ export async function getPublicTutorCards(filters: {
     availableWithin7Days: profile.hasNextWeekAvailability,
     verifiedResults: profile.verifiedResults,
     verifiedCertifications: profile.certifications
-      .filter((c: any) => c.status === 'VERIFIED')
+      .filter((c: any) => c.status === 'VERIFIED' || c.status === 'SELF_REPORTED' || c.status === 'RESUBMITTED')
       .map((c: any) => c.type),
   }));
 }
@@ -1261,6 +1310,9 @@ export async function getPublicTutorProfile(tutorProfileId: string, viewerContex
     countryFlag: publicCountryCode ? getCountryOptions().find((country) => country.code === publicCountryCode)?.flag || profile.user.countryFlag : profile.user.countryFlag,
     blockedDates: profile.overrides,
     bookedSlots: profile.bookings,
+    verifiedCertifications: profile.certifications
+      .filter((c: any) => c.status === 'VERIFIED' || c.status === 'SELF_REPORTED' || c.status === 'RESUBMITTED')
+      .map((c: any) => c.type),
     verifiedResults,
   };
 }

@@ -335,7 +335,7 @@ export default function Navbar() {
                                 <Link href={`/tutors/${tutor.id}`} className="text-sm font-semibold text-navy-600 dark:text-cream-200 hover:text-gold-600 transition-colors block truncate">
                                   {tutor.name}
                                 </Link>
-                                <p className="text-xs text-navy-300 dark:text-cream-400/60 mt-0.5 line-clamp-2">
+                                <p className="text-xs text-navy-300 dark:text-cream-400/60 mt-0.5 line-clamp-2 break-words">
                                   {tutor.headline || 'Saved from Find Tutors'}
                                 </p>
                                 <div className="mt-2 flex items-center justify-between gap-3">

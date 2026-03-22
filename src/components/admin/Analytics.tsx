@@ -128,7 +128,7 @@ export function Analytics({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="glass-card p-6">
+        <div className="glass-card p-6 min-w-0">
           <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">Revenue Overview</h2>
           <div className="mt-6 grid grid-cols-2 gap-4">
             <div className="rounded-3xl bg-navy-50/80 p-5 dark:bg-navy-700/20">
