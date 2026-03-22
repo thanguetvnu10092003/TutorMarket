@@ -19,12 +19,111 @@ function Badge({ value }: { value: string }) {
   );
 }
 
+function formatCertificationName(cert: any) {
+  if (cert?.type === 'CFA' && cert?.levelOrVariant) {
+    return cert.levelOrVariant.replaceAll('_', ' ').replace('CFA LEVEL', 'CFA Level');
+  }
+
+  return cert?.type || 'Certification';
+}
+
+function buildCertificationHeadline(cert: any) {
+  if (!cert) {
+    return 'No score data submitted';
+  }
+
+  const percentiles = cert.percentiles || {};
+
+  if (cert.type === 'GMAT') {
+    const parts = [
+      cert.score ? `Total ${cert.score}` : null,
+      percentiles.quantScore ? `Q ${percentiles.quantScore}` : null,
+      percentiles.verbalScore ? `V ${percentiles.verbalScore}` : null,
+      percentiles.dataInsightsScore ? `DI ${percentiles.dataInsightsScore}` : null,
+    ].filter(Boolean);
+
+    return parts.join(' | ') || 'GMAT score submitted';
+  }
+
+  if (cert.type === 'GRE') {
+    const verbalScore = percentiles.verbal ?? percentiles.verbalScore;
+    const quantScore = percentiles.quant ?? percentiles.quantScore;
+    const writingScore = percentiles.writing ?? percentiles.writingScore;
+    const parts = [
+      verbalScore ? `Verbal ${verbalScore}` : null,
+      quantScore ? `Quant ${quantScore}` : null,
+      writingScore ? `AWA ${writingScore}` : null,
+    ].filter(Boolean);
+
+    return parts.join(' | ') || 'GRE score submitted';
+  }
+
+  return cert.score ? `Score ${cert.score}` : 'Score data submitted';
+}
+
+function getCertificationRows(cert: any) {
+  if (!cert) {
+    return [];
+  }
+
+  const percentiles = cert.percentiles || {};
+
+  if (cert.type === 'GMAT') {
+    return [
+      { label: 'Total', score: cert.score, percentile: percentiles.totalPercentile },
+      { label: 'Quant', score: percentiles.quantScore, percentile: percentiles.quantPercentile },
+      { label: 'Verbal', score: percentiles.verbalScore, percentile: percentiles.verbalPercentile },
+      { label: 'Data Insights', score: percentiles.dataInsightsScore, percentile: percentiles.dataInsightsPercentile },
+    ];
+  }
+
+  if (cert.type === 'GRE') {
+    return [
+      { label: 'Verbal', score: percentiles.verbal ?? percentiles.verbalScore, percentile: percentiles.verbalPercentile ?? percentiles.verbalPct },
+      { label: 'Quant', score: percentiles.quant ?? percentiles.quantScore, percentile: percentiles.quantPercentile ?? percentiles.quantPct },
+      { label: 'Analytical Writing', score: percentiles.writing ?? percentiles.writingScore, percentile: percentiles.writingPercentile ?? percentiles.writingPct },
+    ];
+  }
+
+  return [{ label: 'Score', score: cert.score, percentile: null }];
+}
+
+function CertificationScorePanel({ cert }: { cert: any }) {
+  const rows = getCertificationRows(cert).filter((row) => row.score !== null && row.score !== undefined && row.score !== '');
+
+  return (
+    <div className="rounded-2xl border border-navy-100 bg-white/70 p-4 dark:border-navy-500/40 dark:bg-navy-700/20">
+      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-navy-400">Submitted Score Details</div>
+      <div className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">{buildCertificationHeadline(cert)}</div>
+      {cert?.testDate && (
+        <div className="mt-1 text-xs text-navy-400">Test date: {formatDate(cert.testDate)}</div>
+      )}
+      {rows.length > 0 ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {rows.map((row) => (
+            <div key={row.label} className="rounded-xl border border-navy-100/70 bg-white px-4 py-3 dark:border-navy-500/40 dark:bg-navy-800/40">
+              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-navy-400">{row.label}</div>
+              <div className="mt-1 text-base font-bold text-navy-600 dark:text-cream-200">{row.score}</div>
+              {row.percentile !== null && row.percentile !== undefined && row.percentile !== '' && (
+                <div className="text-xs text-navy-400">{row.percentile}th percentile</div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 text-xs text-navy-400">No structured score details were saved for this certification yet.</div>
+      )}
+    </div>
+  );
+}
+
 export function Verifications({ data, onRefresh }: { data: any; onRefresh: () => Promise<void> }) {
   const [activeTab, setActiveTab] = useState<'queue' | 'gmat'>('queue');
   const [selectedId, setSelectedId] = useState<string | null>(data.queue[0]?.id || null);
   const [selectedGmatId, setSelectedGmatId] = useState<string | null>(null);
   const [selectedCertId, setSelectedCertId] = useState<string | null>(null);
-  const [gmatCreds, setGmatCreds] = useState<any>(null);
+  const [gmatRequests, setGmatRequests] = useState<any[]>(data.gmatRequests || []);
+  const [gmatDetail, setGmatDetail] = useState<any>(null);
   const [checklist, setChecklist] = useState<Record<string, any>>({});
   const [certChecklist, setCertChecklist] = useState<Record<string, Record<string, boolean>>>({});
 
@@ -34,8 +133,8 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
   );
 
   const selectedGmat = useMemo(
-    () => data.gmatRequests.find((r: any) => r.id === selectedGmatId) ?? null,
-    [data.gmatRequests, selectedGmatId]
+    () => gmatRequests.find((r: any) => r.id === selectedGmatId) ?? null,
+    [gmatRequests, selectedGmatId]
   );
 
   const selectedCert = useMemo(
@@ -46,13 +145,29 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
   const selectedCertGmatReview = selectedCert?.gmatVerification ?? null;
   const selectedGmatPortalVerified = Boolean(selectedGmat?.portalVerifiedAt);
   const selectedGmatDocumentReviewed = Boolean(selectedGmat?.documentReviewedAt);
+  const selectedGmatCert = gmatDetail?.certification ?? selectedGmat?.certification ?? null;
+  const gmatCreds = gmatDetail?.credentials ?? null;
+
+  const loadGmatRequests = async () => {
+    try {
+      const resp = await fetch(`/api/admin/gmat?t=${Date.now()}`, { cache: 'no-store' });
+      const json = await resp.json();
+      if (!resp.ok) {
+        throw new Error(json.error || 'Failed to load GMAT requests');
+      }
+
+      setGmatRequests(json.requests || []);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
   const fetchGmatCreds = async (requestId: string) => {
     try {
       const resp = await fetch(`/api/admin/gmat/${requestId}`);
       const json = await resp.json();
       if (!resp.ok) throw new Error(json.error);
-      setGmatCreds(json.credentials);
+      setGmatDetail(json);
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -78,22 +193,65 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
     }
   };
 
-  const fetchGmatCredsForCert = async (certId: string) => {
-    // This is optional if we want to show creds inline in the queue
-    try {
-      const resp = await fetch(`/api/admin/gmat/${certId}?byCertificationId=true`);
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json.error);
-      alert(`MBA.com Credentials:\nEmail: ${json.credentials.email}\nPassword: ${json.credentials.password}`);
-    } catch (e: any) {
-      toast.error(e.message);
+  const openGmatReview = (cert: any) => {
+    const requestId = cert?.gmatVerification?.id;
+
+    if (!requestId) {
+      toast.error('No MBA.com verification request was found for this certification.');
+      return;
     }
+
+    setActiveTab('gmat');
+    setSelectedGmatId(requestId);
+    void loadGmatRequests();
   };
 
   useEffect(() => {
     if (selectedGmatId) fetchGmatCreds(selectedGmatId);
-    else setGmatCreds(null);
+    else setGmatDetail(null);
   }, [selectedGmatId]);
+
+  useEffect(() => {
+    setGmatRequests(data.gmatRequests || []);
+  }, [data.gmatRequests]);
+
+  useEffect(() => {
+    void loadGmatRequests();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'gmat') {
+      void loadGmatRequests();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!data.queue.length) {
+      setSelectedId(null);
+      setSelectedCertId(null);
+      return;
+    }
+
+    if (!selectedId || !data.queue.some((app: any) => app.id === selectedId)) {
+      setSelectedId(data.queue[0].id);
+      setSelectedCertId(null);
+    }
+  }, [data.queue, selectedId]);
+
+  useEffect(() => {
+    if (activeTab !== 'gmat') {
+      return;
+    }
+
+    if (!gmatRequests.length) {
+      setSelectedGmatId(null);
+      return;
+    }
+
+    if (!selectedGmatId || !gmatRequests.some((req: any) => req.id === selectedGmatId)) {
+      setSelectedGmatId(gmatRequests[0].id);
+    }
+  }, [activeTab, gmatRequests, selectedGmatId]);
 
   const approveGmat = async (id: string) => {
     try {
@@ -106,6 +264,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
       if (!resp.ok) throw new Error(json.error || 'Failed');
       toast.success(json.message || 'GMAT verification updated.');
       await onRefresh();
+      await loadGmatRequests();
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -125,6 +284,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
       if (!resp.ok) throw new Error(json.error || 'Failed');
       toast.success(json.message || 'GMAT rejected.');
       await onRefresh();
+      await loadGmatRequests();
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -219,7 +379,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                 </button>
               ))
             ) : (
-              data.gmatRequests.map((req: any) => (
+              gmatRequests.map((req: any) => (
                 <button
                   key={req.id}
                   onClick={() => setSelectedGmatId(req.id)}
@@ -235,6 +395,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                     </div>
                     <div>
                       <div className="text-sm font-bold text-navy-600 dark:text-cream-200">{req.tutorName}</div>
+                      <div className="mt-1 text-xs text-navy-400">{buildCertificationHeadline(req.certification)}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <Badge value={req.status} />
                         <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
@@ -253,7 +414,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                 </button>
               ))
             )}
-            {((activeTab === 'queue' && data.queue.length === 0) || (activeTab === 'gmat' && data.gmatRequests.length === 0)) && (
+            {((activeTab === 'queue' && data.queue.length === 0) || (activeTab === 'gmat' && gmatRequests.length === 0)) && (
               <div className="py-10 text-center text-sm text-navy-300">Queue is empty.</div>
             )}
           </div>
@@ -274,11 +435,11 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                         onClick={() => handleCertClick(cert.id)}
                         className={`w-full text-left rounded-3xl p-4 transition-all ${selectedCertId === cert.id ? 'bg-gold-400/10 border-2 border-gold-400' : 'bg-navy-50/80 dark:bg-navy-700/20 border-2 border-transparent'}`}
                       >
-                        <div className="flex justify-between">
-                          <div className="text-sm font-bold text-navy-600 dark:text-cream-200">{cert.type}</div>
+                    <div className="flex justify-between">
+                          <div className="text-sm font-bold text-navy-600 dark:text-cream-200">{formatCertificationName(cert)}</div>
                           <Badge value={cert.status} />
                         </div>
-                        <div className="mt-2 text-xs text-navy-400">Score: {cert.score} | Date: {formatDate(cert.testDate)}</div>
+                        <div className="mt-2 text-xs text-navy-400">{buildCertificationHeadline(cert)}</div>
                       </button>
                     ))}
                   </div>
@@ -287,25 +448,29 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                     {selectedCert ? (
                       <div className="space-y-4 p-6 rounded-3xl bg-gold-400/5 border border-gold-400">
                         <div className="flex justify-between items-center">
-                          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-700">Reviewing: {selectedCert.type}</h3>
+                          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-700">Reviewing: {formatCertificationName(selectedCert)}</h3>
                           <button onClick={() => setSelectedCertId(null)} className="text-[10px] font-bold text-navy-400 hover:text-navy-600">CLOSE</button>
                         </div>
                         
-                        <div className="flex gap-4 p-4 rounded-2xl bg-white/50 border border-gold-100">
-                          {selectedCert.fileUrl ? (
-                            <a href={selectedCert.fileUrl} target="_blank" rel="noreferrer" className="btn-outline py-2 px-4 text-[10px] font-black flex items-center gap-2">
+                        <div className="flex flex-wrap gap-4 rounded-2xl border border-gold-100 bg-white/50 p-4">
+                          {selectedCert.fileUrl && (
+                            <a href={selectedCert.fileUrl} target="_blank" rel="noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                               View Document
                             </a>
-                          ) : selectedCert.type === 'GMAT' ? (
-                            <button onClick={() => fetchGmatCredsForCert(selectedCert.id)} className="btn-outline border-blue-200 text-blue-700 py-2 px-4 text-[10px] font-black flex items-center gap-2">
+                          )}
+                          {selectedCert.type === 'GMAT' && selectedCert.gmatVerification?.id && (
+                            <button onClick={() => openGmatReview(selectedCert)} className="btn-outline flex items-center gap-2 border-blue-200 px-4 py-2 text-[10px] font-black text-blue-700">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                              MBA.com Credentials
+                              Open MBA.com Review
                             </button>
-                          ) : (
+                          )}
+                          {!selectedCert.fileUrl && !(selectedCert.type === 'GMAT' && selectedCert.gmatVerification?.id) && (
                             <span className="text-xs italic text-navy-300">No document/credentials</span>
                           )}
                         </div>
+
+                        <CertificationScorePanel cert={selectedCert} />
 
                         <div className="space-y-3">
                           {['Document Authentic', 'Score Matches Claims', 'Date In Range'].map((check) => (
@@ -386,6 +551,23 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
             selectedGmat ? (
               <div className="space-y-8">
                 <h2 className="text-2xl font-display font-bold text-navy-600 dark:text-cream-200">GMAT Verification: {selectedGmat.tutorName}</h2>
+                {selectedGmatCert && (
+                  <div className="glass-card space-y-4 border-blue-100 bg-blue-50/40 p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">Submitted GMAT Claim</div>
+                        <div className="mt-1 text-sm text-navy-500">Use this score breakdown to compare the tutor's claim against both the uploaded report and the MBA.com portal.</div>
+                      </div>
+                      {selectedGmatCert.fileUrl && (
+                        <a href={selectedGmatCert.fileUrl} target="_blank" rel="noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                          View Score Report
+                        </a>
+                      )}
+                    </div>
+                    <CertificationScorePanel cert={selectedGmatCert} />
+                  </div>
+                )}
                 <div className="rounded-[28px] bg-navy-900 p-8 text-cream-200">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-400">Decrypted Credentials</div>
                   <div className="mt-4 flex flex-wrap gap-2">

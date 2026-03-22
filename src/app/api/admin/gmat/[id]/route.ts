@@ -46,7 +46,18 @@ export async function GET(
           email,
           password,
           tutorName: request.tutorCertification.tutorProfile.user.name
-        }
+        },
+        certification: {
+          id: request.tutorCertification.id,
+          type: request.tutorCertification.type,
+          levelOrVariant: request.tutorCertification.levelOrVariant,
+          score: request.tutorCertification.score,
+          percentiles: request.tutorCertification.percentiles,
+          testDate: request.tutorCertification.testDate,
+          fileUrl: request.tutorCertification.fileUrl,
+          status: request.tutorCertification.status,
+          selfReportedData: request.tutorCertification.selfReportedData,
+        },
       });
     } catch (decryptError) {
       console.error('Decryption error:', decryptError);

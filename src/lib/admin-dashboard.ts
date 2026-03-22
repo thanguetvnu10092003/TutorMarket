@@ -263,8 +263,10 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
     // @ts-ignore
     prisma.gmatVerificationRequest.findMany({
       where: {
+        deletedAt: null,
         tutorCertification: {
-          status: 'PENDING_VERIFICATION',
+          type: 'GMAT',
+          status: { in: ['PENDING_VERIFICATION', 'RESUBMITTED'] },
         },
       },
       include: {
@@ -272,7 +274,7 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
           include: {
             tutorProfile: {
               include: {
-                user: { select: { name: true } },
+                user: { select: { name: true, email: true } },
               },
             },
           },
@@ -703,6 +705,7 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
   const formattedGmatRequests = gmatRequests.map((r: any) => ({
     id: r.id,
     tutorName: r.tutorCertification?.tutorProfile?.user?.name || 'Unknown Tutor',
+    tutorEmail: r.tutorCertification?.tutorProfile?.user?.email || '',
     tutorId: r.tutorCertification?.tutorProfileId || 'Unknown',
     tutorCertificationId: r.tutorCertificationId,
     status: r.tutorCertification?.status || 'UNKNOWN',
@@ -711,6 +714,26 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
     reviewNotes: r.reviewNotes,
     rejectionReason: r.rejectionReason,
     createdAt: r.createdAt,
+    certification: r.tutorCertification
+      ? {
+          id: r.tutorCertification.id,
+          type: r.tutorCertification.type,
+          levelOrVariant: r.tutorCertification.levelOrVariant,
+          score: r.tutorCertification.score,
+          percentiles: r.tutorCertification.percentiles,
+          testDate: r.tutorCertification.testDate,
+          status: r.tutorCertification.status,
+          fileUrl: r.tutorCertification.fileUrl,
+          selfReportedData: r.tutorCertification.selfReportedData,
+          gmatVerification: {
+            id: r.id,
+            portalVerifiedAt: r.portalVerifiedAt,
+            documentReviewedAt: r.documentReviewedAt,
+            reviewNotes: r.reviewNotes,
+            rejectionReason: r.rejectionReason,
+          },
+        }
+      : null,
   }));
 
   return {
