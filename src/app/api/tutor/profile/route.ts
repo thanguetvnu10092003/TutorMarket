@@ -3,6 +3,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+const ADMIN_MANAGED_CERTIFICATION_STATUSES = new Set([
+  'PENDING_VERIFICATION',
+  'VERIFIED',
+  'REJECTED',
+  'RESUBMITTED',
+]);
+
+function getCertificationKey(type: string, levelOrVariant?: string | null) {
+  return `${type}:${levelOrVariant || ''}`;
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -111,49 +122,53 @@ export async function PATCH(request: Request) {
         const currentCerts = await tx.tutorCertification.findMany({
           where: { tutorProfileId: profile.id }
         });
+        const currentCertMap = new Map(
+          currentCerts.map((cert) => [getCertificationKey(cert.type, cert.levelOrVariant), cert])
+        );
 
-        // Identify which certs to keep/update vs delete
-        // We use type + levelOrVariant as unique key for "matching" if ID is missing.
-        // Actually, in the frontend we should probably pass the ID back.
-        
         const incomingCerts = certifications.map((cert: any) => {
           const scoreValue = cert.score !== undefined && cert.score !== null && cert.score !== '' ? Number(cert.score) : null;
-          return { ...cert, score: scoreValue };
+          const key = getCertificationKey(cert.type, cert.levelOrVariant || null);
+          return { ...cert, score: scoreValue, key };
         });
+        const incomingKeys = new Set(incomingCerts.map((cert: any) => cert.key));
 
-        // 1. Delete ones not in payload
-        // Determine "Keys" in payload to decide what to delete
-        const payloadKeys = incomingCerts.map(c => `${c.type}-${c.levelOrVariant || ''}`);
-        await tx.tutorCertification.deleteMany({
-          where: {
-            tutorProfileId: profile.id,
-            NOT: incomingCerts.map(c => ({
-              type: c.type,
-              levelOrVariant: c.levelOrVariant || null,
-            }))
-          }
-        });
+        const removableCertificationIds = currentCerts
+          .filter((cert) => {
+            if (ADMIN_MANAGED_CERTIFICATION_STATUSES.has(cert.status)) {
+              return false;
+            }
 
-        // 2. Upsert
+            return !incomingKeys.has(getCertificationKey(cert.type, cert.levelOrVariant));
+          })
+          .map((cert) => cert.id);
+
+        if (removableCertificationIds.length > 0) {
+          await tx.tutorCertification.deleteMany({
+            where: {
+              tutorProfileId: profile.id,
+              id: { in: removableCertificationIds },
+            }
+          });
+        }
+
         for (const cert of incomingCerts) {
-          const existing = currentCerts.find(c => 
-            c.type === cert.type && 
-            (c.levelOrVariant === cert.levelOrVariant || (!c.levelOrVariant && !cert.levelOrVariant))
-          );
+          const existing = currentCertMap.get(cert.key);
+
+          if (existing && ADMIN_MANAGED_CERTIFICATION_STATUSES.has(existing.status)) {
+            continue;
+          }
 
           if (existing) {
-            // UPDATE: Preserve status, notes, verifiedAt, verifiedById
             await tx.tutorCertification.update({
               where: { id: existing.id },
               data: {
                 score: cert.score,
-                percentiles: cert.percentiles || existing.percentiles, // Sustain existing percentiles if not provided
+                percentiles: cert.percentiles || existing.percentiles,
                 testDate: cert.testDate ? new Date(cert.testDate) : existing.testDate,
-                // STATUS IS PRESERVED BY OMISSION
               }
             });
           } else {
-            // CREATE NEW
             await tx.tutorCertification.create({
               data: {
                 tutorProfileId: profile.id,
@@ -167,6 +182,7 @@ export async function PATCH(request: Request) {
             });
           }
         }
+
       }
 
       return profile;

@@ -41,6 +41,36 @@ const DEGREE_TYPES = [
 const CFA_LEVELS = ['CFA_LEVEL_1', 'CFA_LEVEL_2', 'CFA_LEVEL_3'];
 function cfaLabel(value: string) { return value.replace(/_/g, ' ').replace('CFA LEVEL', 'CFA Level'); }
 
+const ADMIN_MANAGED_CERTIFICATION_STATUSES = new Set([
+  'PENDING_VERIFICATION',
+  'VERIFIED',
+  'REJECTED',
+  'RESUBMITTED',
+]);
+
+function getCertificationKey(type: string, levelOrVariant?: string | null) {
+  return `${type}:${levelOrVariant || ''}`;
+}
+
+function isAdminManagedCertificationStatus(status?: string | null) {
+  return Boolean(status && ADMIN_MANAGED_CERTIFICATION_STATUSES.has(status));
+}
+
+function getCertificationLockLabel(status?: string | null) {
+  switch (status) {
+    case 'VERIFIED':
+      return 'Verified by admin - locked';
+    case 'PENDING_VERIFICATION':
+      return 'Under review - locked';
+    case 'RESUBMITTED':
+      return 'Resubmitted - locked';
+    case 'REJECTED':
+      return 'Rejected - resubmit from Get Verified';
+    default:
+      return null;
+  }
+}
+
 const defaultNotificationPreferences = notificationOptions.reduce<Record<string, { emailEnabled: boolean; inAppEnabled: boolean }>>(
   (acc, option) => { acc[option.type] = { emailEnabled: true, inAppEnabled: true }; return acc; },
   {}
@@ -58,7 +88,7 @@ function emptyCfa() {
   return { year: '', score: '' };
 }
 
-function labelInput({ label, value, onChange, type = 'text', min, max, placeholder, isPrimary }: any) {
+function labelInput({ label, value, onChange, type = 'text', min, max, placeholder, isPrimary, disabled = false }: any) {
   return (
     <div className={`space-y-2 ${isPrimary ? 'md:col-span-2' : ''}`}>
       <label className="text-[10px] font-black text-navy-400 dark:text-cream-400/40 uppercase tracking-[0.2em] ml-1">{label}</label>
@@ -70,8 +100,11 @@ function labelInput({ label, value, onChange, type = 'text', min, max, placehold
           min={min}
           max={max}
           placeholder={placeholder}
+          disabled={disabled}
           className={`w-full px-5 py-4 rounded-2xl bg-cream-50 dark:bg-navy-700/50 border-2 border-transparent focus:border-gold-400 dark:focus:border-gold-500 transition-all outline-none font-bold text-navy-600 dark:text-cream-200 ${
             isPrimary ? 'text-xl md:text-2xl py-5' : 'text-sm'
+          } ${
+            disabled ? 'cursor-not-allowed opacity-70 focus:border-transparent dark:focus:border-transparent' : ''
           }`}
         />
         <div className="absolute inset-0 rounded-2xl bg-gold-400/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" />
@@ -80,7 +113,7 @@ function labelInput({ label, value, onChange, type = 'text', min, max, placehold
   );
 }
 
-function ScoreRow({ title, scoreKey, pctKey, data, setData, isPrimary, color = 'blue' }: any) {
+function ScoreRow({ title, scoreKey, pctKey, data, setData, isPrimary, color = 'blue', disabled = false }: any) {
   const colorClasses: any = {
     blue: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
     emerald: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20',
@@ -100,6 +133,7 @@ function ScoreRow({ title, scoreKey, pctKey, data, setData, isPrimary, color = '
           label: 'Score', 
           value: data[scoreKey], 
           isPrimary,
+          disabled,
           placeholder: '---',
           onChange: (e: any) => setData((p: any) => ({ ...p, [scoreKey]: e.target.value })) 
         })}
@@ -109,6 +143,7 @@ function ScoreRow({ title, scoreKey, pctKey, data, setData, isPrimary, color = '
           value: data[pctKey], 
           min: 0, 
           max: 99, 
+          disabled,
           placeholder: '0-99',
           onChange: (e: any) => setData((p: any) => ({ ...p, [pctKey]: e.target.value })) 
         })}
@@ -147,10 +182,20 @@ export default function SettingsPage() {
   // CFA – one sub-form per level
   const [cfaData, setCfaData] = useState<Record<string, { year: string; score: string }>>({});
   const [activeCfaLevels, setActiveCfaLevels] = useState<string[]>([]);
+  const [certificationStatusMap, setCertificationStatusMap] = useState<Record<string, { status: string; notes?: string | null; verifiedAt?: string | null }>>({});
 
   // ── Student preferences ──
   const [studentPreferences, setStudentPreferences] = useState({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, preferredCurrency: 'USD' });
   const [savingStudentPreferences, setSavingStudentPreferences] = useState(false);
+  const gmatCertificationState = certificationStatusMap[getCertificationKey('GMAT', 'GMAT')];
+  const greCertificationState = certificationStatusMap[getCertificationKey('GRE', 'GRE')];
+  const lockedGmat = isAdminManagedCertificationStatus(gmatCertificationState?.status);
+  const lockedGre = isAdminManagedCertificationStatus(greCertificationState?.status);
+  const lockedCfaLevels = new Set(
+    CFA_LEVELS.filter((level) =>
+      isAdminManagedCertificationStatus(certificationStatusMap[getCertificationKey('CFA', level)]?.status)
+    )
+  );
 
   // ── Fetch tutor profile on mount ──
   useEffect(() => {
@@ -170,6 +215,15 @@ export default function SettingsPage() {
 
         // Hydrate certifications
         const certs: any[] = data.certifications || [];
+        const nextStatusMap: Record<string, { status: string; notes?: string | null; verifiedAt?: string | null }> = {};
+        certs.forEach((cert: any) => {
+          nextStatusMap[getCertificationKey(cert.type, cert.levelOrVariant)] = {
+            status: cert.status,
+            notes: cert.notes || cert.rejectionReason || null,
+            verifiedAt: cert.verifiedAt || null,
+          };
+        });
+        setCertificationStatusMap(nextStatusMap);
         const gmatCert = certs.find((c: any) => c.type === 'GMAT');
         if (gmatCert) {
           const p = gmatCert.percentiles || {};
@@ -254,7 +308,7 @@ export default function SettingsPage() {
   function buildCertifications() {
     const certs: any[] = [];
 
-    if (hasGmat) {
+    if (hasGmat && !lockedGmat) {
       certs.push({
         type: 'GMAT',
         levelOrVariant: 'GMAT',
@@ -272,7 +326,7 @@ export default function SettingsPage() {
       });
     }
 
-    if (hasGre) {
+    if (hasGre && !lockedGre) {
       certs.push({
         type: 'GRE',
         levelOrVariant: 'GRE',
@@ -290,6 +344,9 @@ export default function SettingsPage() {
     }
 
     for (const level of activeCfaLevels) {
+      if (lockedCfaLevels.has(level)) {
+        continue;
+      }
       const d = cfaData[level] || emptyCfa();
       certs.push({
         type: 'CFA',
@@ -341,6 +398,10 @@ export default function SettingsPage() {
 
   // ── CFA level toggle ──
   const toggleCfaLevel = (level: string) => {
+    if (lockedCfaLevels.has(level)) {
+      return;
+    }
+
     setActiveCfaLevels(prev =>
       prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]
     );
@@ -526,19 +587,30 @@ export default function SettingsPage() {
                       <div>
                         <h3 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">Certifications & Scores</h3>
                         <p className="text-sm text-navy-300 dark:text-cream-400/60 mt-1">Add your standardized test scores to boost your profile visibility.</p>
+                        <p className="mt-3 rounded-2xl border border-gold-200 bg-gold-50/60 px-4 py-3 text-xs font-bold leading-relaxed text-gold-700 dark:border-gold-500/20 dark:bg-gold-500/10 dark:text-gold-300">
+                          Certifications that are already submitted to admin or already verified are locked here to keep tutor settings from overwriting reviewed data. Use `Get Verified` on the tutor dashboard if you need to resubmit documents.
+                        </p>
                       </div>
 
                       {/* ── GMAT Card ── */}
                       <div className="group rounded-[24px] border border-navy-100 dark:border-navy-400/10 bg-white dark:bg-navy-800/20 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-                        <div className={`px-6 py-5 flex items-center justify-between cursor-pointer transition-colors ${hasGmat ? 'bg-blue-600' : 'bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100/50'}`}
-                          onClick={() => setHasGmat(p => !p)}>
+                        <div
+                          className={`px-6 py-5 flex items-center justify-between transition-colors ${
+                            hasGmat ? 'bg-blue-600' : 'bg-blue-50 dark:bg-blue-900/10'
+                          } ${lockedGmat ? 'cursor-not-allowed' : 'cursor-pointer'} ${!hasGmat && !lockedGmat ? 'hover:bg-blue-100/50' : ''}`}
+                          onClick={() => {
+                            if (!lockedGmat) setHasGmat(p => !p);
+                          }}
+                        >
                           <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${hasGmat ? 'bg-white/20 text-white' : 'bg-blue-100 dark:bg-blue-500/20 text-blue-600'}`}>
                               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
                             </div>
                             <div>
                               <p className={`font-black text-sm uppercase tracking-widest ${hasGmat ? 'text-white' : 'text-navy-600 dark:text-cream-200'}`}>GMAT Exam</p>
-                              <p className={`text-[10px] font-bold ${hasGmat ? 'text-blue-100' : 'text-navy-400'}`}>Full score & percentile breakdown</p>
+                              <p className={`text-[10px] font-bold ${hasGmat ? 'text-blue-100' : 'text-navy-400'}`}>
+                                {getCertificationLockLabel(gmatCertificationState?.status) || 'Full score & percentile breakdown'}
+                              </p>
                             </div>
                           </div>
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${hasGmat ? 'bg-white border-white' : 'border-navy-200'}`}>
@@ -549,21 +621,23 @@ export default function SettingsPage() {
                         {hasGmat && (
                           <div className="p-8 space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                              <ScoreRow title="Total" scoreKey="totalScore" pctKey="totalPercentile" data={gmat} setData={setGmat} isPrimary />
-                              <ScoreRow title="Quant" scoreKey="quantScore" pctKey="quantPercentile" data={gmat} setData={setGmat} />
-                              <ScoreRow title="Verbal" scoreKey="verbalScore" pctKey="verbalPercentile" data={gmat} setData={setGmat} />
-                              <ScoreRow title="Data Insights" scoreKey="dataInsightsScore" pctKey="dataInsightsPercentile" data={gmat} setData={setGmat} />
+                              <ScoreRow title="Total" scoreKey="totalScore" pctKey="totalPercentile" data={gmat} setData={setGmat} isPrimary disabled={lockedGmat} />
+                              <ScoreRow title="Quant" scoreKey="quantScore" pctKey="quantPercentile" data={gmat} setData={setGmat} disabled={lockedGmat} />
+                              <ScoreRow title="Verbal" scoreKey="verbalScore" pctKey="verbalPercentile" data={gmat} setData={setGmat} disabled={lockedGmat} />
+                              <ScoreRow title="Data Insights" scoreKey="dataInsightsScore" pctKey="dataInsightsPercentile" data={gmat} setData={setGmat} disabled={lockedGmat} />
                             </div>
                             <div className="pt-6 border-t border-navy-50 dark:border-navy-700/50">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div className="space-y-1">
                                   <label className="text-[10px] font-black text-navy-400 uppercase tracking-[0.2em]">Test Date</label>
-                                  <input type="date" value={gmat.testDate} onChange={e => setGmat(p => ({ ...p, testDate: e.target.value }))}
-                                    className="block px-4 py-2.5 rounded-xl bg-navy-50 dark:bg-navy-700 border-none text-sm font-bold text-navy-600 dark:text-cream-200 focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-48" />
+                                  <input type="date" value={gmat.testDate} onChange={e => setGmat(p => ({ ...p, testDate: e.target.value }))} disabled={lockedGmat}
+                                    className={`block px-4 py-2.5 rounded-xl bg-navy-50 dark:bg-navy-700 border-none text-sm font-bold text-navy-600 dark:text-cream-200 outline-none w-full sm:w-48 ${lockedGmat ? 'cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-blue-500'}`} />
                                 </div>
                                 <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 flex items-center gap-3">
                                   <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                  <p className="text-[11px] font-bold text-blue-700 dark:text-blue-300">Detailed scores help students find the best match</p>
+                                  <p className="text-[11px] font-bold text-blue-700 dark:text-blue-300">
+                                    {lockedGmat ? 'This GMAT record is now managed by the verification workflow.' : 'Detailed scores help students find the best match'}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -573,15 +647,23 @@ export default function SettingsPage() {
 
                       {/* ── GRE Card ── */}
                       <div className="group rounded-[24px] border border-navy-100 dark:border-navy-400/10 bg-white dark:bg-navy-800/20 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-                        <div className={`px-6 py-5 flex items-center justify-between cursor-pointer transition-colors ${hasGre ? 'bg-emerald-600' : 'bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100/50'}`}
-                          onClick={() => setHasGre(p => !p)}>
+                        <div
+                          className={`px-6 py-5 flex items-center justify-between transition-colors ${
+                            hasGre ? 'bg-emerald-600' : 'bg-emerald-50 dark:bg-emerald-900/10'
+                          } ${lockedGre ? 'cursor-not-allowed' : 'cursor-pointer'} ${!hasGre && !lockedGre ? 'hover:bg-emerald-100/50' : ''}`}
+                          onClick={() => {
+                            if (!lockedGre) setHasGre(p => !p);
+                          }}
+                        >
                           <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${hasGre ? 'bg-white/20 text-white' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600'}`}>
                               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                             </div>
                             <div>
                               <p className={`font-black text-sm uppercase tracking-widest ${hasGre ? 'text-white' : 'text-navy-600 dark:text-cream-200'}`}>GRE General</p>
-                              <p className={`text-[10px] font-bold ${hasGre ? 'text-emerald-100' : 'text-navy-400'}`}>Verbal, Quant & Analytical Writing</p>
+                              <p className={`text-[10px] font-bold ${hasGre ? 'text-emerald-100' : 'text-navy-400'}`}>
+                                {getCertificationLockLabel(greCertificationState?.status) || 'Verbal, Quant & Analytical Writing'}
+                              </p>
                             </div>
                           </div>
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${hasGre ? 'bg-white border-white' : 'border-navy-200'}`}>
@@ -592,16 +674,16 @@ export default function SettingsPage() {
                         {hasGre && (
                           <div className="p-8 space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                              <ScoreRow title="Verbal" scoreKey="verbalScore" pctKey="verbalPercentile" data={gre} setData={setGre} color="emerald" />
-                              <ScoreRow title="Quant" scoreKey="quantScore" pctKey="quantPercentile" data={gre} setData={setGre} color="emerald" />
-                              <ScoreRow title="Analytical Writing" scoreKey="writingScore" pctKey="writingPercentile" data={gre} setData={setGre} color="emerald" />
+                              <ScoreRow title="Verbal" scoreKey="verbalScore" pctKey="verbalPercentile" data={gre} setData={setGre} color="emerald" disabled={lockedGre} />
+                              <ScoreRow title="Quant" scoreKey="quantScore" pctKey="quantPercentile" data={gre} setData={setGre} color="emerald" disabled={lockedGre} />
+                              <ScoreRow title="Analytical Writing" scoreKey="writingScore" pctKey="writingPercentile" data={gre} setData={setGre} color="emerald" disabled={lockedGre} />
                             </div>
                             <div className="pt-6 border-t border-navy-50 dark:border-navy-700/50">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div className="space-y-1">
                                   <label className="text-[10px] font-black text-navy-400 uppercase tracking-[0.2em]">Test Date</label>
-                                  <input type="date" value={gre.testDate} onChange={e => setGre(p => ({ ...p, testDate: e.target.value }))}
-                                    className="block px-4 py-2.5 rounded-xl bg-navy-50 dark:bg-navy-700 border-none text-sm font-bold text-navy-600 dark:text-cream-200 focus:ring-2 focus:ring-emerald-500 outline-none w-full sm:w-48" />
+                                  <input type="date" value={gre.testDate} onChange={e => setGre(p => ({ ...p, testDate: e.target.value }))} disabled={lockedGre}
+                                    className={`block px-4 py-2.5 rounded-xl bg-navy-50 dark:bg-navy-700 border-none text-sm font-bold text-navy-600 dark:text-cream-200 outline-none w-full sm:w-48 ${lockedGre ? 'cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-emerald-500'}`} />
                                 </div>
                               </div>
                             </div>
@@ -618,7 +700,9 @@ export default function SettingsPage() {
                             </div>
                             <div>
                               <p className="font-black text-sm uppercase tracking-widest text-white">CFA Program</p>
-                              <p className="text-[10px] font-bold text-amber-100">Select levels you have passed</p>
+                              <p className="text-[10px] font-bold text-amber-100">
+                                {lockedCfaLevels.size > 0 ? 'Verified or reviewed levels are locked here' : 'Select levels you have passed'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -626,10 +710,10 @@ export default function SettingsPage() {
                         <div className="p-8 space-y-8">
                           <div className="flex flex-wrap gap-4">
                             {CFA_LEVELS.map(level => (
-                              <button key={level} type="button" onClick={() => toggleCfaLevel(level)}
+                              <button key={level} type="button" onClick={() => toggleCfaLevel(level)} disabled={lockedCfaLevels.has(level)}
                                 className={`px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all border-2 ${activeCfaLevels.includes(level)
                                   ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20 scale-105'
-                                  : 'bg-white dark:bg-navy-700 border-navy-100 dark:border-navy-600 text-navy-400 hover:border-amber-400 dark:hover:border-amber-500'}`}>
+                                  : 'bg-white dark:bg-navy-700 border-navy-100 dark:border-navy-600 text-navy-400 hover:border-amber-400 dark:hover:border-amber-500'} ${lockedCfaLevels.has(level) ? 'cursor-not-allowed opacity-70 hover:border-navy-100 dark:hover:border-navy-600' : ''}`}>
                                 {cfaLabel(level)}
                               </button>
                             ))}
@@ -644,15 +728,22 @@ export default function SettingsPage() {
                                     <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest">Year Passed</label>
                                     <input type="number" placeholder="2024" value={cfaData[level]?.year || ''}
                                       onChange={e => setCfaData(p => ({ ...p, [level]: { ...p[level], year: e.target.value } }))}
-                                      className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm font-bold text-navy-600 dark:text-cream-200 focus:ring-2 focus:ring-amber-500 outline-none" />
+                                      disabled={lockedCfaLevels.has(level)}
+                                      className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm font-bold text-navy-600 dark:text-cream-200 outline-none ${lockedCfaLevels.has(level) ? 'cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-amber-500'}`} />
                                   </div>
                                   <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest">Score (Optional)</label>
                                     <input type="text" placeholder="e.g. Pass (>70%)" value={cfaData[level]?.score || ''}
                                       onChange={e => setCfaData(p => ({ ...p, [level]: { ...p[level], score: e.target.value } }))}
-                                      className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm font-bold text-navy-600 dark:text-cream-200 focus:ring-2 focus:ring-amber-500 outline-none" />
+                                      disabled={lockedCfaLevels.has(level)}
+                                      className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm font-bold text-navy-600 dark:text-cream-200 outline-none ${lockedCfaLevels.has(level) ? 'cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-amber-500'}`} />
                                   </div>
                                 </div>
+                                {lockedCfaLevels.has(level) && (
+                                  <p className="mt-4 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                                    {getCertificationLockLabel(certificationStatusMap[getCertificationKey('CFA', level)]?.status)}
+                                  </p>
+                                )}
                               </div>
                             ))}
                           </div>
