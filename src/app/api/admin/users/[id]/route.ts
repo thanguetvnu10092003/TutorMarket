@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import {
   banUser,
   issueWarning,
+  recordAdminAction,
   requireAdminSession,
   suspendUser,
   toggleTutorSearchVisibility,
@@ -125,11 +126,90 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete your own admin account' }, { status: 400 });
     }
 
-    await prisma.user.delete({
+    const user = await prisma.user.findUnique({
       where: { id: params.id },
+      include: {
+        tutorProfile: {
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            messagesSent: true,
+            bookingsAsStudent: true,
+            reviewsGiven: true,
+            reportsFiled: true,
+            notifications: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json({ message: 'User deleted successfully' });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const deletedEmail = `deleted+${user.id}@deleted.local`;
+    const deletedName = `Deleted User ${user.id.slice(-6)}`;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          email: deletedEmail,
+          name: deletedName,
+          avatarUrl: null,
+          bio: null,
+          passwordHash: null,
+          isBanned: true,
+          banReason: 'Account deleted by admin',
+          suspendedUntil: null,
+          suspensionReason: null,
+          warningCount: 0,
+          strikeCount: 0,
+          otpCode: null,
+          otpExpires: null,
+          otpLastResent: null,
+          referralCode: null,
+        },
+      });
+
+      if (user.tutorProfile?.id) {
+        await tx.tutorProfile.update({
+          where: { id: user.tutorProfile.id },
+          data: {
+            hiddenFromSearch: true,
+            suspendedAt: new Date(),
+            headline: 'Deleted tutor profile',
+            about: 'This account was removed by admin.',
+          },
+        });
+      }
+    });
+
+    await recordAdminAction({
+      adminId: session.user.id,
+      targetUserId: user.id,
+      actionType: 'SOFT_DELETE_USER',
+      reason: 'Account deleted by admin',
+      metadata: {
+        messageCount: user._count.messagesSent,
+        sessionCount: user._count.bookingsAsStudent,
+        reviewCount: user._count.reviewsGiven,
+        reportCount: user._count.reportsFiled,
+      },
+    });
+
+    return NextResponse.json({
+      message: 'User deleted successfully',
+      data: {
+        messageCount: user._count.messagesSent,
+        sessionCount: user._count.bookingsAsStudent,
+        reviewCount: user._count.reviewsGiven,
+        reportCount: user._count.reportsFiled,
+      },
+    });
   } catch (error) {
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

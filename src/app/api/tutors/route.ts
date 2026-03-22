@@ -3,8 +3,26 @@ import { getServerSession } from 'next-auth';
 import { getPublicTutorCards } from '@/lib/admin-dashboard';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getCountryOptions } from '@/lib/intl-data';
 
 export const dynamic = 'force-dynamic';
+
+function resolveCountryCode(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (normalized.length === 2) {
+    return normalized.toUpperCase();
+  }
+
+  const match = getCountryOptions().find(
+    (country) => country.name.toLowerCase() === normalized.toLowerCase()
+  );
+
+  return match?.code || null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,9 +40,33 @@ export async function GET(request: NextRequest) {
       country: searchParams.get('country') || undefined,
       search: searchParams.get('search') || undefined,
       availability: searchParams.get('availability') || undefined,
+      specialty: searchParams.get('specialty') || undefined,
+      nativeSpeaker: searchParams.get('nativeSpeaker') === 'true',
     };
+    const viewerPreference = session?.user?.role === 'STUDENT'
+      ? await prisma.studentPreference.findUnique({
+          where: { userId: session.user.id },
+          select: {
+            timezone: true,
+            examDates: true,
+          },
+        })
+      : null;
+    const viewerUser = session?.user
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { country: true },
+        })
+      : null;
+    const preferredCurrency = viewerPreference?.examDates && typeof viewerPreference.examDates === 'object'
+      ? (viewerPreference.examDates as Record<string, string>).__preferredCurrency || null
+      : null;
 
-    const results = await getPublicTutorCards(filters);
+    const results = await getPublicTutorCards(filters, {
+      preferredCurrency,
+      countryCode: resolveCountryCode(viewerUser?.country) || null,
+      timezone: viewerPreference?.timezone || null,
+    });
     const page = Number(searchParams.get('page') || '1');
     const limit = Number(searchParams.get('limit') || '20');
     const start = (page - 1) * limit;

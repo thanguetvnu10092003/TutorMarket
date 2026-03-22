@@ -3,8 +3,26 @@ import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { getPublicTutorProfile } from '@/lib/admin-dashboard';
 import { authOptions } from '@/lib/auth';
+import { getCountryOptions } from '@/lib/intl-data';
 
 export const dynamic = 'force-dynamic';
+
+function resolveCountryCode(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (normalized.length === 2) {
+    return normalized.toUpperCase();
+  }
+
+  const match = getCountryOptions().find(
+    (country) => country.name.toLowerCase() === normalized.toLowerCase()
+  );
+
+  return match?.code || null;
+}
 
 export async function GET(
   _request: NextRequest,
@@ -12,7 +30,29 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const profile = await getPublicTutorProfile(params.id);
+    const viewerPreference = session?.user
+      ? await prisma.studentPreference.findUnique({
+          where: { userId: session.user.id },
+          select: {
+            timezone: true,
+            examDates: true,
+          },
+        })
+      : null;
+    const viewerUser = session?.user
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { country: true },
+        })
+      : null;
+    const preferredCurrency = viewerPreference?.examDates && typeof viewerPreference.examDates === 'object'
+      ? (viewerPreference.examDates as Record<string, string>).__preferredCurrency || null
+      : null;
+    const profile = await getPublicTutorProfile(params.id, {
+      preferredCurrency,
+      countryCode: resolveCountryCode(viewerUser?.country) || null,
+      timezone: viewerPreference?.timezone || null,
+    });
     if (!profile) {
       return NextResponse.json({ error: 'Tutor not found' }, { status: 404 });
     }

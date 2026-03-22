@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { getCountryOptions } from '@/lib/intl-data';
 
 const COUNTRIES = [
   { code: 'VN', name: 'Vietnam', flag: '🇻🇳' },

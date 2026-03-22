@@ -158,6 +158,27 @@ export async function sendWarningEmail(email: string, reason: string, strikeCoun
   return sendResendEmail({ to: email, subject, text, html });
 }
 
+export async function sendSuspensionEmail(email: string, reason: string, suspendedUntil?: Date | null) {
+  const untilLabel = suspendedUntil
+    ? suspendedUntil.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'Until further notice';
+  const subject = 'Your TutorMarket account has been suspended';
+  const text = `Your account has been suspended.\n\nReason: ${reason}\nSuspended until: ${untilLabel}`;
+  const html = buildAdminTemplate(
+    'Account suspended',
+    'Your account has been temporarily suspended.',
+    `<p style="margin: 0;"><strong>Reason:</strong> ${reason}</p><p style="margin: 12px 0 0;"><strong>Suspended until:</strong> ${untilLabel}</p>`
+  );
+
+  return sendResendEmail({ to: email, subject, text, html });
+}
+
 export async function sendBanEmail(email: string, reason: string, permanent = true) {
   const subject = permanent ? 'Your TutorMarket account has been permanently banned' : 'Your TutorMarket account has been suspended';
   const text = `${permanent ? 'Your account has been permanently banned.' : 'Your account has been suspended.'}\n\nReason: ${reason}`;
@@ -168,6 +189,32 @@ export async function sendBanEmail(email: string, reason: string, permanent = tr
   );
 
   return sendResendEmail({ to: email, subject, text, html });
+}
+
+export async function sendBookingRequestEmail(input: {
+  to: string;
+  tutorName: string;
+  studentName: string;
+  subject: string;
+  scheduledAt: Date;
+  durationMinutes: number;
+}) {
+  const scheduledLabel = input.scheduledAt.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  const subject = 'New booking request from TutorMarket';
+  const text = `${input.studentName} requested a ${input.durationMinutes}-minute ${input.subject.replace(/_/g, ' ')} lesson on ${scheduledLabel}. Review the request from your tutor dashboard.`;
+  const html = buildAdminTemplate(
+    'New booking request',
+    `${input.studentName} has requested a new lesson with you.`,
+    `<p style="margin: 0;"><strong>Subject:</strong> ${input.subject.replace(/_/g, ' ')}</p><p style="margin: 12px 0 0;"><strong>Requested time:</strong> ${scheduledLabel}</p><p style="margin: 12px 0 0;"><strong>Duration:</strong> ${input.durationMinutes} minutes</p><p style="margin: 12px 0 0;">Open your tutor dashboard to accept or decline the request.</p>`
+  );
+
+  return sendResendEmail({ to: input.to, subject, text, html });
 }
 
 export async function sendRefundDecisionEmail(

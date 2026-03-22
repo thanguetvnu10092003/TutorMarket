@@ -5,11 +5,14 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import {
   sendBanEmail,
+  sendBookingRequestEmail,
+  sendSuspensionEmail,
   sendRefundDecisionEmail,
   sendVerificationApprovalEmail,
   sendVerificationRejectionEmail,
   sendWarningEmail,
 } from '@/lib/mail';
+import { createInAppNotification } from '@/lib/in-app-notifications';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -112,6 +115,14 @@ export async function issueWarning(input: {
   });
 
   await sendWarningEmail(updatedUser.email, input.reason, recentStrikeCount);
+  await createInAppNotification({
+    userId: updatedUser.id,
+    preferenceType: 'SESSION_UPDATES',
+    type: 'ACCOUNT_WARNING',
+    title: 'Account warning issued',
+    body: `Your account received a warning: ${input.reason}`,
+    link: '/settings?tab=account',
+  });
 
   await recordAdminAction({
     adminId: input.adminId,
@@ -153,7 +164,21 @@ export async function suspendUser(input: {
     });
   }
 
-  await sendBanEmail(user.email, input.reason, false);
+  if (input.suspendedUntil) {
+    await sendSuspensionEmail(user.email, input.reason, input.suspendedUntil);
+  } else {
+    await sendBanEmail(user.email, input.reason, false);
+  }
+  await createInAppNotification({
+    userId: user.id,
+    preferenceType: 'SESSION_UPDATES',
+    type: input.suspendedUntil ? 'ACCOUNT_SUSPENDED' : 'ACCOUNT_RESTORED',
+    title: input.suspendedUntil ? 'Account suspended' : 'Account restored',
+    body: input.suspendedUntil
+      ? `Your account is suspended until ${input.suspendedUntil.toLocaleString('en-US')}. Reason: ${input.reason}`
+      : 'Your account suspension has been lifted.',
+    link: '/settings?tab=account',
+  });
 
   await recordAdminAction({
     adminId: input.adminId,
@@ -504,5 +529,33 @@ export async function deleteGmatCredentials(requestId: string) {
   // @ts-ignore
   return prisma.gmatVerificationRequest.delete({
     where: { id: requestId },
+  });
+}
+
+export async function notifyTutorAboutBookingRequest(input: {
+  tutorUserId: string;
+  tutorEmail: string;
+  tutorName: string;
+  studentName: string;
+  subject: string;
+  scheduledAt: Date;
+  durationMinutes: number;
+}) {
+  await createInAppNotification({
+    userId: input.tutorUserId,
+    preferenceType: 'SESSION_UPDATES',
+    type: 'NEW_BOOKING_REQUEST',
+    title: 'New booking request',
+    body: `${input.studentName} requested a ${input.durationMinutes}-minute ${input.subject.replace(/_/g, ' ')} lesson for ${input.scheduledAt.toLocaleString('en-US')}.`,
+    link: '/dashboard/tutor?tab=sessions',
+  });
+
+  await sendBookingRequestEmail({
+    to: input.tutorEmail,
+    tutorName: input.tutorName,
+    studentName: input.studentName,
+    subject: input.subject,
+    scheduledAt: input.scheduledAt,
+    durationMinutes: input.durationMinutes,
   });
 }

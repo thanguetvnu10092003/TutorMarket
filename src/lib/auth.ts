@@ -6,6 +6,10 @@ import bcrypt from 'bcryptjs';
 import { generateOTP, sendOTP } from './mail';
 import { addMinutes } from 'date-fns';
 
+function isSuspendedUntil(suspendedUntil?: Date | null) {
+  return !!suspendedUntil && suspendedUntil.getTime() > Date.now();
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     // Google OAuth
@@ -33,6 +37,16 @@ export const authOptions: NextAuthOptions = {
 
         if (user.isBanned) {
           throw new Error('Your account has been banned. Please contact support.');
+        }
+        if (isSuspendedUntil(user.suspendedUntil)) {
+          const untilLabel = user.suspendedUntil?.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+          throw new Error(`Your account is suspended until ${untilLabel}. Reason: ${user.suspensionReason || 'No reason provided.'}`);
         }
 
         // Verify password
@@ -101,6 +115,10 @@ export const authOptions: NextAuthOptions = {
 
         if (existingUser?.isBanned) {
           console.log('BLOCKING BANNED USER FROM LOGIN');
+          return false;
+        }
+        if (existingUser?.suspendedUntil && existingUser.suspendedUntil.getTime() > Date.now()) {
+          console.log('BLOCKING SUSPENDED USER FROM LOGIN');
           return false;
         }
 

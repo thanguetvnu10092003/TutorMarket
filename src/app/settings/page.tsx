@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { getInitials } from '@/lib/utils';
 import PasswordInput from '@/components/ui/PasswordInput';
+import { CURRENCY_META } from '@/lib/currency';
 
 const tabs = [
   { id: 'profile', label: 'Profile', icon: (
@@ -68,6 +69,11 @@ export default function SettingsPage() {
     hourlyRate: 0,
     languages: 'English',
   });
+  const [studentPreferences, setStudentPreferences] = useState({
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    preferredCurrency: 'USD',
+  });
+  const [savingStudentPreferences, setSavingStudentPreferences] = useState(false);
 
   useEffect(() => {
     const fetchTutorProfile = async () => {
@@ -141,6 +147,41 @@ export default function SettingsPage() {
     };
   }, [session]);
 
+  useEffect(() => {
+    if (session?.user?.role !== 'STUDENT') {
+      return;
+    }
+
+    let ignore = false;
+
+    async function fetchStudentPreferences() {
+      try {
+        const response = await fetch('/api/student/preferences', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error('Failed to load student preferences');
+        }
+
+        const json = await response.json();
+        if (!ignore) {
+          setStudentPreferences({
+            timezone: json?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+            preferredCurrency: json?.preferredCurrency || 'USD',
+          });
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error('Student preferences load error:', error);
+        }
+      }
+    }
+
+    void fetchStudentPreferences();
+
+    return () => {
+      ignore = true;
+    };
+  }, [session?.user?.role]);
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -213,6 +254,30 @@ export default function SettingsPage() {
       toast.error('Failed to update notification preference');
     } finally {
       setSavingNotificationType(null);
+    }
+  };
+
+  const handleSaveStudentPreferences = async () => {
+    setSavingStudentPreferences(true);
+
+    try {
+      const response = await fetch('/api/student/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(studentPreferences),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save student preferences');
+      }
+
+      toast.success('Student preferences updated');
+    } catch (error) {
+      toast.error('Failed to update student preferences');
+    } finally {
+      setSavingStudentPreferences(false);
     }
   };
 
@@ -370,6 +435,58 @@ export default function SettingsPage() {
                           </p>
                         </div>
                       </div>
+
+                      {session?.user?.role === 'STUDENT' && (
+                        <div className="space-y-5 rounded-2xl border border-navy-100 dark:border-navy-400/20 p-5">
+                          <div>
+                            <label className="text-sm font-bold text-navy-600 dark:text-cream-200">Display Currency</label>
+                            <p className="mt-1 text-xs text-navy-300 dark:text-cream-400/60">
+                              Tutor prices will be shown in this currency when conversion is available. Converted amounts are marked with `~`.
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/60">Currency</label>
+                              <select
+                                value={studentPreferences.preferredCurrency}
+                                onChange={(event) =>
+                                  setStudentPreferences((current) => ({
+                                    ...current,
+                                    preferredCurrency: event.target.value,
+                                  }))
+                                }
+                                className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none transition-all"
+                              >
+                                {Object.keys(CURRENCY_META).map((currencyCode) => (
+                                  <option key={currencyCode} value={currencyCode}>
+                                    {currencyCode}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/60">Timezone</label>
+                              <input
+                                readOnly
+                                value={studentPreferences.timezone}
+                                className="w-full px-4 py-3 rounded-xl bg-navy-50 dark:bg-navy-600 border border-navy-100 dark:border-navy-400 text-navy-400 dark:text-cream-400/60 text-sm outline-none cursor-not-allowed"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => void handleSaveStudentPreferences()}
+                              disabled={savingStudentPreferences}
+                              className="btn-primary py-2.5 px-6 disabled:opacity-50"
+                            >
+                              {savingStudentPreferences ? 'Saving...' : 'Save Currency Preference'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

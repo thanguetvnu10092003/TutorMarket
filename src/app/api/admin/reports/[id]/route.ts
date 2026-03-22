@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { createInAppNotification } from '@/lib/in-app-notifications';
 import {
   banUser,
   issueRefund,
@@ -176,11 +177,14 @@ export async function PATCH(
         break;
       }
       case 'DISMISS_REPORT': {
+        if (!note) {
+          return NextResponse.json({ error: 'Dismiss reason is required' }, { status: 400 });
+        }
         await prisma.userReport.update({
           where: { id: report.id },
           data: {
             status: 'DISMISSED',
-            adminNote: note ?? null,
+            adminNote: note,
             resolvedByAdminId: session.user.id,
             resolvedAt: new Date(),
           },
@@ -194,9 +198,47 @@ export async function PATCH(
         });
         break;
       }
+      case 'RESOLVE_REPORT': {
+        await prisma.userReport.update({
+          where: { id: report.id },
+          data: {
+            status: 'RESOLVED',
+            adminNote: note ?? null,
+            resolvedByAdminId: session.user.id,
+            resolvedAt: new Date(),
+          },
+        });
+        await recordAdminAction({
+          adminId: session.user.id,
+          targetUserId: report.reportedUserId,
+          actionType: 'RESOLVE_REPORT',
+          reason: note,
+          metadata: { reportId: report.id },
+        });
+        break;
+      }
       default:
         return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
     }
+
+    await Promise.all([
+      createInAppNotification({
+        userId: report.reporterId,
+        preferenceType: 'SESSION_UPDATES',
+        type: 'REPORT_UPDATED',
+        title: 'Your report was updated',
+        body: `Admin updated report ${report.id.slice(-8)} with action ${String(action).replaceAll('_', ' ').toLowerCase()}.`,
+        link: '/dashboard/student?tab=bookings',
+      }),
+      createInAppNotification({
+        userId: report.reportedUserId,
+        preferenceType: 'SESSION_UPDATES',
+        type: 'REPORT_UPDATED',
+        title: 'A report involving your account was updated',
+        body: `Admin reviewed report ${report.id.slice(-8)} and recorded action ${String(action).replaceAll('_', ' ').toLowerCase()}.`,
+        link: '/settings?tab=account',
+      }),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

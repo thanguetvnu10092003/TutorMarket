@@ -1,5 +1,9 @@
 import prisma from '@/lib/prisma';
 import { getUserStatus, isSuspended } from '@/lib/admin';
+import { buildDisplayPrice, getCurrencyForLocation, getPrimaryPriceOption } from '@/lib/currency';
+import { hasAvailabilityWithinDays, sortAvailabilitySlots } from '@/lib/availability';
+import { getCountryOptions } from '@/lib/intl-data';
+import { getPlatformSettingsSnapshot } from '@/lib/platform-settings';
 
 const SUBJECT_GROUPS: Record<string, 'CFA' | 'GMAT' | 'GRE'> = {
   CFA_LEVEL_1: 'CFA',
@@ -58,7 +62,34 @@ function sum(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
 }
 
-export async function buildAdminDashboardData() {
+export type AnalyticsPeriod = 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL_TIME';
+
+function getAnalyticsPeriodStart(period: AnalyticsPeriod) {
+  const now = new Date();
+
+  if (period === 'TODAY') {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+
+  if (period === 'THIS_WEEK') {
+    const start = new Date(now);
+    const dayOfWeek = start.getDay();
+    const distance = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    start.setDate(start.getDate() - distance);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+
+  if (period === 'THIS_MONTH') {
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  return null;
+}
+
+export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIME') {
   const [
     users,
     tutorProfiles,
@@ -71,6 +102,7 @@ export async function buildAdminDashboardData() {
     seoMetadata,
     strikes,
     gmatRequests,
+    platformSettings,
   ] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
@@ -238,9 +270,10 @@ export async function buildAdminDashboardData() {
       },
       orderBy: { createdAt: 'desc' },
     }),
+    getPlatformSettingsSnapshot(),
   ]);
 
-  const nonAdminTutorProfiles = tutorProfiles.filter((p: any) => p.user?.role !== 'ADMIN');
+  const nonAdminTutorProfiles = tutorProfiles.filter((profile: any) => profile.user?.role === 'TUTOR');
 
   const tutorMap = new Map(tutorProfiles.map((profile: any) => [profile.id, profile]));
   const conversationMap = new Map(
@@ -295,7 +328,11 @@ export async function buildAdminDashboardData() {
     };
   });
 
-  const studentBookings = bookings.filter((booking: any) => booking.student.role === 'STUDENT');
+  const analyticsStartDate = getAnalyticsPeriodStart(period);
+  const analyticsBookings = analyticsStartDate
+    ? bookings.filter((booking: any) => new Date(booking.scheduledAt) >= analyticsStartDate)
+    : bookings;
+  const studentBookings = analyticsBookings.filter((booking: any) => booking.student.role === 'STUDENT');
   const weekBuckets = getWeekBuckets();
   const monthBuckets = getMonthBuckets();
   const studentsBySubject = ['CFA', 'GMAT', 'GRE'].map((subject) => {
@@ -330,9 +367,9 @@ export async function buildAdminDashboardData() {
     };
   });
 
-  const activeStudentsPerTutor = tutorProfiles
+  const activeStudentsPerTutor = nonAdminTutorProfiles
     .map((profile: any) => {
-      const relatedBookings = bookings.filter((booking: any) => booking.tutorProfileId === profile.id);
+      const relatedBookings = analyticsBookings.filter((booking: any) => booking.tutorProfileId === profile.id);
       return {
         tutorProfileId: profile.id,
         tutorName: profile.user.name,
@@ -344,9 +381,9 @@ export async function buildAdminDashboardData() {
     .slice(0, 10);
 
   const retainedStudents = new Set(
-    bookings.filter((booking: any) => booking.sessionNumber >= 2).map((booking: any) => booking.studentId)
+    analyticsBookings.filter((booking: any) => booking.sessionNumber >= 2).map((booking: any) => booking.studentId)
   );
-  const studentsWithAnyBooking = new Set(bookings.map((booking: any) => booking.studentId));
+  const studentsWithAnyBooking = new Set(analyticsBookings.map((booking: any) => booking.studentId));
   const recentStudentSignups = users
     .filter((user: any) => user.role === 'STUDENT' && user.createdAt.getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000)
     .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -358,25 +395,66 @@ export async function buildAdminDashboardData() {
       lastActive: user.lastActiveAt ?? user.updatedAt,
     }));
 
-  const completedBookings = bookings.filter((booking: any) => booking.status === 'COMPLETED');
-  const hoursTaughtPerTutor = tutorProfiles
+  const completedBookings = analyticsBookings.filter((booking: any) => booking.status === 'COMPLETED');
+  const completedPaidBookings = completedBookings.filter((booking: any) =>
+    booking.payment && ['CAPTURED', 'REFUNDED'].includes(booking.payment.status)
+  );
+  const getNetPaymentFactor = (payment: any) => {
+    if (!payment || !payment.amount) {
+      return 0;
+    }
+
+    return Math.max(payment.amount - (payment.refundedAmount || 0), 0) / payment.amount;
+  };
+  const grossRevenueBeforeRefunds = sum(completedPaidBookings.map((booking: any) => booking.payment?.amount || 0));
+  const refundedRevenue = sum(completedPaidBookings.map((booking: any) => booking.payment?.refundedAmount || 0));
+  const grossRevenue = Math.max(grossRevenueBeforeRefunds - refundedRevenue, 0);
+  const platformProfit = sum(
+    completedPaidBookings.map((booking: any) => (booking.payment?.platformFee || 0) * getNetPaymentFactor(booking.payment))
+  );
+  const tutorEarnings = sum(
+    completedPaidBookings.map((booking: any) => (booking.payment?.tutorPayout || 0) * getNetPaymentFactor(booking.payment))
+  );
+  const realizedCommissionRate = grossRevenueBeforeRefunds === 0
+    ? 0
+    : Number(((
+        sum(completedPaidBookings.map((booking: any) => booking.payment?.platformFee || 0)) /
+        grossRevenueBeforeRefunds
+      ) * 100).toFixed(1));
+  const overallConversionRate = analyticsBookings.length === 0
+    ? 0
+    : Number(((completedBookings.length / analyticsBookings.length) * 100).toFixed(1));
+
+  const hoursTaughtPerTutor = nonAdminTutorProfiles
     .map((profile: any) => {
+      const tutorBookings = analyticsBookings.filter((booking: any) => booking.tutorProfileId === profile.id);
+      const tutorCompleted = tutorBookings.filter((booking: any) => booking.status === 'COMPLETED');
       const hours = sum(
-        completedBookings
-          .filter((booking: any) => booking.tutorProfileId === profile.id)
-          .map((booking: any) => booking.durationMinutes / 60)
+        tutorCompleted.map((booking: any) => booking.durationMinutes / 60)
       );
+      const tutorGross = sum(
+        tutorCompleted
+          .filter((booking: any) => booking.payment && ['CAPTURED', 'REFUNDED'].includes(booking.payment.status))
+          .map((booking: any) => (booking.payment?.amount || 0) - (booking.payment?.refundedAmount || 0))
+      );
+      const tutorConversionRate = tutorBookings.length === 0
+        ? 0
+        : Number(((tutorCompleted.length / tutorBookings.length) * 100).toFixed(1));
+
       return {
         tutorProfileId: profile.id,
         tutorName: profile.user.name,
         hoursTaught: Number(hours.toFixed(1)),
+        grossGenerated: Number(tutorGross.toFixed(2)),
+        conversionRate: tutorConversionRate,
       };
     })
-    .sort((a: any, b: any) => b.hoursTaught - a.hoursTaught);
+    .sort((a: any, b: any) => b.grossGenerated - a.grossGenerated)
+    .slice(0, 10);
 
-  const studentBookingsPerTutor = tutorProfiles
+  const studentBookingsPerTutor = nonAdminTutorProfiles
     .map((profile: any) => {
-      const relatedBookings = bookings.filter((booking: any) => booking.tutorProfileId === profile.id);
+      const relatedBookings = analyticsBookings.filter((booking: any) => booking.tutorProfileId === profile.id);
       const trialPairs = new Set(
         relatedBookings
           .filter((booking: any) => booking.isFreeSession)
@@ -393,13 +471,17 @@ export async function buildAdminDashboardData() {
         tutorName: profile.user.name,
         totalBookings: relatedBookings.length,
         sessionTwoPlusConversionRate: trialPairs.size === 0 ? 0 : Number(((convertedPairs.size / trialPairs.size) * 100).toFixed(1)),
+        bookingConversionRate:
+          relatedBookings.length === 0
+            ? 0
+            : Number(((relatedBookings.filter((booking: any) => booking.status === 'COMPLETED').length / relatedBookings.length) * 100).toFixed(1)),
       };
     })
     .sort((a: any, b: any) => b.totalBookings - a.totalBookings);
 
-  const trialSessions = bookings.filter((booking: any) => booking.isFreeSession);
+  const trialSessions = analyticsBookings.filter((booking: any) => booking.isFreeSession);
   const freeToPaidPairs = new Set(
-    bookings.filter((booking: any) => booking.sessionNumber >= 2).map((booking: any) => `${booking.studentId}:${booking.tutorProfileId}`)
+    analyticsBookings.filter((booking: any) => booking.sessionNumber >= 2).map((booking: any) => `${booking.studentId}:${booking.tutorProfileId}`)
   );
   const freeToPaidConversionRate = trialSessions.length === 0 ? 0 : Number(((freeToPaidPairs.size / trialSessions.length) * 100).toFixed(1));
 
@@ -413,11 +495,11 @@ export async function buildAdminDashboardData() {
     ).length,
   }));
 
-  const gmv = sum(bookings.map((booking: any) => booking.payment?.amount || 0));
-  const platformFees = sum(bookings.map((booking: any) => booking.payment?.platformFee || 0));
-  const takeRate = gmv === 0 ? 0 : Number(((platformFees / gmv) * 100).toFixed(1));
+  const gmv = grossRevenue;
+  const platformFees = platformProfit;
+  const takeRate = realizedCommissionRate;
 
-  const payoutHistory = bookings
+  const payoutHistory = analyticsBookings
     .filter((booking: any) => booking.payment)
     .map((booking: any) => ({
       bookingId: booking.id,
@@ -665,6 +747,7 @@ export async function buildAdminDashboardData() {
       contentFlags: contentFlagQueue,
     },
     analytics: {
+      period,
       studentAnalytics: {
         studentsBySubject,
         activeStudentsPerTutor,
@@ -682,9 +765,15 @@ export async function buildAdminDashboardData() {
         hoursTaughtPerTutor,
         studentBookingsPerTutor,
         freeToPaidConversionRate,
+        overallConversionRate,
         newTutorSignupsPerWeek,
         gmv,
         takeRate,
+        grossRevenue,
+        platformProfit,
+        tutorEarnings,
+        commissionRate: platformSettings.commissionPercent,
+        realizedCommissionRate,
         payoutHistory,
       },
       optimizationTools: {
@@ -694,6 +783,7 @@ export async function buildAdminDashboardData() {
         seoMetadata,
       },
     },
+    platformSettings,
     verifications: {
       queue: verificationQueue,
       gmatRequests: formattedGmatRequests,
@@ -702,6 +792,104 @@ export async function buildAdminDashboardData() {
       queue: reportsQueue,
     },
   };
+}
+
+function resolveCountryCode(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const options = getCountryOptions();
+  const exactCode = options.find((country) => country.code === value.toUpperCase());
+  if (exactCode) {
+    return exactCode.code;
+  }
+
+  const exactName = options.find((country) => country.name.toLowerCase() === value.toLowerCase());
+  return exactName?.code || null;
+}
+
+function getCertificationDisplayLabel(certification: any) {
+  if (certification.type === 'CFA') {
+    return certification.levelOrVariant?.replaceAll('_', ' ') || 'CFA';
+  }
+
+  return certification.type;
+}
+
+function getPercentileValue(percentiles: any, keys: string[]) {
+  for (const key of keys) {
+    const value = percentiles?.[key];
+    if (value !== undefined && value !== null && value !== '') {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function buildCertificationSummary(certification: any) {
+  if (certification.status !== 'VERIFIED') {
+    return null;
+  }
+
+  const label = getCertificationDisplayLabel(certification);
+  const percentiles = certification.percentiles || {};
+
+  if (certification.type === 'GMAT') {
+    const totalPercentile = getPercentileValue(percentiles, ['totalPercentile', 'totalPct', 'total']);
+    return {
+      id: certification.id,
+      label,
+      scoreText: certification.score ? `GMAT: ${certification.score}` : 'GMAT verified',
+      detailText: totalPercentile ? `${certification.score || ''} (${totalPercentile}th percentile)`.trim() : null,
+    };
+  }
+
+  if (certification.type === 'GRE') {
+    const verbal = percentiles?.verbal ?? percentiles?.verbalScore ?? null;
+    const verbalPercentile = percentiles?.verbalPercentile ?? percentiles?.verbalPct ?? null;
+    const quant = percentiles?.quant ?? percentiles?.quantScore ?? null;
+    const quantPercentile = percentiles?.quantPercentile ?? percentiles?.quantPct ?? null;
+    const writing = percentiles?.writing ?? percentiles?.writingScore ?? null;
+    const writingPercentile = percentiles?.writingPercentile ?? percentiles?.writingPct ?? null;
+    const combinedScore = [verbal, quant].filter(Boolean).join(' / ');
+    const percentileSummary = [verbalPercentile ? `V ${verbalPercentile}th` : null, quantPercentile ? `Q ${quantPercentile}th` : null, writingPercentile ? `AWA ${writingPercentile}th` : null]
+      .filter(Boolean)
+      .join(' • ');
+
+    return {
+      id: certification.id,
+      label,
+      scoreText: combinedScore ? `GRE: ${combinedScore}` : 'GRE verified',
+      detailText: [writing ? `AWA ${writing}` : null, percentileSummary].filter(Boolean).join(' • ') || null,
+    };
+  }
+
+  return {
+    id: certification.id,
+    label,
+    scoreText: certification.score ? `${label}: ${certification.score}` : `${label} verified`,
+    detailText: null,
+  };
+}
+
+function matchesSpecialty(profile: any, specialty?: string) {
+  if (!specialty) {
+    return true;
+  }
+
+  const normalized = specialty.toLowerCase();
+  const haystack = [
+    ...(profile.specializations || []),
+    profile.headline || '',
+    profile.about || '',
+    profile.experienceHighlight || '',
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  return haystack.includes(normalized);
 }
 
 export async function getPublicTutorCards(filters: {
@@ -715,7 +903,15 @@ export async function getPublicTutorCards(filters: {
   country?: string;
   search?: string;
   availability?: string;
-}) {
+  specialty?: string;
+  nativeSpeaker?: boolean;
+}, viewerContext?: { preferredCurrency?: string | null; countryCode?: string | null; timezone?: string | null }) {
+  const selectedCountryCode = resolveCountryCode(filters.country);
+  const viewerCurrency = getCurrencyForLocation({
+    preferredCurrency: viewerContext?.preferredCurrency,
+    countryCode: viewerContext?.countryCode,
+    timezone: viewerContext?.timezone,
+  });
   const profiles = await prisma.tutorProfile.findMany({
     where: {
       verificationStatus: filters.isVerified ? 'APPROVED' : { in: ['APPROVED', 'PENDING'] },
@@ -739,14 +935,11 @@ export async function getPublicTutorCards(filters: {
       ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
         ? {
             hourlyRate: {
-              ...(filters.minPrice !== undefined ? { gte: filters.minPrice } : {}),
-              ...(filters.maxPrice !== undefined ? { lte: filters.maxPrice } : {}),
+              gte: 0,
             },
           }
         : {}),
       ...(filters.minRating !== undefined ? { rating: { gte: filters.minRating } } : {}),
-      // @ts-ignore - Prisma types out of sync due to EPERM on Windows
-      ...(filters.country ? { user: { country: filters.country } } : {}),
       ...(filters.search ? {
         OR: [
           { user: { name: { contains: filters.search, mode: 'insensitive' } } },
@@ -759,10 +952,129 @@ export async function getPublicTutorCards(filters: {
       user: true,
       certifications: true,
       availability: true,
+      overrides: {
+        where: {
+          date: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
+        },
+      },
+      bookings: {
+        where: {
+          scheduledAt: {
+            gte: new Date(),
+          },
+          status: {
+            in: ['PENDING', 'CONFIRMED'],
+          },
+        },
+        select: {
+          scheduledAt: true,
+          durationMinutes: true,
+          status: true,
+        },
+      },
+      tutorLanguages: true,
+      pricing: {
+        where: { isEnabled: true },
+        orderBy: { durationMinutes: 'asc' },
+      },
     },
   });
 
-  const sortedProfiles = [...profiles].sort((left: any, right: any) => {
+  const hydratedProfiles = profiles
+    .map((profile: any) => {
+      const primaryPricingOption =
+        getPrimaryPriceOption(profile.pricing) ||
+        (profile.hourlyRate > 0
+          ? {
+              durationMinutes: 60,
+              price: profile.hourlyRate,
+              isEnabled: true,
+              currency: 'USD',
+            }
+          : null);
+      const priceDisplay = primaryPricingOption
+        ? buildDisplayPrice({
+            amount: primaryPricingOption.price,
+            originalCurrency: primaryPricingOption.currency,
+            viewerCurrency,
+          })
+        : null;
+      const verifiedResults = profile.certifications
+        .map((certification: any) => buildCertificationSummary(certification))
+        .filter(Boolean);
+      const countryCode = resolveCountryCode(profile.countryOfBirth) || resolveCountryCode(profile.user.country);
+      const additionalLanguages = (profile.languages || []).filter((language: string) => language !== (profile.languages || [])[0]);
+      const hasNextWeekAvailability = hasAvailabilityWithinDays({
+        availability: profile.availability,
+        overrides: profile.overrides,
+        bookings: profile.bookings,
+        durationMinutes: primaryPricingOption?.durationMinutes || 60,
+        timeBucket:
+          filters.availability && filters.availability !== 'NEXT_7_DAYS'
+            ? (filters.availability as any)
+            : null,
+      });
+
+      return {
+        ...profile,
+        primaryPricingOption,
+        priceDisplay,
+        viewerCurrency,
+        verifiedResults,
+        publicCountryCode: countryCode,
+        publicCountry: profile.countryOfBirth || profile.user.country,
+        additionalLanguages,
+        hasNextWeekAvailability,
+      };
+    })
+    .filter((profile: any) => {
+      if (selectedCountryCode && profile.publicCountryCode !== selectedCountryCode) {
+        return false;
+      }
+
+      if (filters.language) {
+        const speaksLanguage = (profile.languages || []).includes(filters.language);
+        if (!speaksLanguage || profile.additionalLanguages.length === 0) {
+          return false;
+        }
+      }
+
+      if (filters.nativeSpeaker) {
+        const hasNativeLanguage = (profile.tutorLanguages || []).some((language: any) => language.proficiency === 'NATIVE');
+        if (!hasNativeLanguage) {
+          return false;
+        }
+      }
+
+      if (filters.specialty && !matchesSpecialty(profile, filters.specialty)) {
+        return false;
+      }
+
+      if (filters.availability && !profile.hasNextWeekAvailability) {
+        return false;
+      }
+
+      if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+        const displayAmount = profile.priceDisplay?.displayAmount ?? null;
+        if (displayAmount === null) {
+          return false;
+        }
+
+        if (filters.minPrice !== undefined && displayAmount < filters.minPrice) {
+          return false;
+        }
+
+        if (filters.maxPrice !== undefined && displayAmount > filters.maxPrice) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+  const sortedProfiles = [...hydratedProfiles].sort((left: any, right: any) => {
     if (left.isFeatured !== right.isFeatured) {
       return left.isFeatured ? -1 : 1;
     }
@@ -775,9 +1087,9 @@ export async function getPublicTutorCards(filters: {
 
     switch (filters.sortBy) {
       case 'price_asc':
-        return left.hourlyRate - right.hourlyRate;
+        return (left.priceDisplay?.displayAmount || 0) - (right.priceDisplay?.displayAmount || 0);
       case 'price_desc':
-        return right.hourlyRate - left.hourlyRate;
+        return (right.priceDisplay?.displayAmount || 0) - (left.priceDisplay?.displayAmount || 0);
       case 'rating':
         return right.rating - left.rating;
       case 'experience':
@@ -812,27 +1124,39 @@ export async function getPublicTutorCards(filters: {
     about: profile.about,
     specializations: profile.specializations,
     hourlyRate: profile.hourlyRate,
+    pricingOptions: profile.pricing.map((option: any) => ({
+      ...option,
+      priceDisplay: buildDisplayPrice({
+        amount: option.price,
+        originalCurrency: option.currency,
+        viewerCurrency,
+      }),
+    })),
+    primaryPrice: profile.priceDisplay,
     rating: profile.rating,
     totalReviews: profile.totalReviews,
     totalSessions: profile.totalSessions,
     totalStudents: Math.max(3, Math.ceil(profile.totalSessions / 4)), // Dynamic student count
     responseTime: profile.responseTime,
     languages: profile.languages,
-    availability: profile.availability,
+    availability: sortAvailabilitySlots(profile.availability),
     timezone: profile.timezone,
     verificationStatus: profile.verificationStatus,
     isFeatured: profile.isFeatured,
     yearsOfExperience: profile.yearsOfExperience,
-    country: profile.user.country,
-    countryFlag: profile.user.countryFlag,
+    country: profile.publicCountry,
+    countryCode: profile.publicCountryCode,
+    countryFlag: profile.publicCountryCode ? getCountryOptions().find((country) => country.code === profile.publicCountryCode)?.flag || profile.user.countryFlag : profile.user.countryFlag,
     videoUrl: profile.videoUrl,
+    availableWithin7Days: profile.hasNextWeekAvailability,
+    verifiedResults: profile.verifiedResults,
     verifiedCertifications: profile.certifications
       .filter((c: any) => c.status === 'VERIFIED')
       .map((c: any) => c.type),
   }));
 }
 
-export async function getPublicTutorProfile(tutorProfileId: string) {
+export async function getPublicTutorProfile(tutorProfileId: string, viewerContext?: { preferredCurrency?: string | null; countryCode?: string | null; timezone?: string | null }) {
   const profile = await prisma.tutorProfile.findFirst({
     where: {
       id: tutorProfileId,
@@ -848,15 +1172,45 @@ export async function getPublicTutorProfile(tutorProfileId: string) {
       reviews: {
         include: {
           student: true,
+          tags: true,
         },
         where: {
           isPublic: true,
         },
         orderBy: { createdAt: 'desc' },
       },
-      availability: true,
+      availability: {
+        orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+      },
+      overrides: {
+        where: {
+          date: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
+        },
+      },
+      bookings: {
+        where: {
+          scheduledAt: {
+            gte: new Date(),
+          },
+          status: {
+            in: ['PENDING', 'CONFIRMED'],
+          },
+        },
+        select: {
+          scheduledAt: true,
+          durationMinutes: true,
+          status: true,
+        },
+      },
       education: true,
       certifications: true,
+      tutorLanguages: true,
+      pricing: {
+        where: { isEnabled: true },
+        orderBy: { durationMinutes: 'asc' },
+      },
     },
   });
 
@@ -864,5 +1218,49 @@ export async function getPublicTutorProfile(tutorProfileId: string) {
     return null;
   }
 
-  return profile;
+  const viewerCurrency = getCurrencyForLocation({
+    preferredCurrency: viewerContext?.preferredCurrency,
+    countryCode: viewerContext?.countryCode,
+    timezone: viewerContext?.timezone,
+  });
+  const verifiedResults = profile.certifications
+    .map((certification: any) => buildCertificationSummary(certification))
+    .filter(Boolean);
+  const publicCountryCode = resolveCountryCode(profile.countryOfBirth) || resolveCountryCode(profile.user.country);
+  const primaryPricingOption =
+    getPrimaryPriceOption(profile.pricing) ||
+    (profile.hourlyRate > 0
+      ? {
+          durationMinutes: 60,
+          price: profile.hourlyRate,
+          isEnabled: true,
+          currency: 'USD',
+        }
+      : null);
+
+  return {
+    ...profile,
+    availability: sortAvailabilitySlots(profile.availability),
+    pricingOptions: profile.pricing.map((option: any) => ({
+      ...option,
+      priceDisplay: buildDisplayPrice({
+        amount: option.price,
+        originalCurrency: option.currency,
+        viewerCurrency,
+      }),
+    })),
+    primaryPrice: primaryPricingOption
+      ? buildDisplayPrice({
+          amount: primaryPricingOption.price,
+          originalCurrency: primaryPricingOption.currency,
+          viewerCurrency,
+        })
+      : null,
+    publicCountry: profile.countryOfBirth || profile.user.country,
+    publicCountryCode,
+    countryFlag: publicCountryCode ? getCountryOptions().find((country) => country.code === publicCountryCode)?.flag || profile.user.countryFlag : profile.user.countryFlag,
+    blockedDates: profile.overrides,
+    bookedSlots: profile.bookings,
+    verifiedResults,
+  };
 }

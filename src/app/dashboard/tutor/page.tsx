@@ -44,6 +44,7 @@ export default function TutorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
+  const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
 
   async function loadDashboardData() {
     try {
@@ -191,6 +192,42 @@ export default function TutorDashboard() {
     }
   };
 
+  const handleBookingDecision = async (bookingId: string, action: 'accept' | 'decline') => {
+    const confirmationMessage =
+      action === 'accept'
+        ? 'Accept this booking request? The student will be notified immediately.'
+        : 'Decline this booking request? If payment exists, it will be refunded.';
+
+    if (!confirm(confirmationMessage)) {
+      return;
+    }
+
+    try {
+      setUpdatingBookingId(bookingId);
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || `Failed to ${action} booking`);
+      }
+
+      toast.success(json.message || `Booking ${action}ed`);
+      await loadDashboardData();
+    } catch (error: any) {
+      console.error(`Booking ${action} error:`, error);
+      toast.error(error.message || `Could not ${action} booking`);
+    } finally {
+      setUpdatingBookingId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-200 dark:bg-navy-600">
@@ -274,12 +311,18 @@ export default function TutorDashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-4 space-y-8">
-                <div className="glass-card p-6">
-                  <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-5">Dashboard Snapshot</h2>
-                  <div className="space-y-4">
-                    <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Next Session</p>
-                      <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
+              <div className="glass-card p-6">
+                <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-5">Dashboard Snapshot</h2>
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Pending Requests</p>
+                    <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
+                      {(bookings || []).filter((booking) => booking.status === 'PENDING').length} booking request(s) waiting
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Next Session</p>
+                    <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
                         {nextBooking ? `${nextBooking.student.name} | ${formatDateTime(nextBooking.scheduledAt)}` : 'No upcoming session'}
                       </p>
                     </div>
@@ -423,7 +466,7 @@ export default function TutorDashboard() {
                 <div>
                   <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Session Actions</h2>
                   <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-2">
-                    Join the room, review student notes, and mark the lesson complete when it ends.
+                    Review pending requests, join the room, open notes, and mark lessons complete when they end.
                   </p>
                 </div>
                 <Link href="/dashboard/tutor/calendar" className="text-[10px] font-black uppercase tracking-widest text-gold-600 hover:text-gold-700 transition-colors">
@@ -464,6 +507,24 @@ export default function TutorDashboard() {
                             >
                               Notes
                             </button>
+                            {booking.status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => void handleBookingDecision(booking.id, 'accept')}
+                                  disabled={updatingBookingId === booking.id}
+                                  className="rounded-2xl bg-sage-500 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-sage-600 transition-colors disabled:opacity-50"
+                                >
+                                  {updatingBookingId === booking.id ? 'Working...' : 'Accept'}
+                                </button>
+                                <button
+                                  onClick={() => void handleBookingDecision(booking.id, 'decline')}
+                                  disabled={updatingBookingId === booking.id}
+                                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                                >
+                                  {updatingBookingId === booking.id ? 'Working...' : 'Decline'}
+                                </button>
+                              </>
+                            )}
                             <a
                               href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
                               target="_blank"
@@ -474,7 +535,7 @@ export default function TutorDashboard() {
                             </a>
                             <button
                               onClick={() => void handleCompleteSession(booking.id)}
-                              disabled={!canComplete || completingBookingId === booking.id}
+                              disabled={booking.status !== 'CONFIRMED' || !canComplete || completingBookingId === booking.id}
                               className="rounded-2xl bg-gold-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 hover:bg-gold-500 transition-colors disabled:bg-navy-100 disabled:text-navy-400"
                             >
                               {completingBookingId === booking.id ? 'Completing...' : 'Complete Session'}
@@ -482,7 +543,13 @@ export default function TutorDashboard() {
                           </div>
                         </div>
 
-                        {!canComplete && (
+                        {booking.status === 'PENDING' && (
+                          <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-blue-500">
+                            This is a new booking request. Accept or decline it before the lesson can proceed.
+                          </p>
+                        )}
+
+                        {booking.status === 'CONFIRMED' && !canComplete && (
                           <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
                             You can mark this session complete once its scheduled start time has begun.
                           </p>

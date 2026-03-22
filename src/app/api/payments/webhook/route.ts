@@ -1,21 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
-import { buildBookingRoomUrl, calculateCommission } from '@/lib/utils';
+import { getCommissionSplit } from '@/lib/platform-settings';
 import {
-  createStudentBookingConfirmedNotification,
   createStudentPaymentNotification,
   createTutorPaymentNotification,
 } from '@/lib/payment-notifications';
 import Stripe from 'stripe';
-
-function getCapturedPaymentSplit(amount: number) {
-  if (amount <= 0) {
-    return { platformFee: 0, tutorPayout: 0 };
-  }
-
-  return calculateCommission(amount, 2, 0);
-}
 
 export async function POST(request: Request) {
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -93,7 +84,7 @@ export async function POST(request: Request) {
             break;
           }
 
-          const split = getCapturedPaymentSplit(payment.amount);
+          const split = await getCommissionSplit(payment.amount);
           const paidAt = new Date();
 
           await prisma.payment.update({
@@ -111,17 +102,12 @@ export async function POST(request: Request) {
           });
 
           if (payment.bookingId) {
-            await prisma.booking.updateMany({
-              where: {
-                id: payment.bookingId,
-                status: {
-                  in: ['PENDING', 'CONFIRMED'],
-                },
-              },
+            await prisma.bookingEvent.create({
               data: {
-                status: 'CONFIRMED',
-                confirmedAt: paidAt,
-                meetingLink: payment.booking?.meetingLink || buildBookingRoomUrl(payment.bookingId),
+                bookingId: payment.bookingId,
+                eventType: 'PAYMENT_CAPTURED',
+                title: 'Payment captured',
+                details: 'Student payment was captured successfully. Waiting for tutor confirmation if required.',
               },
             });
           }
@@ -174,23 +160,6 @@ export async function POST(request: Request) {
                   tutorProfile: payment.package.tutorProfile,
                 }
               : null,
-          });
-
-          await createStudentBookingConfirmedNotification({
-            paymentAmount: payment.amount,
-            tutorPayout: split.tutorPayout,
-            paidAt,
-            booking: payment.booking
-              ? {
-                  id: payment.booking.id,
-                  studentId: payment.booking.studentId,
-                  subject: payment.booking.subject,
-                  scheduledAt: payment.booking.scheduledAt,
-                  student: payment.booking.student,
-                  tutorProfile: payment.booking.tutorProfile,
-                }
-              : null,
-            package: null,
           });
         }
 

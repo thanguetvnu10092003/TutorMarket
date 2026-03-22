@@ -11,6 +11,7 @@ import { Verifications } from '@/components/admin/Verifications';
 import { Reports } from '@/components/admin/Reports';
 
 type DashboardData = any;
+type AnalyticsPeriod = 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'ALL_TIME';
 
 const sections = [
   { id: 'overview', label: 'Overview Dashboard' },
@@ -31,10 +32,11 @@ export default function AdminDashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<(typeof sections)[number]['id']>('overview');
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>('ALL_TIME');
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (period = analyticsPeriod) => {
     try {
-      const response = await fetch(`/api/admin/dashboard?t=${Date.now()}`, { cache: 'no-store' });
+      const response = await fetch(`/api/admin/dashboard?t=${Date.now()}&period=${period}`, { cache: 'no-store' });
       const json = await parseResponse(response);
       setDashboard(json.data);
     } catch (error) {
@@ -47,7 +49,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     void fetchDashboard();
-  }, []);
+  }, [analyticsPeriod]);
 
   if (isLoading || !dashboard) {
     return (
@@ -93,7 +95,15 @@ export default function AdminDashboardPage() {
             />
           )}
           {activeSection === 'moderation' && <Moderation data={dashboard.moderation} onRefresh={fetchDashboard} />}
-          {activeSection === 'analytics' && <Analytics data={dashboard.analytics} />}
+          {activeSection === 'analytics' && (
+            <Analytics
+              data={dashboard.analytics}
+              platformSettings={dashboard.platformSettings}
+              period={analyticsPeriod}
+              onPeriodChange={setAnalyticsPeriod}
+              onRefresh={() => fetchDashboard(analyticsPeriod)}
+            />
+          )}
           {activeSection === 'verifications' && <Verifications data={dashboard.verifications} onRefresh={fetchDashboard} />}
           {activeSection === 'reports' && <Reports data={dashboard.reports} onRefresh={fetchDashboard} />}
         </main>

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { encrypt } from '@/lib/encryption';
+import { sortAvailabilitySlots, validateDailyAvailabilitySlots } from '@/lib/availability';
 
 // Encryption helpers for sensitive MBA.com credentials
 const ALGORITHM = 'aes-256-cbc';
@@ -292,29 +293,53 @@ export async function POST(
 
       case 7: { // Availability
         const { timezone, slots, overrides } = body;
+        const normalizedSlots = Array.isArray(slots) ? slots : [];
+        const normalizedOverrides = Array.isArray(overrides) ? overrides : [];
+        const slotsByDay = normalizedSlots.reduce<Record<number, Array<{ startTime: string; endTime: string }>>>((accumulator, slot) => {
+          const dayOfWeek = Number(slot.dayOfWeek);
+          accumulator[dayOfWeek] = accumulator[dayOfWeek] || [];
+          accumulator[dayOfWeek].push({
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          });
+          return accumulator;
+        }, {});
+
+        for (const dailySlots of Object.values(slotsByDay)) {
+          const validation = validateDailyAvailabilitySlots(dailySlots);
+          if (!validation.valid) {
+            throw new Error(validation.error);
+          }
+        }
+
+        const orderedSlots = Object.entries(slotsByDay).flatMap(([dayOfWeek, daySlots]) =>
+          sortAvailabilitySlots(daySlots).map((slot) => ({
+            tutorProfileId: tutorProfile.id,
+            dayOfWeek: Number(dayOfWeek),
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            timezone,
+            isActive: true,
+          }))
+        );
 
         await prisma.availability.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
-        if (slots && slots.length > 0) {
+        if (orderedSlots.length > 0) {
           await prisma.availability.createMany({
-            data: slots.map((s: any) => ({
-              tutorProfileId: tutorProfile.id,
-              dayOfWeek: s.dayOfWeek,
-              startTime: s.startTime,
-              endTime: s.endTime,
-              timezone,
-              isActive: true,
-            })),
+            data: orderedSlots,
           });
         }
 
         await prisma.availabilityOverride.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
-        if (overrides && overrides.length > 0) {
+        if (normalizedOverrides.length > 0) {
           await prisma.availabilityOverride.createMany({
-            data: overrides.map((o: any) => ({
+            data: normalizedOverrides.map((o: any) => ({
               tutorProfileId: tutorProfile.id,
               date: new Date(o.date),
+              startTime: o.startTime || null,
+              endTime: o.endTime || null,
               reason: o.reason || 'Unavailable',
-              isAvailable: false,
+              isAvailable: o.isAvailable ?? false,
             })),
           });
         }

@@ -8,6 +8,7 @@ import { SUBJECT_LABELS } from '@/types';
 import { formatCurrency, formatDate, formatTime, getInitials } from '@/lib/utils';
 import ContinueLearningPrompt from '@/components/student/ContinueLearningPrompt';
 import ReportIssueModal from '@/components/student/ReportIssueModal';
+import ReviewSessionModal from '@/components/student/ReviewSessionModal';
 import ConversationList from '@/components/chat/ConversationList';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { toast } from 'react-hot-toast';
@@ -26,6 +27,7 @@ export default function StudentDashboard() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedReportBooking, setSelectedReportBooking] = useState<any>(null);
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState<any>(null);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [directMessageTutor, setDirectMessageTutor] = useState<any>(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
@@ -415,12 +417,22 @@ export default function StudentDashboard() {
                       {booking.status}
                     </span>
                     {booking.status === 'COMPLETED' && (
-                      <button
-                        onClick={() => setSelectedReportBooking(booking)}
-                        className="text-[10px] font-bold text-navy-400 hover:text-red-500 transition-colors uppercase tracking-widest"
-                      >
-                        Report
-                      </button>
+                      <div className="flex items-center gap-3">
+                        {!booking.review && (
+                          <button
+                            onClick={() => setSelectedReviewBooking(booking)}
+                            className="text-[10px] font-bold text-gold-600 hover:text-gold-700 transition-colors uppercase tracking-widest"
+                          >
+                            Write a Review
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setSelectedReportBooking(booking)}
+                          className="text-[10px] font-bold text-navy-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+                        >
+                          Report
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -627,6 +639,17 @@ export default function StudentDashboard() {
 
       {selectedReportBooking && (
         <ReportIssueModal booking={selectedReportBooking} isOpen={!!selectedReportBooking} onClose={() => setSelectedReportBooking(null)} />
+      )}
+      {selectedReviewBooking && (
+        <ReviewSessionModal
+          booking={selectedReviewBooking}
+          isOpen={!!selectedReviewBooking}
+          onClose={() => setSelectedReviewBooking(null)}
+          onSubmitted={() => {
+            setSelectedReviewBooking(null);
+            void loadData();
+          }}
+        />
       )}
     </div>
     </PayPalScriptProvider>

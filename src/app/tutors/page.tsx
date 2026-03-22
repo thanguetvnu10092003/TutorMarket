@@ -24,19 +24,36 @@ type TutorFilters = {
   search: string;
 };
 
+const DEFAULT_FILTERS: TutorFilters = {
+  subject: '',
+  minPrice: '',
+  maxPrice: '',
+  language: '',
+  country: '',
+  availability: '',
+  specialty: '',
+  nativeSpeaker: false,
+  category: '',
+  sortBy: 'default',
+  search: '',
+};
+
 function getFiltersFromSearchParams(searchParams: Pick<ReadonlyURLSearchParams | URLSearchParams, 'get'>): TutorFilters {
+  const minPrice = searchParams.get('minPrice');
+  const maxPrice = searchParams.get('maxPrice');
+
   return {
     subject: searchParams.get('subject') || '',
-    minPrice: '' as number | '',
-    maxPrice: '' as number | '',
-    language: '',
-    country: '',
-    availability: '',
-    specialty: '',
-    nativeSpeaker: false,
-    category: '',
-    sortBy: 'default',
-    search: '',
+    minPrice: minPrice ? Number(minPrice) : '',
+    maxPrice: maxPrice ? Number(maxPrice) : '',
+    language: searchParams.get('language') || '',
+    country: searchParams.get('country') || '',
+    availability: searchParams.get('availability') || '',
+    specialty: searchParams.get('specialty') || '',
+    nativeSpeaker: searchParams.get('nativeSpeaker') === 'true',
+    category: searchParams.get('category') || '',
+    sortBy: searchParams.get('sortBy') || 'default',
+    search: searchParams.get('search') || '',
   };
 }
 
@@ -113,19 +130,7 @@ function TutorsContent() {
   };
 
   const handleResetFilters = () => {
-    setFilters({
-      subject: '',
-      minPrice: '',
-      maxPrice: '',
-      language: '',
-      country: '',
-      availability: '',
-      specialty: '',
-      nativeSpeaker: false,
-      category: '',
-      sortBy: 'default',
-      search: '',
-    });
+    setFilters(DEFAULT_FILTERS);
     setSelectedTutorId(null);
   };
 
@@ -187,6 +192,9 @@ function TutorsContent() {
       if (filters.minPrice) params.set('minPrice', String(filters.minPrice));
       if (filters.maxPrice) params.set('maxPrice', String(filters.maxPrice));
       if (filters.language) params.set('language', filters.language);
+      if (filters.availability) params.set('availability', filters.availability);
+      if (filters.specialty) params.set('specialty', filters.specialty);
+      if (filters.nativeSpeaker) params.set('nativeSpeaker', 'true');
       if (filters.sortBy !== 'default') params.set('sortBy', filters.sortBy);
       if (filters.search) params.set('search', filters.search);
       if (filters.country) params.set('country', filters.country);
@@ -324,7 +332,7 @@ function TutorsContent() {
                         onClick={() => navigateToProfile(selectedTutor.id)}
                         className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
                     >
-                        See {selectedTutor.user?.name.split(' ')[0]}'s profile
+                        See {selectedTutor.user?.name.split(' ')[0]}&apos;s profile
                     </button>
                 </div>
               </div>
