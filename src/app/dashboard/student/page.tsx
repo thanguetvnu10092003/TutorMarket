@@ -11,6 +11,7 @@ import ReportIssueModal from '@/components/student/ReportIssueModal';
 import ConversationList from '@/components/chat/ConversationList';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { toast } from 'react-hot-toast';
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 const tabs = [
   { id: 'overview', label: 'Overview' },
@@ -30,6 +31,7 @@ export default function StudentDashboard() {
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [payingPaymentId, setPayingPaymentId] = useState<string | null>(null);
   const [mockPayingId, setMockPayingId] = useState<string | null>(null);
+  const [paypalPayingId, setPaypalPayingId] = useState<string | null>(null);
   const [data, setData] = useState({
     bookings: [] as any[],
     packages: [] as any[],
@@ -248,7 +250,14 @@ export default function StudentDashboard() {
       }
     : directMessageTutor;
 
+  const paypalOptions = {
+      clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test",
+      currency: "USD",
+      intent: "capture",
+  };
+
   return (
+    <PayPalScriptProvider options={paypalOptions}>
     <div className="min-h-screen bg-cream-200 dark:bg-navy-600 pt-24 md:pt-28 pb-16">
       <div className="page-container max-w-6xl">
         <div className="flex flex-col md:flex-row md:items-center gap-6 mb-10">
@@ -525,7 +534,7 @@ export default function StudentDashboard() {
                           </button>
                           <button
                             onClick={() => void handleMockPayNow(payment.id)}
-                            disabled={payingPaymentId === payment.id || mockPayingId === payment.id}
+                            disabled={payingPaymentId === payment.id || mockPayingId === payment.id || paypalPayingId === payment.id}
                             className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 transition-all hover:bg-navy-50 disabled:border-navy-200 disabled:text-navy-400"
                           >
                             {mockPayingId === payment.id ? (
@@ -533,6 +542,58 @@ export default function StudentDashboard() {
                             ) : null}
                             Mock Pay (Test)
                           </button>
+                          
+                          <div className="mt-2 relative z-0">
+                            <PayPalButtons
+                              style={{ layout: "horizontal", height: 40, label: "pay" }}
+                              createOrder={async (data, actions) => {
+                                setPaypalPayingId(payment.id);
+                                const res = await fetch('/api/payments/paypal/create-order', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ paymentId: payment.id }),
+                                });
+                                const orderData = await res.json();
+                                if (!orderData.success) {
+                                  toast.error(orderData.error || "Failed to create PayPal order");
+                                  setPaypalPayingId(null);
+                                  return "";
+                                }
+                                return orderData.id;
+                              }}
+                              onApprove={async (data, actions) => {
+                                try {
+                                  const res = await fetch('/api/payments/paypal/capture-order', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      orderID: data.orderID,
+                                      paymentId: payment.id,
+                                    }),
+                                  });
+                                  const captureData = await res.json();
+                                  if (captureData.success) {
+                                    toast.success("PayPal payment successful!");
+                                    void loadData();
+                                  } else {
+                                    toast.error(captureData.error || "Failed to capture PayPal payment.");
+                                  }
+                                } catch (err) {
+                                  toast.error("An error occurred during payment capture.");
+                                } finally {
+                                  setPaypalPayingId(null);
+                                }
+                              }}
+                              onCancel={() => {
+                                setPaypalPayingId(null);
+                              }}
+                              onError={(err) => {
+                                console.error('PayPal button error:', err);
+                                toast.error("PayPal encountered an error");
+                                setPaypalPayingId(null);
+                              }}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -568,5 +629,6 @@ export default function StudentDashboard() {
         <ReportIssueModal booking={selectedReportBooking} isOpen={!!selectedReportBooking} onClose={() => setSelectedReportBooking(null)} />
       )}
     </div>
+    </PayPalScriptProvider>
   );
 }

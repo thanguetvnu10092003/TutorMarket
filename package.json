@@ -14,6 +14,8 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
+    "@paypal/react-paypal-js": "^9.0.2",
     "@prisma/client": "^5.14.0",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
@@ -33,6 +35,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.12.12",
     "@types/nodemailer": "^7.0.11",
+    "@types/paypal__checkout-server-sdk": "^1.0.8",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
