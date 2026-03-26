@@ -54,6 +54,50 @@ export function buildBookingRoomUrl(bookingId: string): string {
   return `https://meet.jit.si/tutormarket-${bookingId}`;
 }
 
+/**
+ * Calculates whether a session room is joinable based on a time-window policy.
+ *
+ * The room is accessible between:
+ *   - Open:  scheduledAt - EARLY_ENTRY_MINUTES (15 min before)
+ *   - Close: scheduledAt + durationMinutes + GRACE_PERIOD_MINUTES (30 min after session should end)
+ *
+ * This prevents abuse where a tutor never marks a session complete to keep
+ * using the room indefinitely, while still allowing flexible same-day access.
+ */
+const EARLY_ENTRY_MINUTES = 15;
+const GRACE_PERIOD_MINUTES = 30;
+
+export type SessionJoinStatus =
+  | { canJoin: true }
+  | { canJoin: false; reason: 'too_early'; opensAt: Date }
+  | { canJoin: false; reason: 'expired'; closedAt: Date }
+  | { canJoin: false; reason: 'not_confirmed' };
+
+export function getSessionJoinStatus(
+  scheduledAt: string | Date,
+  durationMinutes: number,
+  status: string,
+): SessionJoinStatus {
+  if (status !== 'CONFIRMED') {
+    return { canJoin: false, reason: 'not_confirmed' };
+  }
+
+  const now = Date.now();
+  const start = new Date(scheduledAt).getTime();
+  const opensAt = new Date(start - EARLY_ENTRY_MINUTES * 60 * 1000);
+  const closedAt = new Date(start + (durationMinutes + GRACE_PERIOD_MINUTES) * 60 * 1000);
+
+  if (now < opensAt.getTime()) {
+    return { canJoin: false, reason: 'too_early', opensAt };
+  }
+
+  if (now > closedAt.getTime()) {
+    return { canJoin: false, reason: 'expired', closedAt };
+  }
+
+  return { canJoin: true };
+}
+
 export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }

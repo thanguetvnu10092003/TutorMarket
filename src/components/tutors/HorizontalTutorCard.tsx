@@ -157,7 +157,7 @@ export default function HorizontalTutorCard({
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
           <span>
-            {tutor.totalSessions > 50 ? 'Highly experienced' : 'Building experience'} • Booked {tutor.totalSessions || 0} times
+            {(tutor.totalSessions || 0) > 50 ? 'Highly experienced' : 'Building experience'} • Booked {tutor.totalSessions || 0} times{tutor.totalHoursTaught ? ` • ${tutor.totalHoursTaught}h taught` : ''}
           </span>
         </div>
       </div>

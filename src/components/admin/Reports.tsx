@@ -22,7 +22,8 @@ function Badge({ value }: { value: string }) {
 }
 
 export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promise<void> }) {
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(data.queue[0]?.id || null);
+  const [statusFilter, setStatusFilter] = useState<string>('OPEN,UNDER_REVIEW');
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [form, setForm] = useState({
     note: '',
     amount: '',
@@ -30,9 +31,14 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
     target: 'reported',
   });
 
+  const filteredQueue = useMemo(() => {
+    const allowed = statusFilter.split(',');
+    return (data.queue as any[]).filter((r) => allowed.includes(r.status));
+  }, [data.queue, statusFilter]);
+
   const selectedReport = useMemo(
-    () => data.queue.find((report: any) => report.id === selectedReportId) ?? null,
-    [data.queue, selectedReportId]
+    () => filteredQueue.find((report: any) => report.id === selectedReportId) ?? filteredQueue[0] ?? null,
+    [filteredQueue, selectedReportId]
   );
 
   async function runAction(action: string) {
@@ -73,8 +79,27 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
     <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
       <div className="glass-card p-6">
         <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">Reports queue</h2>
-        <div className="mt-6 space-y-3">
-          {data.queue.map((report: any) => (
+        {/* Bug 5.2: Status filter */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            { label: 'Pending', value: 'OPEN,UNDER_REVIEW' },
+            { label: 'Resolved', value: 'RESOLVED,REFUNDED,PARTIAL_REFUND,ACTION_TAKEN' },
+            { label: 'Dismissed', value: 'DISMISSED' },
+            { label: 'All', value: 'OPEN,UNDER_REVIEW,RESOLVED,REFUNDED,PARTIAL_REFUND,ACTION_TAKEN,DISMISSED' },
+          ].map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => { setStatusFilter(value); setSelectedReportId(null); }}
+              className={`rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all ${
+                statusFilter === value ? 'bg-gold-400 text-navy-600' : 'bg-white/70 text-navy-500 hover:bg-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 space-y-3">
+          {filteredQueue.map((report: any) => (
             <button
               key={report.id}
               onClick={() => setSelectedReportId(report.id)}
@@ -98,8 +123,8 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
               </div>
             </button>
           ))}
-          {data.queue.length === 0 && (
-            <div className="py-10 text-center text-sm text-navy-300">No open reports.</div>
+          {filteredQueue.length === 0 && (
+            <div className="py-10 text-center text-sm text-navy-300">No reports found.</div>
           )}
         </div>
       </div>

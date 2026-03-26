@@ -11,7 +11,7 @@ interface ReportIssueModalProps {
 }
 
 export default function ReportIssueModal({ booking, isOpen, onClose }: ReportIssueModalProps) {
-  const [type, setType] = useState('LESSON_ISSUE');
+  const [type, setType] = useState('NO_SHOW_TUTOR');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -75,18 +75,23 @@ export default function ReportIssueModal({ booking, isOpen, onClose }: ReportIss
                     <div>
                         <label className="text-[10px] font-black text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mb-2 block">Issue Type</label>
                         <div className="grid grid-cols-2 gap-2">
-                            {['LESSON_ISSUE', 'TECHNICAL_ISSUE', 'MISCONDUCT', 'OTHER'].map((t) => (
+                            {[
+                              { value: 'NO_SHOW_TUTOR', label: 'Lesson Issue' },
+                              { value: 'TECHNICAL_ISSUE', label: 'Technical Issue' },
+                              { value: 'INAPPROPRIATE_CONDUCT', label: 'Misconduct' },
+                              { value: 'PAYMENT_DISPUTE', label: 'Payment Issue' },
+                            ].map(({ value: t, label }) => (
                                 <button
                                     key={t}
                                     type="button"
                                     onClick={() => setType(t)}
                                     className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
-                                        type === t 
-                                            ? 'bg-navy-600 border-navy-600 text-white shadow-lg' 
+                                        type === t
+                                            ? 'bg-navy-600 border-navy-600 text-white shadow-lg'
                                             : 'border-navy-100 dark:border-navy-700 text-navy-400 hover:border-navy-200'
                                     }`}
                                 >
-                                    {t.replace('_', ' ')}
+                                    {label}
                                 </button>
                             ))}
                         </div>

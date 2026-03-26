@@ -73,6 +73,7 @@ export function getCountryOptions(locale = 'en-US') {
   }
 
   const displayNames = new Intl.DisplayNames([locale], { type: 'region' });
+  const seenNames = new Set<string>();
   const options = ALL_ALPHA2_CODES
     .filter((code) => !COUNTRY_CODE_EXCLUSIONS.has(code))
     .map((code) => ({
@@ -84,9 +85,16 @@ export function getCountryOptions(locale = 'en-US') {
       if (!country.name || country.name === country.code) {
         return false;
       }
-
       const normalized = country.name.toLowerCase();
-      return !normalized.includes('unknown');
+      if (normalized.includes('unknown')) {
+        return false;
+      }
+      // Bug 2.1: deduplicate by display name
+      if (seenNames.has(country.name)) {
+        return false;
+      }
+      seenNames.add(country.name);
+      return true;
     })
     .sort((left, right) => left.name.localeCompare(right.name));
 

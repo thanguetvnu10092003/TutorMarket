@@ -21,6 +21,42 @@ const bookingSchema = z.object({
   discount: z.number().min(0).max(1).optional(),
 });
 
+const VALID_SUBJECTS = ['CFA_LEVEL_1', 'CFA_LEVEL_2', 'CFA_LEVEL_3', 'GMAT', 'GRE'] as const;
+
+// Map CertificationType values (CFA, GMAT, GRE) to Subject enum values
+function normalizeSubject(raw: string): string {
+  const MAP: Record<string, string> = { 'CFA': 'CFA_LEVEL_1' };
+  return MAP[raw] ?? raw;
+}
+
+// Convert a UTC Date to "wall clock" time in the given timezone
+// Returns a Date whose .getHours()/.getDay() reflect the local time in that timezone
+function toWallClockDate(utcDate: Date, timezone: string): Date {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: 'numeric', second: 'numeric',
+      hour12: false,
+    });
+    const parts: Record<string, string> = {};
+    for (const p of fmt.formatToParts(utcDate)) {
+      parts[p.type] = p.value;
+    }
+    const h = parseInt(parts.hour, 10);
+    return new Date(
+      parseInt(parts.year, 10),
+      parseInt(parts.month, 10) - 1,
+      parseInt(parts.day, 10),
+      h === 24 ? 0 : h,
+      parseInt(parts.minute, 10),
+      parseInt(parts.second, 10)
+    );
+  } catch {
+    return utcDate;
+  }
+}
+
 function hasConflictStatus(status?: string | null) {
   return status === 'PENDING' || status === 'CONFIRMED';
 }
@@ -178,6 +214,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Please choose a future time slot' }, { status: 400 });
     }
 
+    // Bug 3.1: Validate & normalize subject enum value
+    const normalizedSubject = normalizeSubject(subject);
+    if (!VALID_SUBJECTS.includes(normalizedSubject as any)) {
+      return NextResponse.json({ error: `Invalid subject: "${subject}". Must be one of: ${VALID_SUBJECTS.join(', ')}` }, { status: 400 });
+    }
+
     if (type === 'TRIAL') {
       const existingTrial = await prisma.booking.findFirst({
         where: {
@@ -194,12 +236,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Bug 3.2: Convert UTC scheduledAt to tutor's local timezone for availability check
+    const tutorTimezone = tutorProfile.timezone || 'UTC';
+    const localScheduledAt = toWallClockDate(scheduledDate, tutorTimezone);
+    const localBookings = tutorProfile.bookings
+      .filter((b) => hasConflictStatus(b.status))
+      .map((b) => ({ ...b, scheduledAt: toWallClockDate(new Date(b.scheduledAt), tutorTimezone) }));
+    const localOverrides = tutorProfile.overrides.map((o) => ({
+      ...o,
+      date: toWallClockDate(new Date(o.date), tutorTimezone),
+    }));
+
     const slotBookable = isSlotBookable({
-      scheduledAt: scheduledDate,
+      scheduledAt: localScheduledAt,
       durationMinutes: selectedDurationMinutes,
       availability: tutorProfile.availability,
-      overrides: tutorProfile.overrides,
-      bookings: tutorProfile.bookings.filter((booking) => hasConflictStatus(booking.status)),
+      overrides: localOverrides,
+      bookings: localBookings,
     });
 
     if (!slotBookable) {
@@ -221,7 +274,7 @@ export async function POST(req: NextRequest) {
         status: 'PENDING',
         sessionNumber: previousSessionsCount + 1,
         isFreeSession,
-        subject: subject as any,
+        subject: normalizedSubject as any,
         meetingLink: buildBookingRoomUrl(`pending-${Date.now()}`),
         notes,
         payment: {

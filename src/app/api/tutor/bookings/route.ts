@@ -19,18 +19,21 @@ export async function GET() {
       return NextResponse.json({ error: 'Tutor profile not found' }, { status: 404 });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Include sessions from the last 30 days so tutors can still mark them
+    // complete even if the scheduled time has already passed.
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
 
     const bookings = await prisma.booking.findMany({
       where: {
         tutorProfileId: tutorProfile.id,
         status: {
-          in: ['CONFIRMED', 'PENDING'] // Show confirmed and pending upcoming bookings
+          in: ['CONFIRMED', 'PENDING'],
         },
         scheduledAt: {
-          gte: today // From today onwards
-        }
+          gte: thirtyDaysAgo, // Show sessions from the past 30 days onwards
+        },
       },
       include: {
         student: {

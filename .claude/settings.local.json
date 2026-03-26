@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/Admin/Desktop/WEB/src -type f -name *report* -o -name *flag*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(grep -E \"\\(src/app/[^/]+$\\)\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm install:*)",
+      "Bash(npm list:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(git stash:*)",
+      "Bash(echo \"exit: $?\")"
+    ]
+  },
+  "prefersReducedMotion": false
+}
