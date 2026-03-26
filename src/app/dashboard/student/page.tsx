@@ -1,11 +1,12 @@
 'use client';
 
+import useSWR from 'swr';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { SUBJECT_LABELS } from '@/types';
-import { formatCurrency, formatDate, formatTime, getInitials } from '@/lib/utils';
+import { formatCurrency, formatDate, formatTime, getInitials, buildBookingRoomUrl, getSessionJoinStatus } from '@/lib/utils';
 import ContinueLearningPrompt from '@/components/student/ContinueLearningPrompt';
 import ReportIssueModal from '@/components/student/ReportIssueModal';
 import ReviewSessionModal from '@/components/student/ReviewSessionModal';
@@ -34,48 +35,35 @@ export default function StudentDashboard() {
   const [payingPaymentId, setPayingPaymentId] = useState<string | null>(null);
   const [mockPayingId, setMockPayingId] = useState<string | null>(null);
   const [paypalPayingId, setPaypalPayingId] = useState<string | null>(null);
-  const [data, setData] = useState({
-    bookings: [] as any[],
-    packages: [] as any[],
-    favorites: [] as any[],
-    payments: [] as any[],
-    referral: null as any,
-    isLoading: true,
-  });
+  const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(r => r.json());
 
-  async function loadData() {
-    try {
-      const [bookingsRes, referralRes, favoritesRes, paymentsRes] = await Promise.all([
-        fetch('/api/bookings?role=STUDENT', { cache: 'no-store' }),
-        fetch('/api/student/referral', { cache: 'no-store' }),
-        fetch('/api/student/favorites', { cache: 'no-store' }),
-        fetch('/api/payments', { cache: 'no-store' }),
-      ]);
+  const { data: bookingsJson, mutate: mutateBookings } = useSWR(
+    session?.user ? '/api/bookings?role=STUDENT' : null,
+    fetcher,
+    { refreshInterval: 15000, revalidateOnFocus: true }
+  );
+  const { data: favoritesJson } = useSWR(
+    session?.user ? '/api/student/favorites' : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
+  const { data: paymentsJson } = useSWR(
+    session?.user ? '/api/payments' : null,
+    fetcher,
+    { refreshInterval: 15000, revalidateOnFocus: true }
+  );
+  const { data: referralJson } = useSWR(
+    session?.user ? '/api/student/referral' : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
 
-      const bookingsJson = await bookingsRes.json();
-      const referralJson = await referralRes.json();
-      const favoritesJson = await favoritesRes.json();
-      const paymentsJson = await paymentsRes.json();
-
-      setData({
-        bookings: bookingsJson.data || [],
-        packages: bookingsJson.packages || [],
-        favorites: favoritesJson.data || [],
-        payments: paymentsJson.data || [],
-        referral: referralJson.data || null,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error('Error loading student dashboard:', error);
-      setData((prev) => ({ ...prev, isLoading: false }));
-    }
-  }
-
-  useEffect(() => {
-    if (session?.user) {
-      void loadData();
-    }
-  }, [session]);
+  const bookings = bookingsJson?.data ?? [];
+  const packages = bookingsJson?.packages ?? [];
+  const favorites = favoritesJson?.data ?? [];
+  const payments = paymentsJson?.data ?? [];
+  const referral = referralJson?.data ?? null;
+  const isLoading = !bookingsJson && !favoritesJson;
 
   useEffect(() => {
     if (!session?.user) {
@@ -128,7 +116,7 @@ export default function StudentDashboard() {
 
     if (stripeStatus === 'success') {
       toast.success('Stripe payment completed. Updating your billing history...');
-      void loadData();
+      void mutateBookings();
       return;
     }
 
@@ -225,7 +213,7 @@ export default function StudentDashboard() {
       }
 
       toast.success('Mock payment successful!');
-      void loadData(); // Refresh UI
+      void mutateBookings(); // Refresh UI
     } catch (error: any) {
       console.error('Mock payment error:', error);
       toast.error(error.message || 'Could not process mock payment');
@@ -234,7 +222,7 @@ export default function StudentDashboard() {
     }
   }
 
-  if (data.isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-cream-200 dark:bg-navy-600 pt-32 flex justify-center">
         <div className="w-10 h-10 border-4 border-navy-100 border-t-gold-500 rounded-full animate-spin" />
@@ -242,7 +230,7 @@ export default function StudentDashboard() {
     );
   }
 
-  const upcoming = data.bookings.filter((booking) => booking.status === 'CONFIRMED' || booking.status === 'PENDING');
+  const upcoming = bookings.filter((booking) => booking.status === 'CONFIRMED' || booking.status === 'PENDING');
   const chatTarget = selectedConversation
     ? {
         conversationId: selectedConversation.id,
@@ -311,7 +299,7 @@ export default function StudentDashboard() {
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
-              <ContinueLearningPrompt bookings={data.bookings} packages={data.packages} />
+              <ContinueLearningPrompt bookings={bookings} packages={packages} />
               <div className="glass-card overflow-hidden">
                 <div className="p-6 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20 flex items-center justify-between">
                   <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Upcoming Lessons</h2>
@@ -336,9 +324,31 @@ export default function StudentDashboard() {
                             {SUBJECT_LABELS[booking.subject as keyof typeof SUBJECT_LABELS]} | {formatDate(booking.scheduledAt)}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex flex-col items-end gap-2">
                           <p className="text-xs font-black text-navy-600 dark:text-cream-200">{formatTime(booking.scheduledAt)}</p>
-                          <span className="text-[9px] font-black uppercase tracking-widest text-gold-600">{booking.status}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gold-600">{booking.status}</span>
+                            {(() => {
+                              const joinStatus = getSessionJoinStatus(
+                                booking.scheduledAt,
+                                booking.durationMinutes,
+                                booking.status,
+                              );
+                              if (joinStatus.canJoin) {
+                                return (
+                                  <a
+                                    href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-2 py-1 rounded-lg bg-navy-600 text-[8px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors"
+                                  >
+                                    Join
+                                  </a>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
                         </div>
                       </div>
                     ))
@@ -357,16 +367,16 @@ export default function StudentDashboard() {
                 <div className="space-y-6">
                   <div>
                     <p className="text-xs font-bold text-cream-400/60 mb-1">Total Lessons</p>
-                    <p className="text-4xl font-display font-black">{data.bookings.filter((booking) => booking.status === 'COMPLETED').length}</p>
+                    <p className="text-4xl font-display font-black">{bookings.filter((booking) => booking.status === 'COMPLETED').length}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/10">
                     <div>
                       <p className="text-[10px] font-bold text-cream-400/60">Saved Tutors</p>
-                      <p className="text-xl font-bold">{data.favorites.length}</p>
+                      <p className="text-xl font-bold">{favorites.length}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-cream-400/60">Payments</p>
-                      <p className="text-xl font-bold">{data.payments.filter(p => p.status !== 'CANCELLED').length}</p>
+                      <p className="text-xl font-bold">{payments.filter(p => p.status !== 'CANCELLED').length}</p>
                     </div>
                   </div>
                 </div>
@@ -380,12 +390,12 @@ export default function StudentDashboard() {
                 <div className="relative group">
                   <input
                     readOnly
-                    value={data.referral?.referralCode || ''}
+                    value={referral?.referralCode || ''}
                     className="w-full bg-navy-50/50 dark:bg-navy-700/30 border-2 border-dashed border-navy-100 dark:border-navy-500/20 rounded-xl p-3 text-sm font-black text-center text-navy-600 dark:text-gold-400 select-all"
                   />
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(data.referral?.referralCode || '');
+                      navigator.clipboard.writeText(referral?.referralCode || '');
                       toast.success('Code copied!');
                     }}
                     className="absolute inset-0 flex items-center justify-center bg-gold-400 text-navy-600 font-black text-[10px] uppercase tracking-widest rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
@@ -404,7 +414,7 @@ export default function StudentDashboard() {
               <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Complete Schedule</h2>
             </div>
             <div className="p-6 divide-y divide-navy-100/50 dark:divide-navy-500/10">
-              {data.bookings.map((booking) => (
+              {bookings.map((booking) => (
                 <div key={booking.id} className="py-5 flex items-center justify-between gap-4">
                   <div>
                     <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">{booking.tutorProfile.user.name}</h3>
@@ -416,6 +426,47 @@ export default function StudentDashboard() {
                     <span className="badge py-1.5 px-3 text-[9px] font-black uppercase tracking-widest bg-gold-50 text-gold-600">
                       {booking.status}
                     </span>
+                    {(() => {
+                      const joinStatus = getSessionJoinStatus(
+                        booking.scheduledAt,
+                        booking.durationMinutes,
+                        booking.status,
+                      );
+
+                      if (joinStatus.canJoin === false && joinStatus.reason === 'not_confirmed') return null;
+
+                      const title =
+                        !joinStatus.canJoin && joinStatus.reason === 'too_early'
+                          ? `Opens at ${(joinStatus as any).opensAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+                          : !joinStatus.canJoin && joinStatus.reason === 'expired'
+                          ? 'Session window has closed'
+                          : undefined;
+
+                      const label = !joinStatus.canJoin && joinStatus.reason === 'expired' ? 'Room Closed' : 'Join Room';
+
+                      if (!joinStatus.canJoin) {
+                        return (
+                          <button
+                            disabled
+                            title={title}
+                            className="rounded-2xl bg-navy-100 dark:bg-navy-800 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/20 cursor-not-allowed opacity-60"
+                          >
+                            {label}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <a
+                          href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors shadow-lg shadow-navy-900/10"
+                        >
+                          Join Room
+                        </a>
+                      );
+                    })()}
                     {booking.status === 'COMPLETED' && (
                       <div className="flex items-center gap-3">
                         {!booking.review && (
@@ -514,8 +565,8 @@ export default function StudentDashboard() {
               </div>
 
               <div className="divide-y divide-navy-100/50 dark:divide-navy-500/10">
-              {data.payments.length > 0 ? (
-                data.payments.map((payment) => (
+              {payments.length > 0 ? (
+                payments.map((payment) => (
                   <div key={payment.id} className="py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
                       <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">
@@ -588,7 +639,7 @@ export default function StudentDashboard() {
                                   const captureData = await res.json();
                                   if (captureData.success) {
                                     toast.success("PayPal payment successful!");
-                                    void loadData();
+                                    void mutateBookings();
                                   } else {
                                     toast.error(captureData.error || "Failed to capture PayPal payment.");
                                   }
@@ -630,10 +681,10 @@ export default function StudentDashboard() {
           <div className="max-w-4xl mx-auto glass-card p-8">
             <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Referral Summary</h2>
             <p className="mt-3 text-sm text-navy-400 dark:text-cream-300/70">
-              Referral code: <span className="font-black text-navy-600 dark:text-cream-200">{data.referral?.referralCode || 'Not available'}</span>
+              Referral code: <span className="font-black text-navy-600 dark:text-cream-200">{referral?.referralCode || 'Not available'}</span>
             </p>
             <p className="mt-2 text-sm text-navy-400 dark:text-cream-300/70">
-              Total earned: <span className="font-black text-navy-600 dark:text-cream-200">{formatCurrency(data.referral?.totalCredits || 0)}</span>
+              Total earned: <span className="font-black text-navy-600 dark:text-cream-200">{formatCurrency(referral?.totalCredits || 0)}</span>
             </p>
           </div>
         )}
@@ -649,7 +700,7 @@ export default function StudentDashboard() {
           onClose={() => setSelectedReviewBooking(null)}
           onSubmitted={() => {
             setSelectedReviewBooking(null);
-            void loadData();
+            void mutateBookings();
           }}
         />
       )}
