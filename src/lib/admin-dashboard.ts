@@ -1129,9 +1129,7 @@ export async function getPublicTutorCards(filters: {
 
       if (filters.language) {
         const speaksLanguage = (profile.languages || []).includes(filters.language);
-        if (!speaksLanguage || profile.additionalLanguages.length === 0) {
-          return false;
-        }
+        if (!speaksLanguage) return false;
       }
 
       if (filters.nativeSpeaker) {
