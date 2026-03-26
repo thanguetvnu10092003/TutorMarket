@@ -1,10 +1,11 @@
 'use client';
 
+import useSWR from 'swr';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { buildBookingRoomUrl, formatDateTime, getInitials } from '@/lib/utils';
+import { buildBookingRoomUrl, formatDateTime, getInitials, getSessionJoinStatus } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import ConversationList from '@/components/chat/ConversationList';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -29,63 +30,41 @@ export default function TutorDashboard() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TutorTab>('overview');
-  const [verificationData, setVerificationData] = useState<{
-    status: string;
-    certifications: any[];
-    documents: any[];
-    notes?: string | null;
-  } | null>(null);
-  const [availability, setAvailability] = useState<any[] | null>(null);
-  const [bookings, setBookings] = useState<any[] | null>(null);
-  const [stats, setStats] = useState<any>(null);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [selectedNotesBooking, setSelectedNotesBooking] = useState<any>(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
 
-  async function loadDashboardData() {
-    try {
-      const [verifyRes, availRes, bookingsRes, statsRes] = await Promise.all([
-        fetch('/api/tutor/verify', { cache: 'no-store' }),
-        fetch('/api/tutor/availability', { cache: 'no-store' }),
-        fetch('/api/tutor/bookings', { cache: 'no-store' }),
-        fetch('/api/tutor/stats', { cache: 'no-store' }),
-      ]);
+  const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(r => r.json());
 
-      if (verifyRes.ok) {
-        const verifyData = await verifyRes.json();
-        setVerificationData(verifyData);
-      }
+  const { data: verifyData, mutate: mutateVerify } = useSWR(
+    session?.user ? '/api/tutor/verify' : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
+  const { data: availData, mutate: mutateAvailability } = useSWR(
+    session?.user ? '/api/tutor/availability' : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
+  const { data: bookingsData, mutate: mutateBookings } = useSWR(
+    session?.user ? '/api/tutor/bookings' : null,
+    fetcher,
+    { refreshInterval: 15000, revalidateOnFocus: true }
+  );
+  const { data: statsData, mutate: mutateStats } = useSWR(
+    session?.user ? '/api/tutor/stats' : null,
+    fetcher,
+    { refreshInterval: 30000, revalidateOnFocus: true }
+  );
 
-      if (availRes.ok) {
-        const availData = await availRes.json();
-        setAvailability(availData.slots);
-      }
-
-      if (bookingsRes.ok) {
-        const bookingsData = await bookingsRes.json();
-        setBookings(bookingsData);
-      }
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (session?.user) {
-      void loadDashboardData();
-    }
-  }, [session]);
+  const verificationData = verifyData ?? null;
+  const availability = availData?.slots ?? null;
+  const bookings = bookingsData ?? null;
+  const stats = statsData?.data ?? null;
+  const isLoading = !verifyData && !bookingsData;
 
   useEffect(() => {
     if (!session?.user) {
@@ -151,7 +130,7 @@ export default function TutorDashboard() {
       }
 
       toast.success('Document deleted');
-      await loadDashboardData();
+      await mutateVerify();
     } catch (error: any) {
       console.error('Delete document error:', error);
       toast.error(error.message || 'Could not delete document');
@@ -183,7 +162,7 @@ export default function TutorDashboard() {
 
       toast.success(json.message || 'Session marked as complete');
       setSelectedNotesBooking(null);
-      await loadDashboardData();
+      await Promise.all([mutateBookings(), mutateStats()]);
     } catch (error: any) {
       console.error('Complete session error:', error);
       toast.error(error.message || 'Could not complete session');
@@ -219,7 +198,7 @@ export default function TutorDashboard() {
       }
 
       toast.success(json.message || `Booking ${action}ed`);
-      await loadDashboardData();
+      await Promise.all([mutateBookings(), mutateStats()]);
     } catch (error: any) {
       console.error(`Booking ${action} error:`, error);
       toast.error(error.message || `Could not ${action} booking`);
@@ -525,14 +504,46 @@ export default function TutorDashboard() {
                                 </button>
                               </>
                             )}
-                            <a
-                              href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors"
-                            >
-                              Join Room
-                            </a>
+                            {(() => {
+                              const joinStatus = getSessionJoinStatus(
+                                booking.scheduledAt,
+                                booking.durationMinutes,
+                                booking.status,
+                              );
+
+                              if (!joinStatus.canJoin) {
+                                const title =
+                                  joinStatus.reason === 'too_early'
+                                    ? `Opens at ${joinStatus.opensAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+                                    : joinStatus.reason === 'expired'
+                                    ? 'Session window has closed'
+                                    : 'Session not confirmed';
+                                const label =
+                                  joinStatus.reason === 'too_early'
+                                    ? 'Join Room'
+                                    : 'Room Closed';
+                                return (
+                                  <button
+                                    disabled
+                                    title={title}
+                                    className="rounded-2xl bg-navy-100 dark:bg-navy-800 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/20 cursor-not-allowed opacity-60"
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              }
+
+                              return (
+                                <a
+                                  href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors shadow-lg shadow-navy-900/10"
+                                >
+                                  Join Room
+                                </a>
+                              );
+                            })()}
                             <button
                               onClick={() => void handleCompleteSession(booking.id)}
                               disabled={booking.status !== 'CONFIRMED' || !canComplete || completingBookingId === booking.id}
