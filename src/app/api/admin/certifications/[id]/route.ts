@@ -13,10 +13,18 @@ export async function PATCH(
   try {
     const session = await requireAdminSession();
     const body = await req.json();
-    const { status, remarks } = body;
+    const { status, remarks, checklistCompleted } = body;
 
     if (!status || !['VERIFIED', 'REJECTED'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    // Bug 6.1: Require all 3 checklist items before verifying
+    if (status === 'VERIFIED' && !checklistCompleted) {
+      return NextResponse.json(
+        { error: 'All 3 checklist items (Document Authentic, Score Matches Claims, Date In Range) must be ticked before verifying.' },
+        { status: 400 }
+      );
     }
 
     let certification: any;
