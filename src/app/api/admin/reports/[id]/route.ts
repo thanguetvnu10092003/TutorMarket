@@ -177,14 +177,12 @@ export async function PATCH(
         break;
       }
       case 'DISMISS_REPORT': {
-        if (!note) {
-          return NextResponse.json({ error: 'Dismiss reason is required' }, { status: 400 });
-        }
+        const dismissNote = note || 'Dismissed by admin';
         await prisma.userReport.update({
           where: { id: report.id },
           data: {
             status: 'DISMISSED',
-            adminNote: note,
+            adminNote: dismissNote,
             resolvedByAdminId: session.user.id,
             resolvedAt: new Date(),
           },
@@ -193,7 +191,7 @@ export async function PATCH(
           adminId: session.user.id,
           targetUserId: report.reportedUserId,
           actionType: 'DISMISS_REPORT',
-          reason: note,
+          reason: dismissNote,
           metadata: { reportId: report.id },
         });
         break;
