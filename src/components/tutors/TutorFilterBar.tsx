@@ -48,29 +48,40 @@ const availabilityOptions = [
   { value: 'EVENING', label: 'Evening' },
 ];
 
-const specialtyOptions = [
-  'Test Strategy',
-  'Quantitative Reasoning',
-  'Verbal Reasoning',
-  'Essay Coaching',
-  'Integrated Reasoning',
-  'Ethics',
-  'Portfolio Management',
-  'Mock Interviews',
-];
-
 const languageOptions = [
-  'English',
-  'Vietnamese',
-  'Mandarin',
+  'Arabic',
+  'Bengali',
   'Cantonese',
-  'Korean',
-  'Japanese',
-  'Thai',
-  'Hindi',
+  'Czech',
+  'Danish',
+  'Dutch',
+  'English',
+  'Finnish',
   'French',
   'German',
+  'Greek',
+  'Hebrew',
+  'Hindi',
+  'Hungarian',
+  'Indonesian',
+  'Italian',
+  'Japanese',
+  'Korean',
+  'Malay',
+  'Mandarin',
+  'Norwegian',
+  'Polish',
+  'Portuguese',
+  'Romanian',
+  'Russian',
   'Spanish',
+  'Swahili',
+  'Swedish',
+  'Tagalog',
+  'Thai',
+  'Turkish',
+  'Urdu',
+  'Vietnamese',
 ];
 
 const countryOptions = getCountryOptions();
@@ -100,7 +111,6 @@ export default function TutorFilterBar({
     filters.language !== '' ||
     filters.country !== '' ||
     filters.availability !== '' ||
-    filters.specialty !== '' ||
     filters.nativeSpeaker ||
     filters.search !== '';
 
@@ -217,26 +227,6 @@ export default function TutorFilterBar({
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select
-              value={filters.specialty}
-              onChange={(event) => onFilterChange('specialty', event.target.value)}
-              className="bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl py-2 pl-4 pr-8 text-[10px] font-black uppercase tracking-widest text-navy-400 hover:border-navy-200 transition-all appearance-none cursor-pointer shadow-sm"
-            >
-              <option value="">Specialties</option>
-              {specialtyOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </div>
-          </div>
-
           <div className="relative">
             <select
               value={filters.language}
