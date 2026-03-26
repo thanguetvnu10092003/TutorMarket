@@ -15,7 +15,7 @@ export default function StudentOnboardingPage() {
             Welcome to <span className="text-gold-500">TutorMarket</span>
           </h1>
           <p className="text-navy-300 dark:text-cream-400/60 mt-4 max-w-lg mx-auto">
-            We're excited to have you! Let's get to know your goals so we can find your perfect match.
+            We&apos;re excited to have you! Let&apos;s get to know your goals so we can find your perfect match.
           </p>
         </div>
         

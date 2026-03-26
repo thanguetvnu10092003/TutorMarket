@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -26,7 +26,7 @@ const tutorTabs = [
 
 type TutorTab = (typeof tutorTabs)[number]['id'];
 
-export default function TutorDashboard() {
+function TutorDashboardInner() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TutorTab>('overview');
@@ -296,7 +296,7 @@ export default function TutorDashboard() {
                   <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Pending Requests</p>
                     <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
-                      {(bookings || []).filter((booking) => booking.status === 'PENDING').length} booking request(s) waiting
+                      {(bookings || [] as any[]).filter((booking: any) => booking.status === 'PENDING').length} booking request(s) waiting
                     </p>
                   </div>
                   <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
@@ -455,7 +455,7 @@ export default function TutorDashboard() {
 
               {bookings && bookings.length > 0 ? (
                 <div className="space-y-4">
-                  {bookings.map((booking) => {
+                  {(bookings as any[]).map((booking: any) => {
                     const canComplete = new Date(booking.scheduledAt).getTime() <= Date.now();
 
                     return (
@@ -701,5 +701,13 @@ export default function TutorDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TutorDashboard() {
+  return (
+    <Suspense>
+      <TutorDashboardInner />
+    </Suspense>
   );
 }

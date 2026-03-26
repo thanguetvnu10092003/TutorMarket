@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
@@ -23,7 +23,7 @@ const tabs = [
   { id: 'referral', label: 'Referral' },
 ];
 
-export default function StudentDashboard() {
+function StudentDashboardInner() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
@@ -230,7 +230,7 @@ export default function StudentDashboard() {
     );
   }
 
-  const upcoming = bookings.filter((booking) => booking.status === 'CONFIRMED' || booking.status === 'PENDING');
+  const upcoming = (bookings as any[]).filter((booking: any) => booking.status === 'CONFIRMED' || booking.status === 'PENDING');
   const chatTarget = selectedConversation
     ? {
         conversationId: selectedConversation.id,
@@ -309,7 +309,7 @@ export default function StudentDashboard() {
                 </div>
                 <div className="p-6 space-y-4">
                   {upcoming.length > 0 ? (
-                    upcoming.slice(0, 3).map((booking) => (
+                    upcoming.slice(0, 3).map((booking: any) => (
                       <div key={booking.id} className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-navy-700/30 border border-navy-100/50 dark:border-navy-500/10">
                         <div className="w-12 h-12 rounded-xl bg-gold-50 dark:bg-navy-600 flex items-center justify-center overflow-hidden">
                           {booking.tutorProfile.user.avatarUrl ? (
@@ -367,7 +367,7 @@ export default function StudentDashboard() {
                 <div className="space-y-6">
                   <div>
                     <p className="text-xs font-bold text-cream-400/60 mb-1">Total Lessons</p>
-                    <p className="text-4xl font-display font-black">{bookings.filter((booking) => booking.status === 'COMPLETED').length}</p>
+                    <p className="text-4xl font-display font-black">{(bookings as any[]).filter((booking: any) => booking.status === 'COMPLETED').length}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/10">
                     <div>
@@ -376,7 +376,7 @@ export default function StudentDashboard() {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-cream-400/60">Payments</p>
-                      <p className="text-xl font-bold">{payments.filter(p => p.status !== 'CANCELLED').length}</p>
+                      <p className="text-xl font-bold">{(payments as any[]).filter((p: any) => p.status !== 'CANCELLED').length}</p>
                     </div>
                   </div>
                 </div>
@@ -414,7 +414,7 @@ export default function StudentDashboard() {
               <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Complete Schedule</h2>
             </div>
             <div className="p-6 divide-y divide-navy-100/50 dark:divide-navy-500/10">
-              {bookings.map((booking) => (
+              {(bookings as any[]).map((booking: any) => (
                 <div key={booking.id} className="py-5 flex items-center justify-between gap-4">
                   <div>
                     <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">{booking.tutorProfile.user.name}</h3>
@@ -566,7 +566,7 @@ export default function StudentDashboard() {
 
               <div className="divide-y divide-navy-100/50 dark:divide-navy-500/10">
               {payments.length > 0 ? (
-                payments.map((payment) => (
+                (payments as any[]).map((payment: any) => (
                   <div key={payment.id} className="py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
                       <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">
@@ -706,5 +706,13 @@ export default function StudentDashboard() {
       )}
     </div>
     </PayPalScriptProvider>
+  );
+}
+
+export default function StudentDashboard() {
+  return (
+    <Suspense>
+      <StudentDashboardInner />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -152,7 +152,7 @@ function ScoreRow({ title, scoreKey, pctKey, data, setData, isPrimary, color = '
   );
 }
 
-export default function SettingsPage() {
+function SettingsPageInner() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('profile');
@@ -873,5 +873,13 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsPageInner />
+    </Suspense>
   );
 }

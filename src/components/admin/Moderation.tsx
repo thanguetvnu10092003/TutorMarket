@@ -216,7 +216,7 @@ export function Moderation({ data, onRefresh }: { data: any; onRefresh: () => Pr
                 
                 <div className="p-4 rounded-2xl bg-red-50 border border-red-100">
                   <div className="text-[10px] font-black text-red-700 uppercase tracking-widest">Danger Zone</div>
-                  <p className="mt-1 text-[10px] text-red-600 leading-relaxed">Deleting an account is permanent and removes all records. Use "Ban" if you just want to block access but keep history.</p>
+                  <p className="mt-1 text-[10px] text-red-600 leading-relaxed">Deleting an account is permanent and removes all records. Use &quot;Ban&quot; if you just want to block access but keep history.</p>
                   <button 
                     onClick={() => deleteUser(selectedUser.id)}
                     className="mt-3 w-full rounded-xl bg-red-600 py-2 text-xs font-black text-white hover:bg-red-700 transition-colors"

@@ -177,11 +177,17 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
     try {
       const remarks = status === 'REJECTED' ? window.prompt('Reason for rejection:') : '';
       if (status === 'REJECTED' && remarks === null) return;
-      
+
+      const checklistCompleted = status === 'VERIFIED' ? (
+        Boolean(certChecklist[certId]?.['Document Authentic']) &&
+        Boolean(certChecklist[certId]?.['Score Matches Claims']) &&
+        Boolean(certChecklist[certId]?.['Date In Range'])
+      ) : undefined;
+
       const resp = await fetch(`/api/admin/certifications/${certId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, remarks })
+        body: JSON.stringify({ status, remarks, checklistCompleted })
       });
       const json = await resp.json();
       if (!resp.ok) throw new Error(json.error);
@@ -510,10 +516,21 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                         )}
 
                         <div className="pt-4 flex gap-2">
-                          <button 
+                          <button
                             onClick={() => updateCertification(selectedCert.id, 'VERIFIED')}
-                            disabled={!certChecklist[selectedCert.id]?.['Document Authentic']}
-                            className="flex-1 rounded-2xl bg-navy-600 py-3 text-sm font-bold text-white disabled:opacity-50"
+                            disabled={
+                              !certChecklist[selectedCert.id]?.['Document Authentic'] ||
+                              !certChecklist[selectedCert.id]?.['Score Matches Claims'] ||
+                              !certChecklist[selectedCert.id]?.['Date In Range']
+                            }
+                            title={
+                              (!certChecklist[selectedCert.id]?.['Document Authentic'] ||
+                              !certChecklist[selectedCert.id]?.['Score Matches Claims'] ||
+                              !certChecklist[selectedCert.id]?.['Date In Range'])
+                                ? 'Tick all 3 checklist items to enable verification'
+                                : undefined
+                            }
+                            className="flex-1 rounded-2xl bg-navy-600 py-3 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {selectedCert.type === 'GMAT'
                               ? selectedCertGmatReview?.portalVerifiedAt
@@ -556,7 +573,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <div className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">Submitted GMAT Claim</div>
-                        <div className="mt-1 text-sm text-navy-500">Use this score breakdown to compare the tutor's claim against both the uploaded report and the MBA.com portal.</div>
+                        <div className="mt-1 text-sm text-navy-500">Use this score breakdown to compare the tutor&apos;s claim against both the uploaded report and the MBA.com portal.</div>
                       </div>
                       {selectedGmatCert.fileUrl && (
                         <a href={selectedGmatCert.fileUrl} target="_blank" rel="noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">

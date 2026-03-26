@@ -83,7 +83,7 @@ export default function StudentOnboardingSurvey() {
                 What are you studying for?
               </h2>
               <p className="text-navy-300 dark:text-cream-400/60 mb-8">
-                Select the exams you're planning to take. We'll help find the best tutors for you.
+                Select the exams you&apos;re planning to take. We&apos;ll help find the best tutors for you.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
