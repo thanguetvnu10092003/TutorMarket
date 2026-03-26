@@ -12,7 +12,6 @@ interface TutorFilterBarProps {
     language: string;
     country: string;
     availability: string;
-    specialty: string;
     nativeSpeaker: boolean;
     category: string;
     sortBy: string;
