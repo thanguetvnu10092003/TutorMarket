@@ -4,8 +4,9 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
+// Must match Prisma ReportType enum exactly
 const reportSchema = z.object({
-  type: z.enum(['LESSON_ISSUE', 'TECHNICAL_ISSUE', 'MISCONDUCT', 'OTHER']),
+  type: z.enum(['NO_SHOW_TUTOR', 'NO_SHOW_STUDENT', 'INAPPROPRIATE_CONDUCT', 'PAYMENT_DISPUTE', 'TECHNICAL_ISSUE']),
   description: z.string().min(10, 'Please provide more details (min 10 characters)'),
 });
 
