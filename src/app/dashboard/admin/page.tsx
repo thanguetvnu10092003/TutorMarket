@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { toast } from 'react-hot-toast';
+import useSWR from 'swr';
 
 import { AdminOverview } from '@/components/admin/AdminOverview';
 import { Moderation } from '@/components/admin/Moderation';
@@ -21,35 +21,22 @@ const sections = [
   { id: 'reports', label: 'Reports & Disputes' },
 ] as const;
 
-async function parseResponse(response: Response) {
-  const json = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(json.error || 'Request failed');
-  return json;
-}
-
 export default function AdminDashboardPage() {
   const { data: session } = useSession();
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<(typeof sections)[number]['id']>('overview');
   const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>('ALL_TIME');
 
-  const fetchDashboard = async (period = analyticsPeriod) => {
-    try {
-      const response = await fetch(`/api/admin/dashboard?t=${Date.now()}&period=${period}`, { cache: 'no-store' });
-      const json = await parseResponse(response);
-      setDashboard(json.data);
-    } catch (error) {
-      console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to load admin dashboard');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(r => r.json());
 
-  useEffect(() => {
-    void fetchDashboard();
-  }, [analyticsPeriod]);
+  const { data: dashboardJson, mutate: mutateDashboard } = useSWR(
+    `/api/admin/dashboard?period=${analyticsPeriod}`,
+    fetcher,
+    { refreshInterval: 15000, revalidateOnFocus: true }
+  );
+  const dashboard = dashboardJson?.data ?? null;
+  const isLoading = !dashboardJson;
+
+  const handleRefresh = async () => { await mutateDashboard(); };
 
   if (isLoading || !dashboard) {
     return (
@@ -88,24 +75,24 @@ export default function AdminDashboardPage() {
 
         <main className="min-w-0">
           {activeSection === 'overview' && (
-            <AdminOverview 
-              data={dashboard} 
-              onNavigate={(section: any) => setActiveSection(section)} 
-              onRefresh={fetchDashboard}
+            <AdminOverview
+              data={dashboard}
+              onNavigate={(section: any) => setActiveSection(section)}
+              onRefresh={handleRefresh}
             />
           )}
-          {activeSection === 'moderation' && <Moderation data={dashboard.moderation} onRefresh={fetchDashboard} />}
+          {activeSection === 'moderation' && <Moderation data={dashboard.moderation} onRefresh={handleRefresh} />}
           {activeSection === 'analytics' && (
             <Analytics
               data={dashboard.analytics}
               platformSettings={dashboard.platformSettings}
               period={analyticsPeriod}
               onPeriodChange={setAnalyticsPeriod}
-              onRefresh={() => fetchDashboard(analyticsPeriod)}
+              onRefresh={handleRefresh}
             />
           )}
-          {activeSection === 'verifications' && <Verifications data={dashboard.verifications} onRefresh={fetchDashboard} />}
-          {activeSection === 'reports' && <Reports data={dashboard.reports} onRefresh={fetchDashboard} />}
+          {activeSection === 'verifications' && <Verifications data={dashboard.verifications} onRefresh={handleRefresh} />}
+          {activeSection === 'reports' && <Reports data={dashboard.reports} onRefresh={handleRefresh} />}
         </main>
       </div>
     </div>
