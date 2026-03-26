@@ -18,7 +18,11 @@ function createEmptySchedule() {
   ) as Record<number, DaySchedule>;
 }
 
-export default function AvailabilityManager() {
+interface AvailabilityManagerProps {
+  onSave?: () => void;
+}
+
+export default function AvailabilityManager({ onSave }: AvailabilityManagerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [timezone, setTimezone] = useState('Asia/Ho_Chi_Minh');
@@ -165,6 +169,7 @@ export default function AvailabilityManager() {
 
       toast.success('Availability updated');
       await fetchData();
+      onSave?.();
     } catch (error: any) {
       toast.error(error.message || 'Save failed');
     } finally {

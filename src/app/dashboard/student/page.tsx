@@ -123,7 +123,7 @@ function StudentDashboardInner() {
     if (stripeStatus === 'cancelled') {
       toast('Stripe checkout was cancelled.');
     }
-  }, [searchParams]);
+  }, [searchParams, mutateBookings]);
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');

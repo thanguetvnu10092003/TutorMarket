@@ -664,7 +664,7 @@ function TutorDashboardInner() {
           </div>
         )}
 
-        {activeTab === 'availability' && <AvailabilityManager />}
+        {activeTab === 'availability' && <AvailabilityManager onSave={mutateAvailability} />}
         {activeTab === 'pricing' && <PricingManager />}
         {activeTab === 'reviews' && <ReviewsSection />}
       </div>
