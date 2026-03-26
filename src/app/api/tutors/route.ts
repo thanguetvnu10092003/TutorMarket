@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
       country: searchParams.get('country') || undefined,
       search: searchParams.get('search') || undefined,
       availability: searchParams.get('availability') || undefined,
-      specialty: searchParams.get('specialty') || undefined,
       nativeSpeaker: searchParams.get('nativeSpeaker') === 'true',
     };
     const viewerPreference = session?.user?.role === 'STUDENT'

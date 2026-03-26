@@ -178,9 +178,7 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
       orderBy: { createdAt: 'desc' },
     }),
     prisma.userReport.findMany({
-      where: {
-        status: { in: ['OPEN', 'UNDER_REVIEW'] },
-      },
+      // Bug 5.2: Fetch all report statuses so admin can filter and view history
       include: {
         reporter: true,
         reportedUser: true,
@@ -946,24 +944,6 @@ function buildCertificationSummary(certification: any) {
   };
 }
 
-function matchesSpecialty(profile: any, specialty?: string) {
-  if (!specialty) {
-    return true;
-  }
-
-  const normalized = specialty.toLowerCase();
-  const haystack = [
-    ...(profile.specializations || []),
-    profile.headline || '',
-    profile.about || '',
-    profile.experienceHighlight || '',
-  ]
-    .join(' ')
-    .toLowerCase();
-
-  return haystack.includes(normalized);
-}
-
 export async function getPublicTutorCards(filters: {
   subject?: string;
   minPrice?: number;
@@ -975,7 +955,6 @@ export async function getPublicTutorCards(filters: {
   country?: string;
   search?: string;
   availability?: string;
-  specialty?: string;
   nativeSpeaker?: boolean;
 }, viewerContext?: { preferredCurrency?: string | null; countryCode?: string | null; timezone?: string | null }) {
   const selectedCountryCode = resolveCountryCode(filters.country);
@@ -993,23 +972,19 @@ export async function getPublicTutorCards(filters: {
         isBanned: false,
         OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: new Date() } }],
       },
-      ...(filters.subject ? { 
+      ...(filters.subject ? {
         certifications: {
           some: {
-            ...(filters.subject.startsWith('CFA') 
+            ...(filters.subject.startsWith('CFA')
               ? { type: 'CFA', levelOrVariant: filters.subject }
               : { type: filters.subject as any }),
-            status: 'VERIFIED'
-          }
-        }
+            status: 'VERIFIED',
+          },
+        },
       } : {}),
       ...(filters.language ? { languages: { has: filters.language } } : {}),
       ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
-        ? {
-            hourlyRate: {
-              gte: 0,
-            },
-          }
+        ? { hourlyRate: { gte: 0 } }
         : {}),
       ...(filters.minRating !== undefined ? { rating: { gte: filters.minRating } } : {}),
       ...(filters.search ? {
@@ -1017,7 +992,7 @@ export async function getPublicTutorCards(filters: {
           { user: { name: { contains: filters.search, mode: 'insensitive' } } },
           { headline: { contains: filters.search, mode: 'insensitive' } },
           { about: { contains: filters.search, mode: 'insensitive' } },
-        ]
+        ],
       } : {}),
     },
     include: {
@@ -1025,26 +1000,14 @@ export async function getPublicTutorCards(filters: {
       certifications: true,
       availability: true,
       overrides: {
-        where: {
-          date: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          },
-        },
+        where: { date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
       },
       bookings: {
         where: {
-          scheduledAt: {
-            gte: new Date(),
-          },
-          status: {
-            in: ['PENDING', 'CONFIRMED'],
-          },
+          scheduledAt: { gte: new Date() },
+          status: { in: ['PENDING', 'CONFIRMED'] },
         },
-        select: {
-          scheduledAt: true,
-          durationMinutes: true,
-          status: true,
-        },
+        select: { scheduledAt: true, durationMinutes: true, status: true },
       },
       tutorLanguages: true,
       pricing: {
@@ -1053,6 +1016,44 @@ export async function getPublicTutorCards(filters: {
       },
     },
   });
+
+  // Bug 1.2 + 1.3: Batch-query actual booking counts, hours taught, and unique student counts
+  const profileIds = profiles.map((p: any) => p.id);
+  let bookingStatsMap = new Map<string, { count: number; minutes: number }>();
+  let studentCountMap = new Map<string, number>();
+
+  if (profileIds.length > 0) {
+    const [bookingStats, distinctStudents] = await Promise.all([
+      prisma.booking.groupBy({
+        by: ['tutorProfileId'],
+        where: {
+          tutorProfileId: { in: profileIds },
+          status: { in: ['COMPLETED', 'CONFIRMED'] },
+        },
+        _count: { id: true },
+        _sum: { durationMinutes: true },
+      }),
+      prisma.booking.findMany({
+        where: {
+          tutorProfileId: { in: profileIds },
+          status: { notIn: ['CANCELLED'] },
+        },
+        select: { tutorProfileId: true, studentId: true },
+        distinct: ['tutorProfileId', 'studentId'],
+      }),
+    ]);
+
+    bookingStatsMap = new Map(
+      bookingStats.map((stat: any) => [
+        stat.tutorProfileId,
+        { count: stat._count.id, minutes: stat._sum.durationMinutes || 0 },
+      ])
+    );
+
+    for (const row of distinctStudents) {
+      studentCountMap.set(row.tutorProfileId, (studentCountMap.get(row.tutorProfileId) || 0) + 1);
+    }
+  }
 
   const hydratedProfiles = profiles
     .map((profile: any) => {
@@ -1073,9 +1074,22 @@ export async function getPublicTutorCards(filters: {
             viewerCurrency,
           })
         : null;
-      const verifiedResults = profile.certifications
-        .map((certification: any) => buildCertificationSummary(certification))
+      // Bug 1.1: Filter verifiedResults by current subject filter to avoid cross-subject badge confusion
+      const subjectCertType = filters.subject
+        ? (filters.subject.startsWith('CFA') ? 'CFA' : filters.subject)
+        : null;
+      const allVerifiedResults = profile.certifications
+        .map((certification: any) => {
+          const summary = buildCertificationSummary(certification);
+          if (!summary) return null;
+          // Always attach certType for filtering
+          return { ...summary, certType: certification.type };
+        })
         .filter(Boolean);
+      const verifiedResults = subjectCertType
+        ? allVerifiedResults.filter((r: any) => r.certType === subjectCertType)
+        : allVerifiedResults;
+
       const countryCode = resolveCountryCode(profile.countryOfBirth) || resolveCountryCode(profile.user.country);
       const additionalLanguages = (profile.languages || []).filter((language: string) => language !== (profile.languages || [])[0]);
       const hasNextWeekAvailability = hasAvailabilityWithinDays({
@@ -1089,6 +1103,10 @@ export async function getPublicTutorCards(filters: {
             : null,
       });
 
+      // Bug 1.2 + 1.3: Use actual booking/student counts
+      const bookingData = bookingStatsMap.get(profile.id) || { count: 0, minutes: 0 };
+      const studentCount = studentCountMap.get(profile.id) || 0;
+
       return {
         ...profile,
         primaryPricingOption,
@@ -1099,6 +1117,9 @@ export async function getPublicTutorCards(filters: {
         publicCountry: profile.countryOfBirth || profile.user.country,
         additionalLanguages,
         hasNextWeekAvailability,
+        actualBookingCount: bookingData.count,
+        actualHoursTaught: Math.round((bookingData.minutes / 60) * 10) / 10,
+        actualStudentCount: studentCount,
       };
     })
     .filter((profile: any) => {
@@ -1118,10 +1139,6 @@ export async function getPublicTutorCards(filters: {
         if (!hasNativeLanguage) {
           return false;
         }
-      }
-
-      if (filters.specialty && !matchesSpecialty(profile, filters.specialty)) {
-        return false;
       }
 
       if (filters.availability && !profile.hasNextWeekAvailability) {
@@ -1207,8 +1224,9 @@ export async function getPublicTutorCards(filters: {
     primaryPrice: profile.priceDisplay,
     rating: profile.rating,
     totalReviews: profile.totalReviews,
-    totalSessions: profile.totalSessions,
-    totalStudents: Math.max(3, Math.ceil(profile.totalSessions / 4)), // Dynamic student count
+    totalSessions: profile.actualBookingCount,
+    totalHoursTaught: profile.actualHoursTaught,
+    totalStudents: profile.actualStudentCount,
     responseTime: profile.responseTime,
     languages: profile.languages,
     availability: sortAvailabilitySlots(profile.availability),
@@ -1222,9 +1240,15 @@ export async function getPublicTutorCards(filters: {
     videoUrl: profile.videoUrl,
     availableWithin7Days: profile.hasNextWeekAvailability,
     verifiedResults: profile.verifiedResults,
+    // Bug 1.1: When subject filter is active, return only that subject's certifications
     verifiedCertifications: profile.certifications
-      .filter((c: any) => c.status === 'VERIFIED' || c.status === 'SELF_REPORTED' || c.status === 'RESUBMITTED')
-      .map((c: any) => c.type),
+      .filter((c: any) => {
+        if (c.status !== 'VERIFIED' && c.status !== 'SELF_REPORTED' && c.status !== 'RESUBMITTED') return false;
+        if (!filters.subject) return true;
+        const certType = filters.subject.startsWith('CFA') ? 'CFA' : filters.subject;
+        return c.type === certType;
+      })
+      .map((c: any) => (filters.subject ? (c.levelOrVariant || c.type) : c.type)),
   }));
 }
 

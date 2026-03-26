@@ -17,7 +17,6 @@ type TutorFilters = {
   language: string;
   country: string;
   availability: string;
-  specialty: string;
   nativeSpeaker: boolean;
   category: string;
   sortBy: string;
@@ -31,7 +30,6 @@ const DEFAULT_FILTERS: TutorFilters = {
   language: '',
   country: '',
   availability: '',
-  specialty: '',
   nativeSpeaker: false,
   category: '',
   sortBy: 'default',
@@ -49,7 +47,6 @@ function getFiltersFromSearchParams(searchParams: Pick<ReadonlyURLSearchParams |
     language: searchParams.get('language') || '',
     country: searchParams.get('country') || '',
     availability: searchParams.get('availability') || '',
-    specialty: searchParams.get('specialty') || '',
     nativeSpeaker: searchParams.get('nativeSpeaker') === 'true',
     category: searchParams.get('category') || '',
     sortBy: searchParams.get('sortBy') || 'default',
@@ -183,17 +180,16 @@ function TutorsContent() {
   };
 
   useEffect(() => {
-    const controller = new AbortController();
+    let controller = new AbortController();
 
-    async function load() {
-      setLoading(true);
+    async function load(silent = false) {
+      if (!silent) setLoading(true);
       const params = new URLSearchParams();
       if (filters.subject) params.set('subject', filters.subject);
       if (filters.minPrice) params.set('minPrice', String(filters.minPrice));
       if (filters.maxPrice) params.set('maxPrice', String(filters.maxPrice));
       if (filters.language) params.set('language', filters.language);
       if (filters.availability) params.set('availability', filters.availability);
-      if (filters.specialty) params.set('specialty', filters.specialty);
       if (filters.nativeSpeaker) params.set('nativeSpeaker', 'true');
       if (filters.sortBy !== 'default') params.set('sortBy', filters.sortBy);
       if (filters.search) params.set('search', filters.search);
@@ -208,14 +204,8 @@ function TutorsContent() {
         const data = json.data || [];
         setResults(data);
         setSelectedTutorId((current) => {
-          if (data.length === 0) {
-            return null;
-          }
-
-          if (!current || !data.some((tutor: any) => tutor.id === current)) {
-            return data[0].id;
-          }
-
+          if (data.length === 0) return null;
+          if (!current || !data.some((tutor: any) => tutor.id === current)) return data[0].id;
           return current;
         });
       } catch (err) {
@@ -223,12 +213,19 @@ function TutorsContent() {
           console.error(err);
         }
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     }
 
     void load();
-    return () => controller.abort();
+    // Bug 4.1: Auto-refresh every 30s to keep availability/data current
+    const interval = setInterval(() => {
+      controller.abort();
+      controller = new AbortController();
+      void load(true);
+    }, 30000);
+
+    return () => { controller.abort(); clearInterval(interval); };
   }, [filters]);
 
   useEffect(() => {
