@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers/Providers";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { PenaltyNotificationModal } from '@/components/providers/PenaltyNotificationModal';
 
 export const metadata: Metadata = {
   title: {
@@ -42,6 +43,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-1 overflow-x-hidden">{children}</main>
           <Footer />
+          <PenaltyNotificationModal />
         </Providers>
       </body>
     </html>
