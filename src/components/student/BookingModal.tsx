@@ -38,7 +38,7 @@ interface BookingModalProps {
   };
 }
 
-const STEPS = { TYPE: 'type', PACKAGE: 'package', TIME: 'time', CONFIRM: 'confirm' } as const;
+const STEPS = { TYPE: 'type', PACKAGE: 'package', SCHEDULE: 'schedule', TIME: 'time', CONFIRM: 'confirm' } as const;
 const PACKAGES = [
   { sessions: 5, discount: 0.05, label: 'Starter Bundle' },
   { sessions: 10, discount: 0.1, label: 'Success Pack' },
@@ -92,6 +92,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
   const [selectedPackage, setSelectedPackage] = useState<(typeof PACKAGES)[0] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedPackageSlots, setSelectedPackageSlots] = useState<Array<{ date: Date; slot: string }>>([]);
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +113,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
     setSelectedPackage(null);
     setSelectedDate(null);
     setSelectedSlot(null);
+    setSelectedPackageSlots([]);
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
     setNotes('');
   }, [isOpen, pricingOptions, trialUnavailable]);
@@ -171,7 +173,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       return;
     }
 
-    if (selectedType === 'PACKAGE' && !selectedPackage) {
+    if (selectedType === 'PACKAGE' && (!selectedPackage || selectedPackageSlots.length !== selectedPackage.sessions)) {
       return;
     }
 
@@ -201,6 +203,14 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
           notes,
           packageSessions: selectedPackage?.sessions,
           discount: selectedPackage?.discount,
+          packageScheduledSlots: selectedType === 'PACKAGE'
+            ? selectedPackageSlots.map(s => {
+                const dt = new Date(s.date);
+                const [hours, minutes] = s.slot.split(':').map(Number);
+                dt.setHours(hours, minutes, 0, 0);
+                return dt.toISOString();
+              })
+            : undefined,
         }),
       });
 
@@ -295,7 +305,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                   {PACKAGES.map((pkg) => {
                     const total = getPackagePrice(selectedPricingOption, pkg.sessions, pkg.discount);
                     return (
-                      <button key={pkg.sessions} onClick={() => { setSelectedPackage(pkg); setStep(STEPS.CONFIRM); }} className="w-full rounded-3xl border-2 border-navy-100 bg-white hover:border-gold-400 p-6 text-left flex items-center justify-between gap-4">
+                      <button key={pkg.sessions} onClick={() => { setSelectedPackage(pkg); setSelectedPackageSlots([]); setStep(STEPS.SCHEDULE); }} className="w-full rounded-3xl border-2 border-navy-100 bg-white hover:border-gold-400 p-6 text-left flex items-center justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-2">
                             <h4 className="font-bold text-navy-600 dark:text-cream-200">{pkg.sessions} Lessons</h4>
@@ -366,12 +376,92 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
               </motion.div>
             )}
 
+            {step === STEPS.SCHEDULE && selectedPackage && (
+              <motion.div key="schedule" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <button onClick={() => setStep(STEPS.PACKAGE)} className="text-[11px] font-black uppercase tracking-widest text-navy-300 hover:text-navy-600">Back</button>
+                  <div className="flex items-center gap-4">
+                    <button onClick={prevWeek} className="p-1 rounded-full hover:bg-navy-50 text-navy-300">◀</button>
+                    <span className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">{format(currentWeekStart, 'MMM d')} - {format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), 'MMM d')}</span>
+                    <button onClick={nextWeek} className="p-1 rounded-full hover:bg-navy-50 text-navy-300">▶</button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-navy-50/60 dark:bg-navy-700/30 p-4 flex items-center justify-between">
+                  <span className="text-xs font-bold text-navy-600 dark:text-cream-200">Select {selectedPackage.sessions} slots</span>
+                  <span className={`text-xs font-black ${selectedPackageSlots.length === selectedPackage.sessions ? 'text-sage-600' : 'text-gold-600'}`}>
+                    {selectedPackageSlots.length} / {selectedPackage.sessions} chosen
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1 border-b border-navy-100/50 pb-2">
+                  {daysInWeek.map((day) => (
+                    <div key={day.toString()} className="text-center">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/30">{format(day, 'EEE')}</div>
+                      <div className={`mt-1 text-xs font-black w-7 h-7 flex items-center justify-center mx-auto rounded-full ${isToday(day) ? 'bg-gold-400 text-navy-600' : 'text-navy-600 dark:text-cream-200'}`}>{format(day, 'd')}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-1 h-[320px] overflow-y-auto pr-2 custom-scrollbar pt-2">
+                  {daysInWeek.map((day) => {
+                    const slots = getSlotsForDay(day);
+                    return (
+                      <div key={day.toString()} className="flex flex-col gap-1">
+                        {slots.length > 0 ? slots.map((time) => {
+                          const isSelected = selectedPackageSlots.some(s => isSameDay(s.date, day) && s.slot === time);
+                          const isMaxReached = selectedPackageSlots.length >= selectedPackage.sessions && !isSelected;
+                          return (
+                            <button
+                              key={time}
+                              disabled={isMaxReached}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedPackageSlots(prev => prev.filter(s => !(isSameDay(s.date, day) && s.slot === time)));
+                                } else if (selectedPackageSlots.length < selectedPackage.sessions) {
+                                  setSelectedPackageSlots(prev => [...prev, { date: day, slot: time }]);
+                                }
+                              }}
+                              className={`py-2 text-[10px] font-bold rounded-lg transition-all ${isSelected ? 'bg-sage-500 text-white shadow-lg' : isMaxReached ? 'opacity-30 cursor-not-allowed bg-navy-50/30 text-navy-300' : 'bg-navy-50/50 dark:bg-navy-700/50 text-navy-400 dark:text-cream-400/40 hover:bg-gold-50 hover:text-gold-600'}`}
+                            >
+                              {slotLabel(time)}
+                            </button>
+                          );
+                        }) : <div className="h-full flex items-center justify-center opacity-10"><div className="w-px h-8 bg-navy-100" /></div>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {selectedPackageSlots.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 ml-1">Selected sessions</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedPackageSlots.map((s, i) => (
+                        <span key={`${s.date.toISOString()}-${s.slot}`} className="px-3 py-1.5 rounded-xl bg-sage-50 dark:bg-sage-500/10 text-[10px] font-black text-sage-700 dark:text-sage-300 border border-sage-200/70">
+                          {format(s.date, 'MMM d')} {slotLabel(s.slot)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  disabled={selectedPackageSlots.length !== selectedPackage.sessions}
+                  onClick={() => setStep(STEPS.CONFIRM)}
+                  className="w-full bg-navy-600 hover:bg-navy-700 disabled:bg-navy-100 disabled:text-navy-300 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all"
+                >
+                  {selectedPackageSlots.length === selectedPackage.sessions ? 'Next: Review & Confirm' : `Select ${selectedPackage.sessions - selectedPackageSlots.length} more slot(s)`}
+                </button>
+              </motion.div>
+            )}
+
             {step === STEPS.CONFIRM && (
               <motion.div key="confirm" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="space-y-6">
                 <div className="rounded-3xl border border-navy-100/60 bg-white dark:bg-navy-700/30 p-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Booking Summary</h3>
-                    <button onClick={() => setStep(selectedType === 'PACKAGE' ? STEPS.PACKAGE : STEPS.TIME)} className="text-[10px] font-bold text-navy-400 hover:text-navy-600 underline">Change</button>
+                    <button onClick={() => setStep(selectedType === 'PACKAGE' ? STEPS.SCHEDULE : STEPS.TIME)} className="text-[10px] font-bold text-navy-400 hover:text-navy-600 underline">Change</button>
                   </div>
                   <div className="mt-5 space-y-4 text-sm">
                     {selectedType !== 'PACKAGE' ? (
@@ -380,9 +470,21 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                         <span className="text-right font-bold text-navy-600 dark:text-cream-200">{selectedDate && format(selectedDate, 'EEEE, MMM d')} at {selectedSlot ? slotLabel(selectedSlot) : ''}</span>
                       </div>
                     ) : (
-                      <div className="flex justify-between gap-4">
-                        <span className="text-navy-400 dark:text-cream-400/60">Package</span>
-                        <span className="text-right font-bold text-navy-600 dark:text-cream-200">{selectedPackage?.sessions} lessons • {selectedDuration} minutes</span>
+                      <div className="space-y-2">
+                        <div className="flex justify-between gap-4">
+                          <span className="text-navy-400 dark:text-cream-400/60">Package</span>
+                          <span className="text-right font-bold text-navy-600 dark:text-cream-200">{selectedPackage?.sessions} lessons • {selectedDuration}m each</span>
+                        </div>
+                        {selectedPackageSlots.length > 0 && (
+                          <div className="pl-2 space-y-1">
+                            {selectedPackageSlots.map((s, i) => (
+                              <div key={`${s.date.toISOString()}-${s.slot}`} className="flex justify-between text-xs">
+                                <span className="text-navy-300">Session {i + 1}</span>
+                                <span className="font-bold text-navy-500 dark:text-cream-300">{format(s.date, 'EEE, MMM d')} at {slotLabel(s.slot)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="flex justify-between gap-4">

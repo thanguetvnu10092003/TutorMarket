@@ -19,6 +19,7 @@ const bookingSchema = z.object({
   notes: z.string().trim().max(1500).optional(),
   packageSessions: z.number().int().positive().optional(),
   discount: z.number().min(0).max(1).optional(),
+  packageScheduledSlots: z.array(z.string()).optional(),
 });
 
 const VALID_SUBJECTS = ['CFA_LEVEL_1', 'CFA_LEVEL_2', 'CFA_LEVEL_3', 'GMAT', 'GRE'] as const;
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { tutorProfileId, scheduledAt, durationMinutes, type, subject, notes, packageSessions, discount } = bookingSchema.parse(body);
+    const { tutorProfileId, scheduledAt, durationMinutes, type, subject, notes, packageSessions, discount, packageScheduledSlots } = bookingSchema.parse(body);
 
     const studentId = session.user.id;
     const tutorProfile = await prisma.tutorProfile.findUnique({
@@ -143,8 +144,26 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Package sessions count is required' }, { status: 400 });
       }
 
+      if (!packageScheduledSlots || packageScheduledSlots.length !== packageSessions) {
+        return NextResponse.json({ error: 'You must select a time slot for each session in the package.' }, { status: 400 });
+      }
+
+      // Validate all slots are in the future
+      for (const slotIso of packageScheduledSlots) {
+        const slotDate = new Date(slotIso);
+        if (Number.isNaN(slotDate.getTime()) || slotDate.getTime() <= Date.now()) {
+          return NextResponse.json({ error: 'All selected session times must be in the future.' }, { status: 400 });
+        }
+      }
+
       if (!selectedPricingOption) {
         return NextResponse.json({ error: 'Tutor does not offer package sessions for this duration' }, { status: 400 });
+      }
+
+      // Normalize subject for package bookings (before any DB writes)
+      const normalizedPkgSubject = normalizeSubject(subject);
+      if (!VALID_SUBJECTS.includes(normalizedPkgSubject as any)) {
+        return NextResponse.json({ error: `Invalid subject: "${subject}"` }, { status: 400 });
       }
 
       const pricePerSession = selectedPricingOption.price;
@@ -153,28 +172,75 @@ export async function POST(req: NextRequest) {
       const isVnd = selectedPricingOption.currency === 'VND';
       const usdTotalAmount = isVnd ? Math.round((rawTotalAmount / exchangeRate) * 100) / 100 : rawTotalAmount;
 
-      const pkg = await prisma.bookingPackage.create({
-        data: {
-          studentId,
-          tutorProfileId,
-          totalSessions: packageSessions,
-          sessionsRemaining: packageSessions,
-          pricePerSession,
-          totalPaid: rawTotalAmount,
-          currency: selectedPricingOption.currency,
-          packageDiscount: discount || 0,
-          payment: {
-            create: {
-              amount: usdTotalAmount,
-              status: 'PENDING',
-              platformFee: 0,
-              tutorPayout: 0,
+      const { pkg, packageBookings } = await prisma.$transaction(async (tx) => {
+        const pkg = await tx.bookingPackage.create({
+          data: {
+            studentId,
+            tutorProfileId,
+            totalSessions: packageSessions,
+            sessionsRemaining: packageSessions,
+            pricePerSession,
+            totalPaid: rawTotalAmount,
+            currency: selectedPricingOption.currency,
+            packageDiscount: discount || 0,
+            payment: {
+              create: {
+                amount: usdTotalAmount,
+                status: 'PENDING',
+                platformFee: 0,
+                tutorPayout: 0,
+              },
             },
           },
-        },
-        include: {
-          payment: true,
-        },
+          include: {
+            payment: true,
+          },
+        });
+
+        // Create one Booking record per scheduled slot
+        const packageBookings = await Promise.all(
+          packageScheduledSlots.map((slotIso, index) => {
+            const slotDate = new Date(slotIso);
+            return tx.booking.create({
+              data: {
+                studentId,
+                tutorProfileId,
+                packageId: pkg.id,
+                scheduledAt: slotDate,
+                durationMinutes: selectedDurationMinutes,
+                status: 'PENDING',
+                sessionNumber: previousSessionsCount + index + 1,
+                isFreeSession: false,
+                subject: normalizedPkgSubject as any,
+                meetingLink: `pending-pkg-${pkg.id}-${index}`,
+                notes: notes || null,
+              },
+            });
+          })
+        );
+
+        // Update meeting links to use actual booking IDs
+        await Promise.all(
+          packageBookings.map(b =>
+            tx.booking.update({
+              where: { id: b.id },
+              data: { meetingLink: buildBookingRoomUrl(b.id) },
+            })
+          )
+        );
+
+        return { pkg, packageBookings };
+      });
+
+      // Notify tutor about the package booking
+      await notifyTutorAboutBookingRequest({
+        tutorUserId: tutorProfile.user.id,
+        tutorEmail: tutorProfile.user.email,
+        tutorName: tutorProfile.user.name,
+        studentName: session.user.name || 'A student',
+        subject,
+        scheduledAt: packageBookings[0].scheduledAt,
+        durationMinutes: selectedDurationMinutes,
       });
 
       let checkoutUrl: string | null = null;
@@ -196,6 +262,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         data: pkg,
+        sessionCount: packageBookings.length,
         checkoutUrl,
       });
     }
