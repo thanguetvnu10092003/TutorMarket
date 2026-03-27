@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { getUserStatus, isSuspended } from '@/lib/admin';
 import { buildDisplayPrice, getCurrencyForLocation, getPrimaryPriceOption } from '@/lib/currency';
-import { hasAvailabilityWithinDays, sortAvailabilitySlots } from '@/lib/availability';
+import { hasAvailabilityWithinDays, sortAvailabilitySlots, countAvailableDaysWithinNextDays } from '@/lib/availability';
 import { getCountryOptions } from '@/lib/intl-data';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings';
 
@@ -294,7 +294,14 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
   const activeUsers = nonAdminUsers.filter((user: any) => getUserStatus(user) === 'ACTIVE');
   const capturedBookings = bookings.filter((b: any) => b.payment && b.payment.status === 'CAPTURED');
   const capturedPackages = packages.filter((p: any) => p.payment && p.payment.status === 'CAPTURED');
-  
+
+  // Map tutorProfileId → package revenue for all captured packages
+  const packageRevenueByTutor = new Map<string, number>();
+  for (const pkg of capturedPackages) {
+    const rev = Math.max((pkg.payment?.amount || 0) - (pkg.payment?.refundedAmount || 0), 0);
+    packageRevenueByTutor.set(pkg.tutorProfileId, (packageRevenueByTutor.get(pkg.tutorProfileId) || 0) + rev);
+  }
+
   const totalGrossRevenue = sum(capturedBookings.map((booking: any) => booking.payment?.amount || 0)) + sum(capturedPackages.map((pkg: any) => pkg.payment?.amount || 0));
   const totalNetRevenue = sum(capturedBookings.map((booking: any) => booking.payment?.platformFee || 0)) + sum(capturedPackages.map((pkg: any) => pkg.payment?.platformFee || 0));
   const openTicketsCount =
@@ -449,7 +456,7 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
         tutorCompleted
           .filter((booking: any) => booking.payment && ['CAPTURED', 'REFUNDED'].includes(booking.payment.status))
           .map((booking: any) => (booking.payment?.amount || 0) - (booking.payment?.refundedAmount || 0))
-      );
+      ) + (packageRevenueByTutor.get(profile.id) || 0);
       const tutorConversionRate = tutorBookings.length === 0
         ? 0
         : Number(((tutorCompleted.length / tutorBookings.length) * 100).toFixed(1));
@@ -1103,6 +1110,13 @@ export async function getPublicTutorCards(filters: {
             : null,
       });
 
+      const availableDaysCount = countAvailableDaysWithinNextDays({
+        availability: profile.availability,
+        overrides: profile.overrides,
+        bookings: profile.bookings,
+        durationMinutes: primaryPricingOption?.durationMinutes || 60,
+      });
+
       // Bug 1.2 + 1.3: Use actual booking/student counts
       const bookingData = bookingStatsMap.get(profile.id) || { count: 0, minutes: 0 };
       const studentCount = studentCountMap.get(profile.id) || 0;
@@ -1117,6 +1131,7 @@ export async function getPublicTutorCards(filters: {
         publicCountry: profile.countryOfBirth || profile.user.country,
         additionalLanguages,
         hasNextWeekAvailability,
+        availableDaysCount,
         actualBookingCount: bookingData.count,
         actualHoursTaught: Math.round((bookingData.minutes / 60) * 10) / 10,
         actualStudentCount: studentCount,
@@ -1179,8 +1194,11 @@ export async function getPublicTutorCards(filters: {
         return (right.priceDisplay?.displayAmount || 0) - (left.priceDisplay?.displayAmount || 0);
       case 'rating':
         return right.rating - left.rating;
-      case 'experience':
-        return right.yearsOfExperience - left.yearsOfExperience;
+      case 'experience': {
+        const bookingDiff = (right.actualBookingCount || 0) - (left.actualBookingCount || 0);
+        if (bookingDiff !== 0) return bookingDiff;
+        return (right.actualHoursTaught || 0) - (left.actualHoursTaught || 0);
+      }
       case 'sessions':
         return right.totalSessions - left.totalSessions;
       default: {
@@ -1237,6 +1255,7 @@ export async function getPublicTutorCards(filters: {
     countryFlag: profile.publicCountryCode ? getCountryOptions().find((country) => country.code === profile.publicCountryCode)?.flag || profile.user.countryFlag : profile.user.countryFlag,
     videoUrl: profile.videoUrl,
     availableWithin7Days: profile.hasNextWeekAvailability,
+    availableDaysCount: profile.availableDaysCount,
     verifiedResults: profile.verifiedResults,
     // Bug 1.1: When subject filter is active, return only that subject's certifications
     verifiedCertifications: profile.certifications
