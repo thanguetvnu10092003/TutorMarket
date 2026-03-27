@@ -166,7 +166,6 @@ function SettingsPageInner() {
     headline: '',
     bio: '',
     location: '',
-    hourlyRate: 0,
     languages: 'English',
     education: [] as any[],
   });
@@ -208,7 +207,6 @@ function SettingsPageInner() {
           ...prev,
           headline: data.headline || '',
           bio: data.about || '',
-          hourlyRate: data.hourlyRate || 0,
           languages: data.languages?.join(', ') || 'English',
           education: data.education || [],
         }));
@@ -371,7 +369,6 @@ function SettingsPageInner() {
           body: JSON.stringify({
             headline: profileData.headline,
             about: profileData.bio,
-            hourlyRate: Number(profileData.hourlyRate),
             languages: profileData.languages.split(',').map(l => l.trim()).filter(Boolean),
             education: profileData.education,
             certifications: buildCertifications(),
@@ -497,18 +494,11 @@ function SettingsPageInner() {
                           className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none" />
                       </div>
 
-                      {/* Rate + Languages */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-sm font-bold text-navy-600 dark:text-cream-200">Hourly Rate ($)</label>
-                          <input type="number" value={profileData.hourlyRate} onChange={e => setProfileData({ ...profileData, hourlyRate: Number(e.target.value) })}
-                            className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-bold text-navy-600 dark:text-cream-200">Languages (comma separated)</label>
-                          <input type="text" value={profileData.languages} onChange={e => setProfileData({ ...profileData, languages: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none" />
-                        </div>
+                      {/* Languages */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-navy-600 dark:text-cream-200">Languages (comma separated)</label>
+                        <input type="text" value={profileData.languages} onChange={e => setProfileData({ ...profileData, languages: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none" />
                       </div>
                     </>
                   )}

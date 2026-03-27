@@ -36,6 +36,7 @@ export default async function TutorStudentsPage() {
   const studentBookings = await prisma.booking.findMany({
     where: {
       tutorProfileId: tutorProfile.id,
+      status: { in: ['COMPLETED', 'CONFIRMED'] },
     },
     include: {
       student: {
@@ -56,7 +57,10 @@ export default async function TutorStudentsPage() {
   // Group unique students
   const uniqueStudentsMap = new Map();
   studentBookings.forEach(booking => {
-    const bookingRevenue = booking.payment?.amount || 0;
+    if (!booking.student) return;
+    const bookingRevenue = (booking.payment?.status === 'CAPTURED' && !booking.isFreeSession)
+      ? (booking.payment.tutorPayout > 0 ? booking.payment.tutorPayout : booking.payment.amount)
+      : 0;
     
     if (!uniqueStudentsMap.has(booking.student.id)) {
       uniqueStudentsMap.set(booking.student.id, {
@@ -153,7 +157,7 @@ export default async function TutorStudentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-bold text-gold-500">
-                        ${student.totalSpent.toFixed(2)}
+                        ${Number(student.totalSpent).toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -186,7 +190,7 @@ export default async function TutorStudentsPage() {
                    <div>
                      <p className="font-bold text-navy-600 dark:text-cream-200">Session with {booking.student.name}</p>
                      <p className="text-sm text-navy-300">
-                       {format(new Date(booking.scheduledAt), 'h:mm a')} - {format(new Date(booking.scheduledAt.getTime() + booking.durationMinutes * 60000), 'h:mm a')}
+                       {format(new Date(booking.scheduledAt), 'h:mm a')} - {format(new Date(new Date(booking.scheduledAt).getTime() + booking.durationMinutes * 60000), 'h:mm a')}
                      </p>
                    </div>
                 </div>
