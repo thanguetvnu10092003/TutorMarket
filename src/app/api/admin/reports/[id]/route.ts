@@ -120,6 +120,16 @@ export async function PATCH(
           userId,
           reason: note || 'Warning issued after report investigation.',
         });
+        await prisma.userPenalty.create({
+          data: {
+            userId: targetUserId || report.reportedUserId,
+            adminId: session.user.id,
+            type: 'WARNING',
+            reason: note || 'Warning issued after report investigation.',
+            status: 'ACTIVE',
+            expiresAt: null,
+          },
+        });
         await prisma.userReport.update({
           where: { id: report.id },
           data: {
@@ -143,6 +153,17 @@ export async function PATCH(
           reason: note || 'Suspended after report investigation.',
           suspendedUntil: until,
         });
+        const durationDays = (duration === '7d') ? 7 : (duration === '30d') ? 30 : (duration === '1d') ? 1 : 3;
+        await prisma.userPenalty.create({
+          data: {
+            userId: targetUserId || report.reportedUserId,
+            adminId: session.user.id,
+            type: durationDays <= 7 ? 'SUSPEND_7D' : 'SUSPEND_30D',
+            reason: note || 'Suspended after report investigation.',
+            status: 'ACTIVE',
+            expiresAt: until,
+          },
+        });
         await prisma.userReport.update({
           where: { id: report.id },
           data: {
@@ -164,6 +185,16 @@ export async function PATCH(
           adminId: session.user.id,
           userId,
           reason: note,
+        });
+        await prisma.userPenalty.create({
+          data: {
+            userId: targetUserId || report.reportedUserId,
+            adminId: session.user.id,
+            type: 'PERMANENT_BAN',
+            reason: note,
+            status: 'ACTIVE',
+            expiresAt: null,
+          },
         });
         await prisma.userReport.update({
           where: { id: report.id },
@@ -212,6 +243,23 @@ export async function PATCH(
           actionType: 'RESOLVE_REPORT',
           reason: note,
           metadata: { reportId: report.id },
+        });
+        break;
+      }
+      case 'REVOKE_SUSPENSION': {
+        const userId = targetUserId || report.reportedUserId;
+        await prisma.user.update({
+          where: { id: userId },
+          data: { suspendedUntil: null, suspensionReason: null },
+        });
+        await prisma.userReport.update({
+          where: { id: report.id },
+          data: {
+            status: 'RESOLVED',
+            adminNote: note ?? 'Suspension revoked',
+            resolvedByAdminId: session.user.id,
+            resolvedAt: new Date(),
+          },
         });
         break;
       }

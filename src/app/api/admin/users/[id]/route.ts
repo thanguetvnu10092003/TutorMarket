@@ -102,6 +102,25 @@ export async function PATCH(
         });
         return NextResponse.json({ data: tutor });
       }
+      case 'REVOKE_SUSPENSION': {
+        await prisma.user.update({
+          where: { id: params.id },
+          data: { suspendedUntil: null, suspensionReason: null },
+        });
+        const updatedUser = await prisma.user.findUnique({ where: { id: params.id } });
+        return NextResponse.json({ data: updatedUser });
+      }
+      case 'REVOKE_BAN': {
+        if (!reason) {
+          return NextResponse.json({ error: 'Reason is required for revoking a ban' }, { status: 400 });
+        }
+        await prisma.user.update({
+          where: { id: params.id },
+          data: { isBanned: false, banReason: null },
+        });
+        const updatedUser = await prisma.user.findUnique({ where: { id: params.id } });
+        return NextResponse.json({ data: updatedUser });
+      }
       default:
         return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
     }
