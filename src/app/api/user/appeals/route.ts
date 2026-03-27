@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const existingAppeal = await prisma.appeal.findFirst({
-      where: { penaltyId, userId: session.user.id, status: { in: ['PENDING', 'REVIEWED'] } },
+      where: { penaltyId, userId: session.user.id, status: 'PENDING' },
     });
 
     if (existingAppeal) {
