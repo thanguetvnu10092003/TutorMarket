@@ -29,10 +29,10 @@ export async function GET() {
       where: {
         tutorProfileId: tutorProfile.id,
         status: {
-          in: ['CONFIRMED', 'PENDING'],
+          in: ['PENDING', 'CONFIRMED', 'COMPLETED', 'NO_SHOW'],
         },
         scheduledAt: {
-          gte: thirtyDaysAgo, // Show sessions from the past 30 days onwards
+          gte: thirtyDaysAgo,
         },
       },
       include: {
@@ -40,14 +40,14 @@ export async function GET() {
           select: {
             name: true,
             email: true,
-            avatarUrl: true
-          }
-        }
+            avatarUrl: true,
+          },
+        },
       },
       orderBy: {
-        scheduledAt: 'asc' // Closest bookings first
+        scheduledAt: 'asc',
       },
-      take: 10 // Limit for dashboard preview
+      // No take limit — return all sessions
     });
 
     return NextResponse.json(bookings);
