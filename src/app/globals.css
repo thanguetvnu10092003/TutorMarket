@@ -49,6 +49,7 @@
 
   body {
     font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 16px;
     background-color: rgb(var(--bg-primary));
     color: rgb(var(--text-primary));
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -246,4 +247,19 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Dark mode select styling */
+.dark select {
+  background-color: rgb(30 41 59); /* navy-700 approximate */
+  color: rgb(237 235 224); /* cream-200 approximate */
+}
+.dark select option {
+  background-color: rgb(30 41 59);
+  color: rgb(237 235 224);
+}
+
+/* Disabled button cursor */
+button:disabled {
+  cursor: not-allowed;
 }

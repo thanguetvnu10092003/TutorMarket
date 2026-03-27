@@ -170,7 +170,7 @@ export function Analytics({
                 {tutorAnalytics.overallConversionRate || 0}%
               </span>
             </div>
-            <div className="w-full bg-navy-100 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-navy-100 dark:bg-navy-700/40 h-2 rounded-full overflow-hidden">
               <div className="bg-gold-400 h-full" style={{ width: `${tutorAnalytics.overallConversionRate || 0}%` }} />
             </div>
             <div className="flex justify-between items-center">
@@ -179,7 +179,7 @@ export function Analytics({
                 {tutorAnalytics.freeToPaidConversionRate || 0}%
               </span>
             </div>
-            <div className="w-full bg-navy-100 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-navy-100 dark:bg-navy-700/40 h-2 rounded-full overflow-hidden">
               <div className="bg-navy-600 h-full" style={{ width: `${tutorAnalytics.freeToPaidConversionRate || 0}%` }} />
             </div>
             <div className="flex justify-between items-center">
@@ -188,7 +188,7 @@ export function Analytics({
                 {studentAnalytics.retention.paidConversionRate}%
               </span>
             </div>
-            <div className="w-full bg-navy-100 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-navy-100 dark:bg-navy-700/40 h-2 rounded-full overflow-hidden">
               <div className="bg-sage-500 h-full" style={{ width: `${studentAnalytics.retention.paidConversionRate}%` }} />
             </div>
           </div>
@@ -200,7 +200,7 @@ export function Analytics({
         <div className="mt-6 overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-navy-100 text-[10px] font-black uppercase tracking-[0.16em] text-navy-300">
+              <tr className="border-b border-navy-100 dark:border-navy-500/20 text-[10px] font-black uppercase tracking-[0.16em] text-navy-300">
                 <th className="px-3 py-3 text-left">Tutor</th>
                 <th className="px-3 py-3 text-left">Hours</th>
                 <th className="px-3 py-3 text-right">Gross Revenue</th>

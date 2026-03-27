@@ -91,7 +91,7 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
               key={value}
               onClick={() => { setStatusFilter(value); setSelectedReportId(null); }}
               className={`rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all ${
-                statusFilter === value ? 'bg-gold-400 text-navy-600' : 'bg-white/70 text-navy-500 hover:bg-white'
+                statusFilter === value ? 'bg-gold-400 text-navy-600' : 'bg-white/70 text-navy-500 hover:bg-white dark:bg-navy-600/30 dark:text-cream-300 dark:hover:bg-navy-600/50'
               }`}
             >
               {label}
@@ -184,7 +184,7 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
                     value={form.note}
                     onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))}
                     placeholder="Admin notes or dismissal reason..."
-                    className="h-36 w-full rounded-2xl border border-navy-100 bg-white p-4 text-sm dark:border-navy-500/40 dark:bg-navy-600/30"
+                    className="h-36 w-full rounded-2xl border border-navy-100 bg-white p-4 text-sm text-navy-600 dark:border-navy-500/40 dark:bg-navy-600/30 dark:text-cream-200"
                   />
                   <select
                     value={form.target}
@@ -207,7 +207,7 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-navy-100 p-4 dark:border-navy-500/40">
+                  <div className="rounded-2xl border border-navy-100 p-4 dark:border-navy-500/40 dark:bg-navy-600/20">
                     <div className="text-[10px] font-black uppercase tracking-[0.16em] text-navy-300">Refund amount</div>
                     <div className="mt-2 flex items-center gap-2">
                       <span className="text-navy-400">$</span>
