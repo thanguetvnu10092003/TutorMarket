@@ -676,6 +676,8 @@ model Appeal {
   createdAt     DateTime     @default(now())
 
   @@index([status, createdAt])
+  @@index([penaltyId])
+  @@index([penaltyId, userId])
 }
 
 model GmatVerificationRequest {
