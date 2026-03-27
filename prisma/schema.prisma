@@ -175,6 +175,9 @@ model User {
   seoMetadataUpdated          SeoMetadata[]         @relation("SeoMetadataUpdatedBy")
   issuedStrikes             UserStrike[]          @relation("StrikeIssuer")
   receivedStrikes           UserStrike[]          @relation("StrikeRecipient")
+  receivedPenalties         UserPenalty[]         @relation("ReceivedPenalties")
+  issuedPenalties           UserPenalty[]         @relation("IssuedPenalties")
+  userAppeals               Appeal[]              @relation("UserAppeals")
 
   // Student Experience Relations
   studentPreference           StudentPreference?
@@ -375,6 +378,8 @@ model Booking {
   status          BookingStatus @default(PENDING)
   sessionNumber   Int           @default(1)
   isFreeSession   Boolean       @default(false)
+  packageId       String?
+  package         BookingPackage? @relation("PackageBookings", fields: [packageId], references: [id], onDelete: SetNull)
   subject         Subject
   meetingLink     String?
   notes           String?
@@ -619,6 +624,60 @@ model UserStrike {
   @@index([userId, createdAt])
 }
 
+enum PenaltyType {
+  WARNING
+  SUSPEND_7D
+  SUSPEND_30D
+  PERMANENT_BAN
+}
+
+enum PenaltyStatus {
+  ACTIVE
+  EXPIRED
+  APPEALED
+  REVOKED
+}
+
+enum AppealStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
+model UserPenalty {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation("ReceivedPenalties", fields: [userId], references: [id], onDelete: Cascade)
+  adminId    String?
+  admin      User?         @relation("IssuedPenalties", fields: [adminId], references: [id], onDelete: SetNull)
+  type       PenaltyType
+  reason     String
+  status     PenaltyStatus @default(ACTIVE)
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime      @default(now())
+  appeals    Appeal[]
+
+  @@index([userId, status])
+}
+
+model Appeal {
+  id            String       @id @default(cuid())
+  penaltyId     String
+  penalty       UserPenalty  @relation(fields: [penaltyId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation("UserAppeals", fields: [userId], references: [id], onDelete: Cascade)
+  reason        String
+  evidence      String?
+  status        AppealStatus @default(PENDING)
+  adminResponse String?
+  reviewedAt    DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([status, createdAt])
+}
+
 model GmatVerificationRequest {
   id                   String            @id @default(cuid())
   tutorCertificationId String            @unique
@@ -675,6 +734,7 @@ model BookingPackage {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   payment           Payment?
+  bookings          Booking[]       @relation("PackageBookings")
 
   @@index([studentId])
   @@index([tutorProfileId])
