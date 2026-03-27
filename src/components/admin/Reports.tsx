@@ -228,12 +228,34 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
                     <button onClick={() => void runAction(form.amount ? 'ISSUE_PARTIAL_REFUND' : 'ISSUE_FULL_REFUND')} className="rounded-xl bg-gold-400 py-3 text-xs font-black text-navy-600 hover:bg-gold-500 transition-colors">
                       {form.amount ? 'Partial Refund' : 'Full Refund'}
                     </button>
-                    <button onClick={() => void runAction('WARN_USER')} className="rounded-xl bg-blue-500 py-3 text-xs font-black text-white hover:bg-blue-600 transition-colors">Warn User</button>
+                    <button onClick={() => {
+                        if (!confirm(`Issue a warning to ${selectedReport.reportedParty?.name}? Reason: ${form.note || '(none)'}`)) return;
+                        void runAction('WARN_USER');
+                      }} className="rounded-xl bg-blue-500 py-3 text-xs font-black text-white hover:bg-blue-600 transition-colors">Warn User</button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => void runAction('SUSPEND_ACCOUNT')} className="rounded-xl bg-red-500 py-3 text-xs font-black text-white hover:bg-red-600 transition-colors">Suspend</button>
-                    <button onClick={() => void runAction('PERMANENT_BAN_ACCOUNT')} className="rounded-xl border border-red-300 py-3 text-xs font-black text-red-600 hover:bg-red-50 transition-colors">Ban</button>
+                    <button onClick={() => {
+                        if (!confirm(`Suspend ${selectedReport.reportedParty?.name} for ${form.duration}? Reason: ${form.note || '(none)'}`)) return;
+                        void runAction('SUSPEND_ACCOUNT');
+                      }} className="rounded-xl bg-red-500 py-3 text-xs font-black text-white hover:bg-red-600 transition-colors">Suspend</button>
+                    <button onClick={() => {
+                        if (!confirm(`Permanently BAN ${selectedReport.reportedParty?.name}? This cannot be easily undone. Reason: ${form.note || '(none)'}`)) return;
+                        void runAction('PERMANENT_BAN_ACCOUNT');
+                      }} className="rounded-xl border border-red-300 py-3 text-xs font-black text-red-600 hover:bg-red-50 transition-colors">Ban</button>
                   </div>
+                  {(selectedReport.reportedParty?.suspendedUntil || selectedReport.reportedParty?.isBanned) && (
+                    <div className="grid grid-cols-1 gap-2">
+                      <button
+                        onClick={() => {
+                          if (!confirm(`Revoke ${selectedReport.reportedParty?.isBanned ? 'ban' : 'suspension'} for ${selectedReport.reportedParty?.name}? This will restore their access.`)) return;
+                          void runAction('REVOKE_SUSPENSION');
+                        }}
+                        className="rounded-xl bg-green-500 py-3 text-xs font-black text-white hover:bg-green-600 transition-colors"
+                      >
+                        {selectedReport.reportedParty?.isBanned ? 'Lift Ban' : 'Revoke Suspension'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

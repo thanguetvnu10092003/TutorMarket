@@ -661,6 +661,8 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
         name: report.reportedUser.name,
         email: report.reportedUser.email,
         role: report.reportedUser.role,
+        suspendedUntil: report.reportedUser.suspendedUntil ?? null,
+        isBanned: report.reportedUser.isBanned ?? false,
       },
       description: report.description,
       adminNote: report.adminNote,
