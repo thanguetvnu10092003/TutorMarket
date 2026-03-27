@@ -47,7 +47,7 @@ export function PenaltyNotificationModal() {
     }
 
     void fetchPenalties();
-  }, [status, session?.user]);
+  }, [status, session?.user?.id]);
 
   function handleDismiss() {
     if (!activePenalty || activePenalty.type === 'PERMANENT_BAN') return;

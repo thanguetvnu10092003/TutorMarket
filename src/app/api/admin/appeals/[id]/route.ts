@@ -25,39 +25,45 @@ export async function PATCH(
       return NextResponse.json({ error: 'Appeal not found' }, { status: 404 });
     }
 
-    await prisma.appeal.update({
-      where: { id: params.id },
-      data: {
-        status: decision,
-        adminResponse: adminResponse || null,
-        reviewedAt: new Date(),
-      },
-    });
+    if (appeal.status !== 'PENDING') {
+      return NextResponse.json({ error: 'This appeal has already been processed' }, { status: 400 });
+    }
 
-    if (decision === 'ACCEPTED') {
-      await prisma.userPenalty.update({
-        where: { id: appeal.penaltyId },
-        data: { status: 'REVOKED', revokedAt: new Date() },
+    await prisma.$transaction(async (tx) => {
+      await tx.appeal.update({
+        where: { id: params.id },
+        data: {
+          status: decision,
+          adminResponse: adminResponse || null,
+          reviewedAt: new Date(),
+        },
       });
 
-      const penalty = appeal.penalty;
-      if (penalty.type === 'SUSPEND_7D' || penalty.type === 'SUSPEND_30D') {
-        await prisma.user.update({
-          where: { id: penalty.userId },
-          data: { suspendedUntil: null, suspensionReason: null },
+      if (decision === 'ACCEPTED') {
+        await tx.userPenalty.update({
+          where: { id: appeal.penaltyId },
+          data: { status: 'REVOKED', revokedAt: new Date() },
         });
-      } else if (penalty.type === 'PERMANENT_BAN') {
-        await prisma.user.update({
-          where: { id: penalty.userId },
-          data: { isBanned: false, banReason: null },
+
+        const penalty = appeal.penalty;
+        if (penalty.type === 'SUSPEND_7D' || penalty.type === 'SUSPEND_30D') {
+          await tx.user.update({
+            where: { id: penalty.userId },
+            data: { suspendedUntil: null, suspensionReason: null },
+          });
+        } else if (penalty.type === 'PERMANENT_BAN') {
+          await tx.user.update({
+            where: { id: penalty.userId },
+            data: { isBanned: false, banReason: null },
+          });
+        }
+      } else {
+        await tx.userPenalty.update({
+          where: { id: appeal.penaltyId },
+          data: { status: 'ACTIVE' },
         });
       }
-    } else {
-      await prisma.userPenalty.update({
-        where: { id: appeal.penaltyId },
-        data: { status: 'ACTIVE' },
-      });
-    }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

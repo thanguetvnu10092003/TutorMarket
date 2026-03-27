@@ -36,19 +36,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'You already have a pending appeal for this penalty' }, { status: 400 });
     }
 
-    const appeal = await prisma.appeal.create({
-      data: {
-        penaltyId,
-        userId: session.user.id,
-        reason,
-        evidence: evidence || null,
-        status: 'PENDING',
-      },
-    });
+    const appeal = await prisma.$transaction(async (tx) => {
+      const created = await tx.appeal.create({
+        data: {
+          penaltyId,
+          userId: session.user.id,
+          reason,
+          evidence: evidence || null,
+          status: 'PENDING',
+        },
+      });
 
-    await prisma.userPenalty.update({
-      where: { id: penaltyId },
-      data: { status: 'APPEALED' },
+      await tx.userPenalty.update({
+        where: { id: penaltyId },
+        data: { status: 'APPEALED' },
+      });
+
+      return created;
     });
 
     return NextResponse.json({ success: true, data: appeal });
