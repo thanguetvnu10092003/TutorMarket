@@ -248,7 +248,7 @@ export default function HorizontalTutorCard({
           </div>
           <div className="flex flex-col">
             <div className="text-sm font-black text-navy-600 dark:text-cream-200 mb-1">
-              {tutor.availableWithin7Days ? '7d' : 'N/A'}
+              {(tutor.availableDaysCount ?? 0) > 0 ? `${tutor.availableDaysCount}d` : 'N/A'}
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
               availability

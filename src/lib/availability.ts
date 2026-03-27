@@ -258,6 +258,43 @@ export function hasAvailabilityWithinDays(input: {
   return false;
 }
 
+export function countAvailableDaysWithinNextDays(input: {
+  availability: AvailabilitySlotLike[];
+  overrides: AvailabilityOverrideLike[];
+  bookings: BookingLike[];
+  durationMinutes: number;
+  days?: number;
+}): number {
+  const { availability, overrides, bookings, durationMinutes, days = 7 } = input;
+  const now = new Date();
+  const distinctDays = new Set<string>();
+
+  for (let d = 0; d < days; d++) {
+    const checkDate = new Date(now);
+    checkDate.setDate(now.getDate() + d);
+    checkDate.setHours(0, 0, 0, 0);
+
+    const windows = getOpenTimeWindowsForDate({
+      date: checkDate,
+      durationMinutes,
+      availability,
+      overrides,
+      bookings,
+    });
+
+    for (const w of windows) {
+      const startMins = timeToMinutes(w.startTime);
+      const endMins = timeToMinutes(w.endTime);
+      if (endMins - startMins >= durationMinutes) {
+        distinctDays.add(normalizeDateKey(checkDate));
+        break;
+      }
+    }
+  }
+
+  return distinctDays.size;
+}
+
 export function isSlotBookable(input: {
   scheduledAt: Date;
   durationMinutes: number;
