@@ -64,6 +64,19 @@ export async function PATCH(
         return NextResponse.json({ error: 'Booking is already cancelled' }, { status: 400 });
       }
 
+      if (booking.status === 'COMPLETED') {
+        return NextResponse.json({ error: 'Completed bookings cannot be cancelled' }, { status: 400 });
+      }
+
+      const CANCEL_THRESHOLD_HOURS = 24;
+      const hoursUntilSession = (booking.scheduledAt.getTime() - Date.now()) / (1000 * 60 * 60);
+      if (hoursUntilSession < CANCEL_THRESHOLD_HOURS) {
+        return NextResponse.json(
+          { error: `Cannot cancel within ${CANCEL_THRESHOLD_HOURS} hours of scheduled time` },
+          { status: 400 }
+        );
+      }
+
       const updatedBooking = await prisma.booking.update({
         where: { id: booking.id },
         data: {

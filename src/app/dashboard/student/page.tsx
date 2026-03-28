@@ -222,6 +222,46 @@ function StudentDashboardInner() {
     }
   }
 
+  async function handleCancelBooking(bookingId: string) {
+    if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel' }),
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to cancel booking');
+      }
+      toast.success('Booking cancelled successfully.');
+      void mutateBookings();
+    } catch (error: any) {
+      toast.error(error.message || 'Could not cancel booking');
+    }
+  }
+
+  async function handleCancelPackage(packageId: string) {
+    if (!window.confirm('Are you sure you want to cancel this entire package? All upcoming sessions will be cancelled. This action cannot be undone.')) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/bookings/${packageId}/cancel-package`, {
+        method: 'POST',
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to cancel package');
+      }
+      toast.success('Package cancelled successfully.');
+      void mutateBookings();
+    } catch (error: any) {
+      toast.error(error.message || 'Could not cancel package');
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-cream-200 dark:bg-navy-600 pt-32 flex justify-center">
@@ -348,6 +388,14 @@ function StudentDashboardInner() {
                               }
                               return null;
                             })()}
+                            {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
+                              <button
+                                onClick={() => void handleCancelBooking(booking.id)}
+                                className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2 py-1 rounded-lg transition-all"
+                              >
+                                Cancel
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -484,6 +532,14 @@ function StudentDashboardInner() {
                           Report
                         </button>
                       </div>
+                    )}
+                    {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
+                      <button
+                        onClick={() => void handleCancelBooking(booking.id)}
+                        className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-3 py-1.5 rounded-xl transition-all"
+                      >
+                        Cancel
+                      </button>
                     )}
                   </div>
                 </div>
