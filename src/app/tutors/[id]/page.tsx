@@ -41,10 +41,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const verifiedSubjectTypes = useMemo(
-    () =>
-      (profile?.verifiedCertifications || []).map((subject: string) =>
-        String(subject).replaceAll(' ', '_').toUpperCase()
-      ),
+    () => (profile?.verifiedCertifications || []) as string[],
     [profile?.verifiedCertifications]
   );
 

@@ -1262,12 +1262,12 @@ export async function getPublicTutorCards(filters: {
     // Bug 1.1: When subject filter is active, return only that subject's certifications
     verifiedCertifications: profile.certifications
       .filter((c: any) => {
-        if (c.status !== 'VERIFIED' && c.status !== 'SELF_REPORTED' && c.status !== 'RESUBMITTED') return false;
+        if (c.status !== 'VERIFIED') return false;
         if (!filters.subject) return true;
         const certType = filters.subject.startsWith('CFA') ? 'CFA' : filters.subject;
         return c.type === certType;
       })
-      .map((c: any) => (filters.subject ? (c.levelOrVariant || c.type) : c.type)),
+      .map((c: any) => c.levelOrVariant || c.type),
   }));
 }
 
@@ -1377,8 +1377,8 @@ export async function getPublicTutorProfile(tutorProfileId: string, viewerContex
     blockedDates: profile.overrides,
     bookedSlots: profile.bookings,
     verifiedCertifications: profile.certifications
-      .filter((c: any) => c.status === 'VERIFIED' || c.status === 'SELF_REPORTED' || c.status === 'RESUBMITTED')
-      .map((c: any) => c.type),
+      .filter((c: any) => c.status === 'VERIFIED')
+      .map((c: any) => c.levelOrVariant || c.type),
     verifiedResults,
   };
 }
