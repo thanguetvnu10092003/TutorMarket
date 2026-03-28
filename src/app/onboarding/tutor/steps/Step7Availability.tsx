@@ -30,6 +30,7 @@ export default function Step7Availability({ onNext, onBack }: Props) {
   const [timezoneQuery, setTimezoneQuery] = useState('');
   const [schedule, setSchedule] = useState<Record<number, DaySchedule>>(createSchedule);
   const [overrides, setOverrides] = useState<string[]>([]);
+  const [blockDateInput, setBlockDateInput] = useState('');
 
   const timeZoneOptions = useMemo(() => getTimeZoneOptions(), []);
   const filteredTimeZones = useMemo(() => {
@@ -266,18 +267,27 @@ export default function Step7Availability({ onNext, onBack }: Props) {
       <div className="space-y-3">
         <label className="text-sm font-bold text-navy-500 dark:text-cream-300">Block Specific Dates</label>
         <p className="text-xs text-navy-300 dark:text-cream-400/40">Add holidays or one-off unavailable dates here.</p>
-        <input
-          type="date"
-          className="input-field w-full max-w-sm"
-          min={new Date().toISOString().split('T')[0]}
-          onChange={(event) => {
-            const value = event.target.value;
-            if (value && !overrides.includes(value)) {
-              setOverrides((previous) => [...previous, value]);
-            }
-            event.target.value = '';
-          }}
-        />
+        <div className="flex gap-2 items-center max-w-sm">
+          <input
+            type="date"
+            className="input-field flex-1"
+            min={new Date().toISOString().split('T')[0]}
+            value={blockDateInput}
+            onChange={(event) => setBlockDateInput(event.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (blockDateInput && !overrides.includes(blockDateInput)) {
+                setOverrides((previous) => [...previous, blockDateInput]);
+              }
+              setBlockDateInput('');
+            }}
+            className="px-4 py-2 rounded-xl bg-navy-600 text-white text-xs font-black uppercase tracking-widest hover:bg-navy-700 transition-colors"
+          >
+            Add
+          </button>
+        </div>
         {overrides.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {overrides.map((date) => (
