@@ -324,11 +324,17 @@ export function isSlotBookable(input: {
   const startTime = minutesToTime(input.scheduledAt.getHours() * 60 + input.scheduledAt.getMinutes());
   const endTime = minutesToTime(timeToMinutes(startTime) + input.durationMinutes);
 
+  const slotStart = timeToMinutes(startTime);
+  const slotEnd = timeToMinutes(endTime);
+
   return getOpenTimeWindowsForDate({
     date: input.scheduledAt,
     durationMinutes: input.durationMinutes,
     availability: input.availability,
     overrides: input.overrides,
     bookings: input.bookings,
-  }).some((window) => window.startTime === startTime && timeToMinutes(window.endTime) >= timeToMinutes(endTime));
+  }).some((window) =>
+    timeToMinutes(window.startTime) <= slotStart &&
+    timeToMinutes(window.endTime) >= slotEnd
+  );
 }
