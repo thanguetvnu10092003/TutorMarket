@@ -148,7 +148,7 @@ export default function TutorFilterBar({
 
         <div className="relative">
           <label className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 absolute left-4 top-2 z-10">
-            Price per lesson
+            Price per 60-min session
           </label>
           <select
             value={priceValue}
