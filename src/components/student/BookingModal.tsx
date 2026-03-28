@@ -85,6 +85,32 @@ function getPackagePrice(option: any, sessions: number, discount: number) {
 }
 
 /**
+ * Convert a UTC Date to wall-clock time in tutorTz.
+ * Returns a Date whose .getHours()/.getDate() reflect the local time in that timezone.
+ */
+function utcToTutorLocal(utcDate: Date, tutorTz: string): Date {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tutorTz,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false,
+  });
+  const parts: Record<string, string> = {};
+  for (const p of fmt.formatToParts(utcDate)) {
+    parts[p.type] = p.value;
+  }
+  const h = parseInt(parts.hour);
+  return new Date(
+    parseInt(parts.year),
+    parseInt(parts.month) - 1,
+    parseInt(parts.day),
+    h === 24 ? 0 : h,
+    parseInt(parts.minute),
+    0,
+  );
+}
+
+/**
  * Given a calendar date and a slot time string "HH:MM" that represents wall-clock
  * time in tutorTz, return the equivalent UTC Date.
  */
@@ -177,12 +203,19 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       dayOfWeek: slot.dayOfWeek === tutorDayOfWeek ? localDayOfWeek : slot.dayOfWeek,
     }));
 
+    // Convert booked slots from UTC to tutor-local time so getBlockedRangesForDate
+    // compares dates and hours in the same timezone as the availability slots.
+    const localBookedSlots = (tutor.bookedSlots || []).map((b: any) => ({
+      ...b,
+      scheduledAt: utcToTutorLocal(new Date(b.scheduledAt), tutorTz),
+    }));
+
     const windows = getOpenTimeWindowsForDate({
       date: day,
       durationMinutes: activeDuration,
       availability: remappedAvailability,
       overrides: tutor.blockedDates || [],
-      bookings: tutor.bookedSlots || [],
+      bookings: localBookedSlots,
     });
 
     const slots = new Set<string>();
