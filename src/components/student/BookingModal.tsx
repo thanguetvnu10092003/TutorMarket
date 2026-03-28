@@ -189,22 +189,10 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       return [];
     }
 
-    // Compute dayOfWeek in the tutor's timezone (availability slots are keyed by tutor's dayOfWeek)
     const tutorTz = tutor.timezone || 'UTC';
-    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tutorTz, weekday: 'short' });
-    const dayName = fmt.format(day);
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const tutorDayOfWeek = weekdays.indexOf(dayName);
-
-    // Remap availability to student's local dayOfWeek so getOpenTimeWindowsForDate matches correctly
-    const localDayOfWeek = day.getDay();
-    const remappedAvailability = (tutor.availability || []).map((slot: any) => ({
-      ...slot,
-      dayOfWeek: slot.dayOfWeek === tutorDayOfWeek ? localDayOfWeek : slot.dayOfWeek,
-    }));
 
     // Convert booked slots from UTC to tutor-local time so getBlockedRangesForDate
-    // compares dates and hours in the same timezone as the availability slots.
+    // compares dates and hours consistently with the stored availability times.
     const localBookedSlots = (tutor.bookedSlots || []).map((b: any) => ({
       ...b,
       scheduledAt: utcToTutorLocal(new Date(b.scheduledAt), tutorTz),
@@ -213,7 +201,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
     const windows = getOpenTimeWindowsForDate({
       date: day,
       durationMinutes: activeDuration,
-      availability: remappedAvailability,
+      availability: tutor.availability || [],
       overrides: tutor.blockedDates || [],
       bookings: localBookedSlots,
     });
