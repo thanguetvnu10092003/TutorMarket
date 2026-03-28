@@ -24,6 +24,8 @@ const bookingSchema = z.object({
 
 const VALID_SUBJECTS = ['CFA_LEVEL_1', 'CFA_LEVEL_2', 'CFA_LEVEL_3', 'GMAT', 'GRE'] as const;
 
+const MAX_SESSION_DURATION_MINUTES = 90;
+
 // Map CertificationType values (CFA, GMAT, GRE) to Subject enum values
 function normalizeSubject(raw: string): string {
   const MAP: Record<string, string> = { 'CFA': 'CFA_LEVEL_1' };
@@ -225,7 +227,7 @@ export async function POST(req: NextRequest) {
               status: { in: ['PENDING', 'CONFIRMED'] },
               scheduledAt: {
                 lt: slotEnd,
-                gt: new Date(slotDate.getTime() - 90 * 60 * 1000),
+                gt: new Date(slotDate.getTime() - MAX_SESSION_DURATION_MINUTES * 60 * 1000),
               },
             },
             select: { scheduledAt: true, durationMinutes: true },
@@ -257,18 +259,17 @@ export async function POST(req: NextRequest) {
           packageBookings.push(b);
         }
 
-        // Update meeting links to use actual booking IDs
-        await Promise.all(
-          packageBookings.map((b) =>
-            tx.booking.update({
-              where: { id: b.id },
-              data: { meetingLink: buildBookingRoomUrl(b.id) },
-            })
-          )
-        );
-
         return { pkg, packageBookings };
       });
+
+      await Promise.all(
+        packageBookings.map((b: any) =>
+          prisma.booking.update({
+            where: { id: b.id },
+            data: { meetingLink: buildBookingRoomUrl(b.id) },
+          })
+        )
+      );
 
       // Notify tutor about the package booking
       await notifyTutorAboutBookingRequest({
@@ -396,7 +397,7 @@ export async function POST(req: NextRequest) {
           status: { in: ['PENDING', 'CONFIRMED'] },
           scheduledAt: {
             lt: newEnd,
-            gt: new Date(scheduledDate.getTime() - 90 * 60 * 1000),
+            gt: new Date(scheduledDate.getTime() - MAX_SESSION_DURATION_MINUTES * 60 * 1000),
           },
         },
         select: { scheduledAt: true, durationMinutes: true },
