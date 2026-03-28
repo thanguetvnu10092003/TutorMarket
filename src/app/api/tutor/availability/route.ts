@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { sortAvailabilitySlots, validateDailyAvailabilitySlots } from '@/lib/availability';
+import { sortAvailabilitySlots, validateDailyAvailabilitySlots, timeToMinutes, minutesToTime } from '@/lib/availability';
 
 export async function GET() {
   try {
@@ -71,6 +71,24 @@ export async function POST(request: Request) {
     const { timezone, slots, overrides } = await request.json();
     const normalizedSlots = Array.isArray(slots) ? slots : [];
     const normalizedOverrides = Array.isArray(overrides) ? overrides : [];
+
+    // Validate: each slot must be on :00 or :30 boundary and exactly 30 minutes long
+    for (const slot of normalizedSlots) {
+      const startMins = timeToMinutes(slot.startTime);
+      if (startMins % 30 !== 0) {
+        return NextResponse.json(
+          { error: 'Slot times must be on :00 or :30 boundaries' },
+          { status: 400 }
+        );
+      }
+      const expectedEnd = minutesToTime(startMins + 30);
+      if (slot.endTime !== expectedEnd) {
+        return NextResponse.json(
+          { error: 'Each slot must be exactly 30 minutes' },
+          { status: 400 }
+        );
+      }
+    }
 
     const tutorProfile = await prisma.tutorProfile.findUnique({
       where: { userId: session.user.id }
