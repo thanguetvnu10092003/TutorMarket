@@ -211,7 +211,24 @@ export async function POST(
             if (cert.mbaEmail) certData.mbaEmail = cert.mbaEmail;
             if (cert.mbaPassword) certData.mbaPasswordEncrypted = encrypt(cert.mbaPassword);
             const createdCert = await prisma.tutorCertification.create({ data: certData });
-            
+
+            // Mirror uploaded document to TutorCredential so dashboard "Submitted Documents" shows it
+            if (certData.fileUrl) {
+              const fileName = certData.fileUrl.split('/').pop() || String(cert.type);
+              const subjectRaw = (cert.levelOrVariant || cert.type) as string;
+              const credId = `cred_onb_${Math.random().toString(36).substring(2, 11)}`;
+              await prisma.$executeRawUnsafe(
+                `INSERT INTO "TutorCredential" ("id", "tutorProfileId", "type", "subject", "fileName", "fileUrl", "uploadedAt")
+                 VALUES ($1, $2, 'SCORE_REPORT'::"CredentialType", $3::"Subject", $4, $5, NOW())
+                 ON CONFLICT DO NOTHING`,
+                credId,
+                tutorProfile.id,
+                subjectRaw,
+                fileName,
+                certData.fileUrl
+              );
+            }
+
             // Also create a GmatVerificationRequest for the new system
             if (cert.type === 'GMAT' && cert.mbaEmail && cert.mbaPassword) {
               // @ts-ignore
