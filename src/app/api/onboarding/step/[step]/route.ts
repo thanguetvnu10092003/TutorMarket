@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { encrypt } from '@/lib/encryption';
-import { sortAvailabilitySlots, validateDailyAvailabilitySlots } from '@/lib/availability';
+import { sortAvailabilitySlots, validateDailyAvailabilitySlots, timeToMinutes, minutesToTime } from '@/lib/availability';
 
 // Encryption helpers for sensitive MBA.com credentials
 const ALGORITHM = 'aes-256-cbc';
@@ -312,6 +312,25 @@ export async function POST(
         const { timezone, slots, overrides } = body;
         const normalizedSlots = Array.isArray(slots) ? slots : [];
         const normalizedOverrides = Array.isArray(overrides) ? overrides : [];
+
+        // Validate: each slot must be on :00 or :30 boundary and exactly 30 minutes long
+        for (const slot of normalizedSlots) {
+          const startMins = timeToMinutes(slot.startTime);
+          if (startMins % 30 !== 0) {
+            return NextResponse.json(
+              { error: 'Slot times must be on :00 or :30 boundaries' },
+              { status: 400 }
+            );
+          }
+          const expectedEnd = minutesToTime(startMins + 30);
+          if (slot.endTime !== expectedEnd) {
+            return NextResponse.json(
+              { error: 'Each slot must be exactly 30 minutes' },
+              { status: 400 }
+            );
+          }
+        }
+
         const slotsByDay = normalizedSlots.reduce<Record<number, Array<{ startTime: string; endTime: string }>>>((accumulator, slot) => {
           const dayOfWeek = Number(slot.dayOfWeek);
           accumulator[dayOfWeek] = accumulator[dayOfWeek] || [];
