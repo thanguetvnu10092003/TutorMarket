@@ -264,20 +264,39 @@ export function countAvailableDaysWithinNextDays(input: {
   bookings: BookingLike[];
   durationMinutes: number;
   days?: number;
+  timezone?: string;
 }): number {
-  const { availability, overrides, bookings, durationMinutes, days = 7 } = input;
+  const { availability, overrides, bookings, durationMinutes, days = 7, timezone } = input;
   const now = new Date();
   const distinctDays = new Set<string>();
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const tzFmt = timezone
+    ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'short' })
+    : null;
 
   for (let d = 0; d < days; d++) {
     const checkDate = new Date(now);
     checkDate.setDate(now.getDate() + d);
     checkDate.setHours(0, 0, 0, 0);
 
+    // Remap availability dayOfWeek to checkDate.getDay() if timezone provided
+    let effectiveAvailability = availability;
+    if (tzFmt) {
+      const tutorDayOfWeek = weekdays.indexOf(tzFmt.format(checkDate));
+      const localDayOfWeek = checkDate.getDay();
+      if (tutorDayOfWeek !== localDayOfWeek) {
+        effectiveAvailability = availability.map((slot) => ({
+          ...slot,
+          dayOfWeek:
+            slot.dayOfWeek === tutorDayOfWeek ? localDayOfWeek : slot.dayOfWeek,
+        }));
+      }
+    }
+
     const windows = getOpenTimeWindowsForDate({
       date: checkDate,
       durationMinutes,
-      availability,
+      availability: effectiveAvailability,
       overrides,
       bookings,
     });

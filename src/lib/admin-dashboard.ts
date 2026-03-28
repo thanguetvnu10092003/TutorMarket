@@ -1117,6 +1117,7 @@ export async function getPublicTutorCards(filters: {
         overrides: profile.overrides,
         bookings: profile.bookings,
         durationMinutes: primaryPricingOption?.durationMinutes || 60,
+        timezone: profile.timezone || undefined,
       });
 
       // Bug 1.2 + 1.3: Use actual booking/student counts
