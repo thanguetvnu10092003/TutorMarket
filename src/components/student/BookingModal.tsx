@@ -184,7 +184,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
     end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }),
   });
 
-  const getSlotsForDay = (day: Date) => {
+  const getSlotsForDay = (day: Date): Array<{ time: string; isBooked: boolean }> => {
     if (isBefore(day, startOfDay(new Date()))) {
       return [];
     }
@@ -198,7 +198,18 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       scheduledAt: utcToTutorLocal(new Date(b.scheduledAt), tutorTz),
     }));
 
-    const windows = getOpenTimeWindowsForDate({
+    // All slots within availability + overrides, ignoring existing bookings.
+    // These are the slots that would be bookable if nobody had booked yet.
+    const allWindows = getOpenTimeWindowsForDate({
+      date: day,
+      durationMinutes: activeDuration,
+      availability: tutor.availability || [],
+      overrides: tutor.blockedDates || [],
+      bookings: [],
+    });
+
+    // Slots still free after blocking existing bookings.
+    const freeWindows = getOpenTimeWindowsForDate({
       date: day,
       durationMinutes: activeDuration,
       availability: tutor.availability || [],
@@ -206,28 +217,44 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       bookings: localBookedSlots,
     });
 
-    const slots = new Set<string>();
-    for (const window of windows) {
-      let currentStart = timeToMinutes(window.startTime);
-      const latestStart = timeToMinutes(window.endTime) - activeDuration;
-
-      while (currentStart <= latestStart) {
-        const time = minutesToTime(currentStart);
-        if (isToday(day)) {
-          const currentSlotDate = new Date(day);
-          currentSlotDate.setHours(Math.floor(currentStart / 60), currentStart % 60, 0, 0);
-          if (isBefore(currentSlotDate, new Date())) {
-            currentStart += activeDuration;
-            continue;
-          }
-        }
-
-        slots.add(time);
-        currentStart += activeDuration;
+    const freeSlotTimes = new Set<string>();
+    for (const w of freeWindows) {
+      let cur = timeToMinutes(w.startTime);
+      const last = timeToMinutes(w.endTime) - activeDuration;
+      while (cur <= last) {
+        freeSlotTimes.add(minutesToTime(cur));
+        cur += activeDuration;
       }
     }
 
-    return Array.from(slots).sort((left, right) => timeToMinutes(left) - timeToMinutes(right));
+    const result: Array<{ time: string; isBooked: boolean }> = [];
+    const seen = new Set<string>();
+
+    for (const w of allWindows) {
+      let cur = timeToMinutes(w.startTime);
+      const last = timeToMinutes(w.endTime) - activeDuration;
+
+      while (cur <= last) {
+        const time = minutesToTime(cur);
+        if (!seen.has(time)) {
+          seen.add(time);
+
+          if (isToday(day)) {
+            const slotDate = new Date(day);
+            slotDate.setHours(Math.floor(cur / 60), cur % 60, 0, 0);
+            if (isBefore(slotDate, new Date())) {
+              cur += activeDuration;
+              continue;
+            }
+          }
+
+          result.push({ time, isBooked: !freeSlotTimes.has(time) });
+        }
+        cur += activeDuration;
+      }
+    }
+
+    return result.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
   };
 
   const nextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -430,10 +457,22 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                     const slots = getSlotsForDay(day);
                     return (
                       <div key={day.toString()} className="flex flex-col gap-1">
-                        {slots.length > 0 ? slots.map((time) => {
+                        {slots.length > 0 ? slots.map(({ time, isBooked }) => {
                           const selected = selectedDate && isSameDay(selectedDate, day) && selectedSlot === time;
                           return (
-                            <button key={time} onClick={() => { setSelectedDate(day); setSelectedSlot(time); }} className={`py-2 text-[10px] font-bold rounded-lg transition-all ${selected ? 'bg-navy-600 text-white shadow-lg' : 'bg-navy-50/50 dark:bg-navy-700/50 text-navy-400 dark:text-cream-400/40 hover:bg-gold-50 hover:text-gold-600'}`}>
+                            <button
+                              key={time}
+                              disabled={isBooked}
+                              onClick={() => { if (!isBooked) { setSelectedDate(day); setSelectedSlot(time); } }}
+                              title={isBooked ? 'Already booked' : undefined}
+                              className={`py-2 text-[10px] font-bold rounded-lg transition-all ${
+                                selected
+                                  ? 'bg-navy-600 text-white shadow-lg'
+                                  : isBooked
+                                  ? 'bg-red-50 dark:bg-red-900/20 text-red-300 dark:text-red-400/50 cursor-not-allowed line-through'
+                                  : 'bg-navy-50/50 dark:bg-navy-700/50 text-navy-400 dark:text-cream-400/40 hover:bg-gold-50 hover:text-gold-600'
+                              }`}
+                            >
                               {slotLabel(time)}
                             </button>
                           );
@@ -481,21 +520,31 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                     const slots = getSlotsForDay(day);
                     return (
                       <div key={day.toString()} className="flex flex-col gap-1">
-                        {slots.length > 0 ? slots.map((time) => {
+                        {slots.length > 0 ? slots.map(({ time, isBooked }) => {
                           const isSelected = selectedPackageSlots.some(s => isSameDay(s.date, day) && s.slot === time);
                           const isMaxReached = selectedPackageSlots.length >= selectedPackage.sessions && !isSelected;
                           return (
                             <button
                               key={time}
-                              disabled={isMaxReached}
+                              disabled={isBooked || isMaxReached}
+                              title={isBooked ? 'Already booked' : undefined}
                               onClick={() => {
+                                if (isBooked) return;
                                 if (isSelected) {
                                   setSelectedPackageSlots(prev => prev.filter(s => !(isSameDay(s.date, day) && s.slot === time)));
                                 } else if (selectedPackageSlots.length < selectedPackage.sessions) {
                                   setSelectedPackageSlots(prev => [...prev, { date: day, slot: time }]);
                                 }
                               }}
-                              className={`py-2 text-[10px] font-bold rounded-lg transition-all ${isSelected ? 'bg-sage-500 text-white shadow-lg' : isMaxReached ? 'opacity-30 cursor-not-allowed bg-navy-50/30 text-navy-300' : 'bg-navy-50/50 dark:bg-navy-700/50 text-navy-400 dark:text-cream-400/40 hover:bg-gold-50 hover:text-gold-600'}`}
+                              className={`py-2 text-[10px] font-bold rounded-lg transition-all ${
+                                isSelected
+                                  ? 'bg-sage-500 text-white shadow-lg'
+                                  : isBooked
+                                  ? 'bg-red-50 dark:bg-red-900/20 text-red-300 dark:text-red-400/50 cursor-not-allowed line-through'
+                                  : isMaxReached
+                                  ? 'opacity-30 cursor-not-allowed bg-navy-50/30 text-navy-300'
+                                  : 'bg-navy-50/50 dark:bg-navy-700/50 text-navy-400 dark:text-cream-400/40 hover:bg-gold-50 hover:text-gold-600'
+                              }`}
                             >
                               {slotLabel(time)}
                             </button>
