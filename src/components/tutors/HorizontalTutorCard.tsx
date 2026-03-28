@@ -202,8 +202,8 @@ export default function HorizontalTutorCard({
             Lesson Options
           </p>
           <div className="flex flex-wrap gap-2.5">
-            {tutor.pricing?.filter((p: any) => p.isEnabled).sort((a: any, b: any) => a.durationMinutes - b.durationMinutes).map((p: any) => (
-              <div 
+            {(tutor.pricingOptions || tutor.pricing)?.filter((p: any) => p.isEnabled !== false).sort((a: any, b: any) => a.durationMinutes - b.durationMinutes).map((p: any) => (
+              <div
                 key={p.id}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl transition-all hover:border-gold-400 hover:shadow-lg group/price"
               >
@@ -214,11 +214,11 @@ export default function HorizontalTutorCard({
                 </div>
                 <div className="flex flex-col -space-y-0.5">
                   <span className="text-[10px] font-black text-navy-600 dark:text-cream-200 uppercase tracking-tighter">{p.durationMinutes}m</span>
-                  <span className="text-xs font-black text-gold-600 dark:text-gold-400">{formatCurrency(p.price)}</span>
+                  <span className="text-xs font-black text-gold-600 dark:text-gold-400">{p.priceDisplay?.formatted || formatCurrency(p.price, p.currency || 'USD')}</span>
                 </div>
               </div>
             ))}
-            {(!tutor.pricing || tutor.pricing.filter((p: any) => p.isEnabled).length === 0) && (
+            {(!(tutor.pricingOptions || tutor.pricing) || (tutor.pricingOptions || tutor.pricing).filter((p: any) => p.isEnabled !== false).length === 0) && (
               <p className="text-xs text-navy-300 dark:text-cream-400/60 font-medium">Standard rates apply.</p>
             )}
           </div>
