@@ -1202,7 +1202,7 @@ export async function getPublicTutorCards(filters: {
         return (right.actualHoursTaught || 0) - (left.actualHoursTaught || 0);
       }
       case 'sessions':
-        return right.totalSessions - left.totalSessions;
+        return (right.actualBookingCount || 0) - (left.actualBookingCount || 0);
       default: {
         // Weighted scoring for "Recommended"
         const getScore = (p: any) => {
