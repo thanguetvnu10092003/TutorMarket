@@ -365,33 +365,35 @@ export async function POST(
           }))
         );
 
-        await prisma.availability.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
-        if (orderedSlots.length > 0) {
-          await prisma.availability.createMany({
-            data: orderedSlots,
-          });
-        }
+        await prisma.$transaction(async (tx) => {
+          await tx.availability.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
+          if (orderedSlots.length > 0) {
+            await tx.availability.createMany({
+              data: orderedSlots,
+            });
+          }
 
-        await prisma.availabilityOverride.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
-        if (normalizedOverrides.length > 0) {
-          await prisma.availabilityOverride.createMany({
-            data: normalizedOverrides.map((o: any) => ({
-              tutorProfileId: tutorProfile.id,
-              date: new Date(o.date),
-              startTime: o.startTime || null,
-              endTime: o.endTime || null,
-              reason: o.reason || 'Unavailable',
-              isAvailable: o.isAvailable ?? false,
-            })),
-          });
-        }
+          await tx.availabilityOverride.deleteMany({ where: { tutorProfileId: tutorProfile.id } });
+          if (normalizedOverrides.length > 0) {
+            await tx.availabilityOverride.createMany({
+              data: normalizedOverrides.map((o: any) => ({
+                tutorProfileId: tutorProfile.id,
+                date: new Date(o.date),
+                startTime: o.startTime || null,
+                endTime: o.endTime || null,
+                reason: o.reason || 'Unavailable',
+                isAvailable: o.isAvailable ?? false,
+              })),
+            });
+          }
 
-        await prisma.tutorProfile.update({
-          where: { id: tutorProfile.id },
-          data: {
-            timezone,
-            onboardingStep: Math.max(tutorProfile.onboardingStep, 7),
-          },
+          await tx.tutorProfile.update({
+            where: { id: tutorProfile.id },
+            data: {
+              timezone,
+              onboardingStep: Math.max(tutorProfile.onboardingStep, 7),
+            },
+          });
         });
         break;
       }
