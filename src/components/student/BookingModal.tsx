@@ -262,6 +262,12 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
 
       const json = await response.json();
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error(
+            json.error ||
+              'This time slot is no longer available. Please choose a different time.'
+          );
+        }
         throw new Error(json.error || 'Failed to process request');
       }
 
