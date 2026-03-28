@@ -148,12 +148,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'You must select a time slot for each session in the package.' }, { status: 400 });
       }
 
-      // Validate all slots are in the future
+      // Validate all slots are in the future and on :00/:30 boundaries
       for (const slotIso of packageScheduledSlots) {
         const slotDate = new Date(slotIso);
         if (Number.isNaN(slotDate.getTime()) || slotDate.getTime() <= Date.now()) {
           return NextResponse.json({ error: 'All selected session times must be in the future.' }, { status: 400 });
         }
+        const slotMinutes = slotDate.getMinutes();
+        if (slotMinutes !== 0 && slotMinutes !== 30) {
+          return NextResponse.json(
+            { error: 'Package booking times must be on :00 or :30 minute boundaries' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Enforce allowed durations
+      if (![30, 60, 90].includes(selectedDurationMinutes)) {
+        return NextResponse.json(
+          { error: 'Duration must be 30, 60, or 90 minutes' },
+          { status: 400 }
+        );
       }
 
       if (!selectedPricingOption) {
@@ -197,31 +212,54 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Create one Booking record per scheduled slot
-        const packageBookings = await Promise.all(
-          packageScheduledSlots.map((slotIso, index) => {
-            const slotDate = new Date(slotIso);
-            return tx.booking.create({
-              data: {
-                studentId,
-                tutorProfileId,
-                packageId: pkg.id,
-                scheduledAt: slotDate,
-                durationMinutes: selectedDurationMinutes,
-                status: 'PENDING',
-                sessionNumber: previousSessionsCount + index + 1,
-                isFreeSession: false,
-                subject: normalizedPkgSubject as any,
-                meetingLink: `pending-pkg-${pkg.id}-${index}`,
-                notes: notes || null,
+        // Create one Booking record per scheduled slot, with atomic conflict check per slot
+        const packageBookings: any[] = [];
+        for (let index = 0; index < packageScheduledSlots.length; index++) {
+          const slotIso = packageScheduledSlots[index];
+          const slotDate = new Date(slotIso);
+          const slotEnd = new Date(slotDate.getTime() + selectedDurationMinutes * 60 * 1000);
+
+          const candidate = await tx.booking.findFirst({
+            where: {
+              tutorProfileId,
+              status: { in: ['PENDING', 'CONFIRMED'] },
+              scheduledAt: {
+                lt: slotEnd,
+                gt: new Date(slotDate.getTime() - 90 * 60 * 1000),
               },
-            });
-          })
-        );
+            },
+            select: { scheduledAt: true, durationMinutes: true },
+          });
+          if (candidate) {
+            const existingEnd = new Date(
+              new Date(candidate.scheduledAt).getTime() + candidate.durationMinutes * 60 * 1000
+            );
+            if (new Date(candidate.scheduledAt) < slotEnd && existingEnd > slotDate) {
+              throw new Error('SLOT_CONFLICT');
+            }
+          }
+
+          const b = await tx.booking.create({
+            data: {
+              studentId,
+              tutorProfileId,
+              packageId: pkg.id,
+              scheduledAt: slotDate,
+              durationMinutes: selectedDurationMinutes,
+              status: 'PENDING',
+              sessionNumber: previousSessionsCount + index + 1,
+              isFreeSession: false,
+              subject: normalizedPkgSubject as any,
+              meetingLink: `pending-pkg-${pkg.id}-${index}`,
+              notes: notes || null,
+            },
+          });
+          packageBookings.push(b);
+        }
 
         // Update meeting links to use actual booking IDs
         await Promise.all(
-          packageBookings.map(b =>
+          packageBookings.map((b) =>
             tx.booking.update({
               where: { id: b.id },
               data: { meetingLink: buildBookingRoomUrl(b.id) },
@@ -281,6 +319,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Please choose a future time slot' }, { status: 400 });
     }
 
+    // Enforce :00 or :30 minute boundaries
+    const scheduledMinutes = scheduledDate.getMinutes();
+    if (scheduledMinutes !== 0 && scheduledMinutes !== 30) {
+      return NextResponse.json(
+        { error: 'Bookings must start on :00 or :30 minute boundaries' },
+        { status: 400 }
+      );
+    }
+
+    // Enforce allowed durations
+    if (![30, 60, 90].includes(selectedDurationMinutes)) {
+      return NextResponse.json(
+        { error: 'Duration must be 30, 60, or 90 minutes' },
+        { status: 400 }
+      );
+    }
+
     // Bug 3.1: Validate & normalize subject enum value
     const normalizedSubject = normalizeSubject(subject);
     if (!VALID_SUBJECTS.includes(normalizedSubject as any)) {
@@ -331,38 +386,58 @@ export async function POST(req: NextRequest) {
     const exchangeRate = 25500;
     const isVnd = selectedPricingOption?.currency === 'VND';
     const usdPrice = isVnd ? Math.round((rawPrice / exchangeRate) * 100) / 100 : rawPrice;
+    const newEnd = new Date(scheduledDate.getTime() + selectedDurationMinutes * 60 * 1000);
 
-    const booking = await prisma.booking.create({
-      data: {
-        studentId,
-        tutorProfileId,
-        scheduledAt: scheduledDate,
-        durationMinutes: selectedDurationMinutes,
-        status: 'PENDING',
-        sessionNumber: previousSessionsCount + 1,
-        isFreeSession,
-        subject: normalizedSubject as any,
-        meetingLink: buildBookingRoomUrl(`pending-${Date.now()}`),
-        notes,
-        payment: {
-          create: {
-            amount: usdPrice,
-            status: usdPrice === 0 ? 'CAPTURED' : 'PENDING',
-            platformFee: 0,
-            tutorPayout: 0,
+    // Atomic: conflict check + booking creation to prevent double-booking race conditions
+    const booking = await prisma.$transaction(async (tx) => {
+      const candidate = await tx.booking.findFirst({
+        where: {
+          tutorProfileId,
+          status: { in: ['PENDING', 'CONFIRMED'] },
+          scheduledAt: {
+            lt: newEnd,
+            gt: new Date(scheduledDate.getTime() - 90 * 60 * 1000),
           },
         },
-      },
-      include: {
-        payment: true,
-      },
+        select: { scheduledAt: true, durationMinutes: true },
+      });
+      if (candidate) {
+        const existingEnd = new Date(
+          new Date(candidate.scheduledAt).getTime() + candidate.durationMinutes * 60 * 1000
+        );
+        if (new Date(candidate.scheduledAt) < newEnd && existingEnd > scheduledDate) {
+          throw new Error('SLOT_CONFLICT');
+        }
+      }
+
+      return tx.booking.create({
+        data: {
+          studentId,
+          tutorProfileId,
+          scheduledAt: scheduledDate,
+          durationMinutes: selectedDurationMinutes,
+          status: 'PENDING',
+          sessionNumber: previousSessionsCount + 1,
+          isFreeSession,
+          subject: normalizedSubject as any,
+          meetingLink: buildBookingRoomUrl(`pending-${Date.now()}`),
+          notes,
+          payment: {
+            create: {
+              amount: usdPrice,
+              status: usdPrice === 0 ? 'CAPTURED' : 'PENDING',
+              platformFee: 0,
+              tutorPayout: 0,
+            },
+          },
+        },
+        include: { payment: true },
+      });
     });
 
     await prisma.booking.update({
       where: { id: booking.id },
-      data: {
-        meetingLink: buildBookingRoomUrl(booking.id),
-      },
+      data: { meetingLink: buildBookingRoomUrl(booking.id) },
     });
 
     await prisma.bookingEvent.create({
@@ -422,6 +497,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Booking error:', error);
+    if (error.message === 'SLOT_CONFLICT') {
+      return NextResponse.json(
+        { error: 'This time slot is already booked. Please choose another time.', code: 'SLOT_CONFLICT' },
+        { status: 409 }
+      );
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
