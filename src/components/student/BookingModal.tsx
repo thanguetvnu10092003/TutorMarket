@@ -35,6 +35,7 @@ interface BookingModalProps {
     blockedDates?: any[];
     bookedSlots?: any[];
     hourlyRate?: number;
+    timezone?: string | null;
   };
 }
 
@@ -83,6 +84,40 @@ function getPackagePrice(option: any, sessions: number, discount: number) {
   };
 }
 
+/**
+ * Given a calendar date and a slot time string "HH:MM" that represents wall-clock
+ * time in tutorTz, return the equivalent UTC Date.
+ */
+function tutorLocalToUTC(date: Date, slotTime: string, tutorTz: string): Date {
+  const [slotHour, slotMinute] = slotTime.split(':').map(Number);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  const candidateUTC = new Date(Date.UTC(year, month - 1, day, slotHour, slotMinute, 0));
+
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tutorTz,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false,
+  });
+  const parts: Record<string, string> = {};
+  for (const p of fmt.formatToParts(candidateUTC)) {
+    parts[p.type] = p.value;
+  }
+  const displayedH = parseInt(parts.hour) === 24 ? 0 : parseInt(parts.hour);
+  const displayedMs = Date.UTC(
+    parseInt(parts.year),
+    parseInt(parts.month) - 1,
+    parseInt(parts.day),
+    displayedH,
+    parseInt(parts.minute),
+  );
+  const targetMs = Date.UTC(year, month - 1, day, slotHour, slotMinute);
+  return new Date(candidateUTC.getTime() + (targetMs - displayedMs));
+}
+
 export default function BookingModal({ isOpen, onClose, tutor }: BookingModalProps) {
   const pricingOptions = useMemo(() => getPricingOptions(tutor), [tutor]);
   const defaultDuration = pricingOptions[0]?.durationMinutes || 60;
@@ -128,10 +163,24 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       return [];
     }
 
+    // Compute dayOfWeek in the tutor's timezone (availability slots are keyed by tutor's dayOfWeek)
+    const tutorTz = tutor.timezone || 'UTC';
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tutorTz, weekday: 'short' });
+    const dayName = fmt.format(day);
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const tutorDayOfWeek = weekdays.indexOf(dayName);
+
+    // Remap availability to student's local dayOfWeek so getOpenTimeWindowsForDate matches correctly
+    const localDayOfWeek = day.getDay();
+    const remappedAvailability = (tutor.availability || []).map((slot: any) => ({
+      ...slot,
+      dayOfWeek: slot.dayOfWeek === tutorDayOfWeek ? localDayOfWeek : slot.dayOfWeek,
+    }));
+
     const windows = getOpenTimeWindowsForDate({
       date: day,
       durationMinutes: activeDuration,
-      availability: tutor.availability || [],
+      availability: remappedAvailability,
       overrides: tutor.blockedDates || [],
       bookings: tutor.bookedSlots || [],
     });
@@ -186,9 +235,8 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
     try {
       let scheduledAt: Date | null = null;
       if (selectedDate && selectedSlot) {
-        scheduledAt = new Date(selectedDate);
-        const [hours, minutes] = selectedSlot.split(':').map(Number);
-        scheduledAt.setHours(hours, minutes, 0, 0);
+        const tutorTz = tutor.timezone || 'UTC';
+        scheduledAt = tutorLocalToUTC(selectedDate, selectedSlot, tutorTz);
       }
 
       const response = await fetch('/api/bookings', {
@@ -205,10 +253,8 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
           discount: selectedPackage?.discount,
           packageScheduledSlots: selectedType === 'PACKAGE'
             ? selectedPackageSlots.map(s => {
-                const dt = new Date(s.date);
-                const [hours, minutes] = s.slot.split(':').map(Number);
-                dt.setHours(hours, minutes, 0, 0);
-                return dt.toISOString();
+                const tutorTz = tutor.timezone || 'UTC';
+                return tutorLocalToUTC(s.date, s.slot, tutorTz).toISOString();
               })
             : undefined,
         }),
