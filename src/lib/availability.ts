@@ -338,3 +338,34 @@ export function isSlotBookable(input: {
     timeToMinutes(window.endTime) >= slotEnd
   );
 }
+
+export function getNextAvailableDate(input: {
+  availability: AvailabilitySlotLike[];
+  overrides?: AvailabilityOverrideLike[];
+  bookings?: BookingLike[];
+  durationMinutes: number;
+  days?: number;
+}): Date | null {
+  const days = input.days ?? 14;
+  const today = new Date();
+
+  for (let offset = 0; offset < days; offset++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + offset);
+    date.setHours(0, 0, 0, 0);
+
+    const windows = getOpenTimeWindowsForDate({
+      date,
+      durationMinutes: input.durationMinutes,
+      availability: input.availability,
+      overrides: input.overrides ?? [],
+      bookings: input.bookings ?? [],
+    });
+
+    if (windows.length > 0) {
+      return date;
+    }
+  }
+
+  return null;
+}
