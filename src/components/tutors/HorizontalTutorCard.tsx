@@ -13,6 +13,18 @@ interface HorizontalTutorCardProps {
   onToggleFavorite?: (tutorId: string) => void;
 }
 
+function formatNextAvailable(nextDate: Date | null | string | undefined): string {
+  if (!nextDate) return 'No upcoming slots';
+  const date = typeof nextDate === 'string' ? new Date(nextDate) : nextDate;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (date.getTime() <= today.getTime()) return 'Available today';
+  if (date.getTime() <= tomorrow.getTime()) return 'Available tomorrow';
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
 function getPricingSummary(tutor: any) {
   if (!Array.isArray(tutor.pricingOptions) || tutor.pricingOptions.length === 0) {
     return tutor.primaryPrice?.formatted || 'Contact for pricing';
@@ -66,7 +78,7 @@ export default function HorizontalTutorCard({
             </div>
           )}
         </div>
-        {tutor.availableWithin7Days && (
+        {tutor.nextAvailableDate != null && (
           <div className="absolute -bottom-1 -right-1 px-2.5 py-1 rounded-full bg-green-500 border-4 border-white dark:border-navy-800 shadow-md z-10 text-[9px] font-black uppercase tracking-widest text-white">
             Open
           </div>
@@ -247,11 +259,11 @@ export default function HorizontalTutorCard({
             </span>
           </div>
           <div className="flex flex-col">
-            <div className="text-sm font-black text-navy-600 dark:text-cream-200 mb-1">
-              {(tutor.availableDaysCount ?? 0) > 0 ? `${tutor.availableDaysCount}d` : 'N/A'}
+            <div className="text-[10px] font-black text-navy-600 dark:text-cream-200 mb-1 truncate leading-tight">
+              {formatNextAvailable(tutor.nextAvailableDate)}
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
-              availability
+              next available
             </span>
           </div>
         </div>
