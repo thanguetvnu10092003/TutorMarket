@@ -75,7 +75,7 @@ export function Analytics({
         <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
           <div>
             <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">Analytics Controls</h2>
-            <p className="mt-2 text-sm text-navy-400">Adjust the platform commission rate and switch analytics time windows.</p>
+            <p className="mt-2 text-sm text-navy-400 dark:text-cream-400/70">Adjust the platform commission rate and switch analytics time windows.</p>
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
@@ -165,7 +165,7 @@ export function Analytics({
           <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">Conversions</h2>
           <div className="mt-6 space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-navy-400">Overall Booking Conversion</span>
+              <span className="text-sm font-bold text-navy-400 dark:text-cream-400/70">Overall Booking Conversion</span>
               <span className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">
                 {tutorAnalytics.overallConversionRate || 0}%
               </span>
@@ -174,7 +174,7 @@ export function Analytics({
               <div className="bg-gold-400 h-full" style={{ width: `${tutorAnalytics.overallConversionRate || 0}%` }} />
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-navy-400">Free to Paid</span>
+              <span className="text-sm font-bold text-navy-400 dark:text-cream-400/70">Free to Paid</span>
               <span className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">
                 {tutorAnalytics.freeToPaidConversionRate || 0}%
               </span>
@@ -183,7 +183,7 @@ export function Analytics({
               <div className="bg-navy-600 h-full" style={{ width: `${tutorAnalytics.freeToPaidConversionRate || 0}%` }} />
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-navy-400">Student Retention</span>
+              <span className="text-sm font-bold text-navy-400 dark:text-cream-400/70">Student Retention</span>
               <span className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">
                 {studentAnalytics.retention.paidConversionRate}%
               </span>

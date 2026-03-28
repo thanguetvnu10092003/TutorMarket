@@ -100,9 +100,9 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
     adminActions,
     campaigns,
     seoMetadata,
+    packages,
     strikes,
     gmatRequests,
-    packages,
     platformSettings,
   ] = await Promise.all([
     prisma.user.findMany({

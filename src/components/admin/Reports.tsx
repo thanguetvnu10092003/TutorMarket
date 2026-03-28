@@ -243,7 +243,8 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
                         void runAction('PERMANENT_BAN_ACCOUNT');
                       }} className="rounded-xl border border-red-300 py-3 text-xs font-black text-red-600 hover:bg-red-50 transition-colors">Ban</button>
                   </div>
-                  {(selectedReport.reportedParty?.suspendedUntil || selectedReport.reportedParty?.isBanned) && (
+                  {(selectedReport.reportedParty?.isBanned ||
+                    (selectedReport.reportedParty?.suspendedUntil && new Date(selectedReport.reportedParty.suspendedUntil) > new Date())) && (
                     <div className="grid grid-cols-1 gap-2">
                       <button
                         onClick={() => {

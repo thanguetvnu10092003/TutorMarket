@@ -250,7 +250,7 @@ export async function PATCH(
         const userId = targetUserId || report.reportedUserId;
         await prisma.user.update({
           where: { id: userId },
-          data: { suspendedUntil: null, suspensionReason: null },
+          data: { suspendedUntil: null, suspensionReason: null, isBanned: false, banReason: null },
         });
         await prisma.userReport.update({
           where: { id: report.id },
