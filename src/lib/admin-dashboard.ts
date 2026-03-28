@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { getUserStatus, isSuspended } from '@/lib/admin';
 import { buildDisplayPrice, getCurrencyForLocation, getPrimaryPriceOption } from '@/lib/currency';
-import { hasAvailabilityWithinDays, sortAvailabilitySlots, countAvailableDaysWithinNextDays } from '@/lib/availability';
+import { hasAvailabilityWithinDays, sortAvailabilitySlots, countAvailableDaysWithinNextDays, getNextAvailableDate } from '@/lib/availability';
 import { getCountryOptions } from '@/lib/intl-data';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings';
 
@@ -1120,6 +1120,14 @@ export async function getPublicTutorCards(filters: {
         timezone: profile.timezone || undefined,
       });
 
+      const nextAvailableDate = getNextAvailableDate({
+        availability: profile.availability,
+        overrides: profile.overrides,
+        bookings: profile.bookings,
+        durationMinutes: primaryPricingOption?.durationMinutes || 60,
+        days: 14,
+      });
+
       // Bug 1.2 + 1.3: Use actual booking/student counts
       const bookingData = bookingStatsMap.get(profile.id) || { count: 0, minutes: 0 };
       const studentCount = studentCountMap.get(profile.id) || 0;
@@ -1135,6 +1143,7 @@ export async function getPublicTutorCards(filters: {
         additionalLanguages,
         hasNextWeekAvailability,
         availableDaysCount,
+        nextAvailableDate,
         actualBookingCount: bookingData.count,
         actualHoursTaught: Math.round((bookingData.minutes / 60) * 10) / 10,
         actualStudentCount: studentCount,
@@ -1259,6 +1268,7 @@ export async function getPublicTutorCards(filters: {
     videoUrl: profile.videoUrl,
     availableWithin7Days: profile.hasNextWeekAvailability,
     availableDaysCount: profile.availableDaysCount,
+    nextAvailableDate: profile.nextAvailableDate ? (profile.nextAvailableDate as Date).toISOString() : null,
     verifiedResults: profile.verifiedResults,
     // Bug 1.1: When subject filter is active, return only that subject's certifications
     verifiedCertifications: profile.certifications
