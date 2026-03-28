@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { buildBookingRoomUrl, formatDateTime, getInitials, getSessionJoinStatus } from '@/lib/utils';
+import { buildBookingRoomUrl, formatDateTimeInTz, getInitials, getSessionJoinStatus } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import ConversationList from '@/components/chat/ConversationList';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -62,7 +62,8 @@ function TutorDashboardInner() {
 
   const verificationData = verifyData ?? null;
   const availability = availData?.slots ?? null;
-  const bookings = bookingsData ?? null;
+  const bookings = bookingsData?.data ?? null;
+  const tutorTimezone: string = bookingsData?.timezone || availData?.timezone || 'UTC';
   const stats = statsData?.data ?? null;
   const isLoading = !verifyData && !bookingsData;
 
@@ -302,7 +303,7 @@ function TutorDashboardInner() {
                   <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Next Session</p>
                     <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
-                        {nextBooking ? `${nextBooking.student.name} | ${formatDateTime(nextBooking.scheduledAt)}` : 'No upcoming session'}
+                        {nextBooking ? `${nextBooking.student.name} | ${formatDateTimeInTz(nextBooking.scheduledAt, tutorTimezone)}` : 'No upcoming session'}
                       </p>
                     </div>
                     <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
@@ -472,7 +473,7 @@ function TutorDashboardInner() {
                               </span>
                             </div>
                             <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-3">
-                              {formatDateTime(booking.scheduledAt)} | {booking.durationMinutes} minutes
+                              {formatDateTimeInTz(booking.scheduledAt, tutorTimezone)} | {booking.durationMinutes} minutes
                             </p>
                             <p className="text-xs text-navy-300 dark:text-cream-400/50 mt-2">
                               {booking.notes?.trim() ? `Student notes: ${booking.notes}` : 'No student notes were added for this lesson.'}
@@ -681,7 +682,7 @@ function TutorDashboardInner() {
               <div>
                 <h3 className="text-lg font-black text-navy-600 dark:text-cream-200">Session Notes</h3>
                 <p className="mt-1 text-xs font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
-                  {selectedNotesBooking.student.name} | {formatDateTime(selectedNotesBooking.scheduledAt)}
+                  {selectedNotesBooking.student.name} | {formatDateTimeInTz(selectedNotesBooking.scheduledAt, tutorTimezone)}
                 </p>
               </div>
               <button

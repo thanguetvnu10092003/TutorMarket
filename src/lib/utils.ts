@@ -29,6 +29,28 @@ export function formatDateTime(dateString: string): string {
   return `${formatDate(dateString)} at ${formatTime(dateString)}`;
 }
 
+export function formatDateInTz(dateString: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone,
+  }).format(new Date(dateString));
+}
+
+export function formatTimeInTz(dateString: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone,
+  }).format(new Date(dateString));
+}
+
+export function formatDateTimeInTz(dateString: string, timeZone: string): string {
+  return `${formatDateInTz(dateString, timeZone)} at ${formatTimeInTz(dateString, timeZone)}`;
+}
+
 export function formatRelativeTime(dateString: string): string {
   const now = new Date();
   const date = new Date(dateString);

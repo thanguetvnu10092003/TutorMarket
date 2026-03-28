@@ -50,7 +50,7 @@ export async function GET() {
       // No take limit — return all sessions
     });
 
-    return NextResponse.json(bookings);
+    return NextResponse.json({ data: bookings, timezone: tutorProfile.timezone || 'UTC' });
   } catch (error) {
     console.error('Fetch tutor bookings error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
