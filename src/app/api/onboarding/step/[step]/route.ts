@@ -315,6 +315,12 @@ export async function POST(
 
         // Validate: each slot must be on :00 or :30 boundary and exactly 30 minutes long
         for (const slot of normalizedSlots) {
+          if (typeof slot.startTime !== 'string' || typeof slot.endTime !== 'string') {
+            return NextResponse.json(
+              { error: 'Each slot must include startTime and endTime strings' },
+              { status: 400 }
+            );
+          }
           const startMins = timeToMinutes(slot.startTime);
           if (startMins % 30 !== 0) {
             return NextResponse.json(
