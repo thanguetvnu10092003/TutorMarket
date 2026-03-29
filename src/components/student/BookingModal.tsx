@@ -36,15 +36,21 @@ interface BookingModalProps {
     bookedSlots?: any[];
     hourlyRate?: number;
     timezone?: string | null;
+    discount5?: number | null;
+    discount10?: number | null;
+    discount20?: number | null;
+    offerFreeTrial?: boolean;
   };
 }
 
 const STEPS = { TYPE: 'type', PACKAGE: 'package', SCHEDULE: 'schedule', TIME: 'time', CONFIRM: 'confirm' } as const;
-const PACKAGES = [
-  { sessions: 5, discount: 0.05, label: 'Starter Bundle' },
-  { sessions: 10, discount: 0.1, label: 'Success Pack' },
-  { sessions: 20, discount: 0.15, label: 'Elite Mastery' },
-];
+function getPackages(tutor: BookingModalProps['tutor']) {
+  return [
+    { sessions: 5,  discount: (tutor.discount5  ?? 0) / 100, label: 'Starter Bundle' },
+    { sessions: 10, discount: (tutor.discount10 ?? 0) / 100, label: 'Success Pack' },
+    { sessions: 20, discount: (tutor.discount20 ?? 0) / 100, label: 'Elite Mastery' },
+  ];
+}
 
 function slotLabel(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
@@ -146,11 +152,12 @@ function tutorLocalToUTC(date: Date, slotTime: string, tutorTz: string): Date {
 
 export default function BookingModal({ isOpen, onClose, tutor }: BookingModalProps) {
   const pricingOptions = useMemo(() => getPricingOptions(tutor), [tutor]);
+  const packages = getPackages(tutor);
   const defaultDuration = pricingOptions[0]?.durationMinutes || 60;
   const [step, setStep] = useState<(typeof STEPS)[keyof typeof STEPS]>(STEPS.TYPE);
   const [selectedType, setSelectedType] = useState<'TRIAL' | 'SINGLE' | 'PACKAGE'>('SINGLE');
   const [selectedDuration, setSelectedDuration] = useState(defaultDuration);
-  const [selectedPackage, setSelectedPackage] = useState<(typeof PACKAGES)[0] | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<ReturnType<typeof getPackages>[0] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [selectedPackageSlots, setSelectedPackageSlots] = useState<Array<{ date: Date; slot: string }>>([]);
@@ -220,10 +227,12 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
     const freeSlotTimes = new Set<string>();
     for (const w of freeWindows) {
       let cur = timeToMinutes(w.startTime);
+      const rem = cur % 30;
+      if (rem !== 0) cur += 30 - rem;
       const last = timeToMinutes(w.endTime) - activeDuration;
       while (cur <= last) {
         freeSlotTimes.add(minutesToTime(cur));
-        cur += activeDuration;
+        cur += 30;
       }
     }
 
@@ -232,6 +241,8 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
 
     for (const w of allWindows) {
       let cur = timeToMinutes(w.startTime);
+      const rem = cur % 30;
+      if (rem !== 0) cur += 30 - rem;
       const last = timeToMinutes(w.endTime) - activeDuration;
 
       while (cur <= last) {
@@ -243,14 +254,14 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
             const slotDate = new Date(day);
             slotDate.setHours(Math.floor(cur / 60), cur % 60, 0, 0);
             if (isBefore(slotDate, new Date())) {
-              cur += activeDuration;
+              cur += 30;
               continue;
             }
           }
 
           result.push({ time, isBooked: !freeSlotTimes.has(time) });
         }
-        cur += activeDuration;
+        cur += 30;
       }
     }
 
@@ -402,7 +413,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                   ))}
                 </div>
                 <div className="space-y-3">
-                  {PACKAGES.map((pkg) => {
+                  {packages.map((pkg) => {
                     const total = getPackagePrice(selectedPricingOption, pkg.sessions, pkg.discount);
                     return (
                       <button key={pkg.sessions} onClick={() => { setSelectedPackage(pkg); setSelectedPackageSlots([]); setStep(STEPS.SCHEDULE); }} className="w-full rounded-3xl border-2 border-navy-100 bg-white hover:border-gold-400 p-6 text-left flex items-center justify-between gap-4">
