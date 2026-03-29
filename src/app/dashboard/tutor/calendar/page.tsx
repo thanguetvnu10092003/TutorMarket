@@ -25,9 +25,9 @@ type CalendarData = {
 type ViewMode = 'week' | 'month' | 'day';
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  CONFIRMED: 'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  COMPLETED: 'bg-gray-100 border-gray-200 text-gray-500 dark:bg-gray-800/30 dark:text-gray-400',
+  PENDING: 'bg-yellow-200 border-yellow-400 text-yellow-900 dark:bg-yellow-700/60 dark:border-yellow-500 dark:text-yellow-200',
+  CONFIRMED: 'bg-blue-200 border-blue-400 text-blue-900 dark:bg-blue-700/60 dark:border-blue-500 dark:text-blue-200',
+  COMPLETED: 'bg-gray-200 border-gray-300 text-gray-600 dark:bg-gray-600/50 dark:border-gray-500 dark:text-gray-300',
 };
 
 function formatDateParam(d: Date) {
@@ -217,7 +217,7 @@ export default function TutorCalendarPage() {
                   if (hasAvailability) {
                     return (
                       <td key={dateKey} className="py-1 px-0.5 align-top">
-                        <div className="h-6 rounded bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20" />
+                        <div className="h-6 rounded bg-green-200 dark:bg-green-700/50 border border-green-400 dark:border-green-600" />
                       </td>
                     );
                   }
@@ -327,7 +327,7 @@ export default function TutorCalendarPage() {
           }
 
           return (
-            <div key={slot.startTime} className="h-8 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20 flex items-center px-3 text-[10px] text-green-600 dark:text-green-400 font-bold">
+            <div key={slot.startTime} className="h-8 rounded-xl bg-green-200 dark:bg-green-700/50 border border-green-400 dark:border-green-600 flex items-center px-3 text-[10px] text-green-800 dark:text-green-200 font-bold">
               {slot.startTime} — {slot.endTime}
             </div>
           );
@@ -391,12 +391,12 @@ export default function TutorCalendarPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-[10px] font-bold text-navy-300">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 inline-block" />Available</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-100 border border-yellow-300 inline-block" />Pending</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-300 inline-block" />Confirmed</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-100 inline-block" />Completed</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-100 inline-block" />Blocked</span>
+      <div className="flex flex-wrap gap-4 text-[10px] font-bold text-navy-400 dark:text-cream-400/60">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block" />Available</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block" />Pending</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-200 border border-blue-400 inline-block" />Confirmed</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-200 border border-gray-300 inline-block" />Completed</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-100 border border-red-300 inline-block" />Blocked</span>
       </div>
 
       {/* Booking detail popover */}

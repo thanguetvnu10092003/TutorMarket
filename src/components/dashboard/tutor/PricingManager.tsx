@@ -177,49 +177,30 @@ export default function PricingManager() {
             </div>
           ))}
 
-          {/* Package Discounts */}
-          <div className="p-4 rounded-2xl border border-navy-100 dark:border-navy-400/10 space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/60">Package Discounts (optional)</h4>
-            {[
-              { label: '5-lesson package', value: discount5, setter: setDiscount5 },
-              { label: '10-lesson package', value: discount10, setter: setDiscount10 },
-              { label: '20-lesson package', value: discount20, setter: setDiscount20 },
-            ].map(({ label, value, setter }) => (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-xs text-navy-500 dark:text-cream-300 w-36">{label}</span>
-                <div className="relative w-24">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={value}
-                    onChange={(e) => setter(e.target.value)}
-                    placeholder="0"
-                    className="input-field w-full pr-8 py-1.5 text-sm font-bold text-right"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-navy-300">%</span>
-                </div>
-                <span className="text-[10px] text-navy-300">off</span>
+          {/* Package Discounts — auto-managed info */}
+          <div className="p-4 rounded-2xl border border-navy-100 dark:border-navy-400/10 bg-navy-50/50 dark:bg-navy-700/20 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-gold-400/20 flex items-center justify-center flex-shrink-0 text-gold-500">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
               </div>
-            ))}
+              <h4 className="text-xs font-black uppercase tracking-widest text-navy-500 dark:text-cream-300/80">Package Discounts — Auto</h4>
+            </div>
+            <p className="text-xs text-navy-400 dark:text-cream-400/60 leading-relaxed">
+              Package discounts are applied automatically when students purchase a lesson bundle. Starter Bundle (5 lessons) gets 5% off, Success Pack (10 lessons) 10% off, and Elite Mastery (20 lessons) 20% off — no configuration needed.
+            </p>
           </div>
 
-          {/* Free Trial Toggle */}
-          <div className="p-4 rounded-2xl border border-navy-100 dark:border-navy-400/10 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-navy-600 dark:text-cream-200">Offer Free Trial</p>
-              <p className="text-[10px] text-navy-300 mt-0.5">First 30-min lesson free for new students</p>
+          {/* Free Trial — auto-managed info */}
+          <div className="p-4 rounded-2xl border border-navy-100 dark:border-navy-400/10 bg-navy-50/50 dark:bg-navy-700/20 flex items-start gap-3">
+            <div className="w-5 h-5 rounded-full bg-gold-400/20 flex items-center justify-center flex-shrink-0 text-gold-500 mt-0.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
             </div>
-            <button
-              onClick={() => setOfferFreeTrial((v) => !v)}
-              className={`relative w-10 h-5 rounded-full transition-colors ${offerFreeTrial ? 'bg-gold-400' : 'bg-navy-200'}`}
-            >
-              <span
-                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                  offerFreeTrial ? 'translate-x-5 left-0.5' : 'left-0.5'
-                }`}
-              />
-            </button>
+            <div>
+              <p className="text-xs font-black text-navy-500 dark:text-cream-300/80 uppercase tracking-widest">Free Trial — Auto</p>
+              <p className="text-xs text-navy-400 dark:text-cream-400/60 leading-relaxed mt-1">
+                New students automatically receive one free 30-minute trial lesson with any tutor. This is handled by the platform at no cost to you.
+              </p>
+            </div>
           </div>
         </div>
 
