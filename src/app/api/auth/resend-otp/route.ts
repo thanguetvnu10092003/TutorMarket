@@ -4,6 +4,8 @@ import { generateOTP, sendOTP } from '@/lib/mail';
 import { addMinutes, differenceInSeconds } from 'date-fns';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const resendSchema = z.object({
   email: z.string().email(),
 });

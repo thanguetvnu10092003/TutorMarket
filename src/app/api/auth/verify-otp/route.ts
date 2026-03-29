@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { generateOTP, sendOTP } from '@/lib/mail';
+import { addMinutes, differenceInSeconds } from 'date-fns';
 import { z } from 'zod';
+
+export const dynamic = 'force-dynamic';
 
 const verifySchema = z.object({
   email: z.string().email(),
