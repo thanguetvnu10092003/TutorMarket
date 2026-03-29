@@ -227,6 +227,10 @@ model TutorProfile {
   responseTime        Int                @default(60) // minutes
   onboardingStep      Int                @default(0)
   onboardingCompleted Boolean            @default(false)
+  discount5      Int?
+  discount10     Int?
+  discount20     Int?
+  offerFreeTrial Boolean                 @default(false)
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
