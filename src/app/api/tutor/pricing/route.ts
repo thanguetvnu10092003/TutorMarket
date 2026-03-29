@@ -25,7 +25,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Tutor profile not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ data: tutorProfile.pricing });
+    return NextResponse.json({
+      data: tutorProfile.pricing,
+      discount5: tutorProfile.discount5 ?? null,
+      discount10: tutorProfile.discount10 ?? null,
+      discount20: tutorProfile.discount20 ?? null,
+      offerFreeTrial: tutorProfile.offerFreeTrial,
+    });
   } catch (error) {
     console.error('Fetch pricing error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -40,8 +46,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { pricing } = await request.json();
+    const { pricing, discount5, discount10, discount20, offerFreeTrial } = await request.json();
     const normalizedPricing = Array.isArray(pricing) ? pricing : [];
+
+    // Validate discount values (0-100 integer or null)
+    for (const [key, val] of Object.entries({ discount5, discount10, discount20 })) {
+      if (val !== null && val !== undefined) {
+        const n = Number(val);
+        if (!Number.isInteger(n) || n < 0 || n > 100) {
+          return NextResponse.json({ error: `${key} must be an integer between 0 and 100` }, { status: 400 });
+        }
+      }
+    }
 
     const tutorProfile = await prisma.tutorProfile.findUnique({
       where: { userId: session.user.id }
@@ -84,6 +100,10 @@ export async function POST(request: Request) {
         where: { id: tutorProfile.id },
         data: {
           hourlyRate: primaryOption?.price || tutorProfile.hourlyRate,
+          discount5: discount5 != null ? Number(discount5) : null,
+          discount10: discount10 != null ? Number(discount10) : null,
+          discount20: discount20 != null ? Number(discount20) : null,
+          offerFreeTrial: typeof offerFreeTrial === 'boolean' ? offerFreeTrial : tutorProfile.offerFreeTrial,
         },
       }),
       ...normalizedPricing.map((p: any) =>
