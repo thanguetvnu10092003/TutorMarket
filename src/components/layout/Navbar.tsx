@@ -240,7 +240,7 @@ export default function Navbar() {
               </svg>
             </div>
             <span className="text-xl font-display font-bold text-navy-600 dark:text-cream-200 tracking-tight">
-              Tutor<span className="text-gold-400">Market</span>
+              Prep<span className="text-gold-400">Pass</span>
             </span>
           </Link>
 

@@ -64,7 +64,7 @@ export default function Footer() {
                 </svg>
               </div>
               <span className="text-lg font-display font-bold text-cream-200">
-                Tutor<span className="text-gold-400">Market</span>
+                Prep<span className="text-gold-400">Pass</span>
               </span>
             </Link>
             <p className="text-sm leading-relaxed text-cream-400/60 mb-6">
