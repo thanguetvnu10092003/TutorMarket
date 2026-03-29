@@ -24,6 +24,12 @@ export type OpenTimeWindow = {
   durationMinutes: number;
 };
 
+export type SlotItem = {
+  startTime: string;  // "09:00"
+  endTime: string;    // "09:30" / "10:00" / "10:30" depending on duration
+  status: 'available' | 'booked';
+};
+
 function toDate(value: string | Date) {
   return value instanceof Date ? value : new Date(value);
 }
@@ -368,4 +374,74 @@ export function getNextAvailableDate(input: {
   }
 
   return null;
+}
+
+/**
+ * Expand free OpenTimeWindows into individual :00/:30-aligned slot starts.
+ * Walks in 30-min steps; each step produces a slot only if all durationMinutes fit within the window.
+ */
+export function expandWindowsToSlots(
+  windows: OpenTimeWindow[],
+  durationMinutes: number
+): SlotItem[] {
+  const slots: SlotItem[] = [];
+  const seen = new Set<string>();
+
+  for (const window of windows) {
+    const windowStart = timeToMinutes(window.startTime);
+    const windowEnd = timeToMinutes(window.endTime);
+
+    // Snap to next :00 or :30 boundary
+    const remainder = windowStart % 30;
+    const snappedStart = remainder === 0 ? windowStart : windowStart + (30 - remainder);
+
+    let cur = snappedStart;
+    while (cur + durationMinutes <= windowEnd) {
+      const startTime = minutesToTime(cur);
+      if (!seen.has(startTime)) {
+        seen.add(startTime);
+        slots.push({
+          startTime,
+          endTime: minutesToTime(cur + durationMinutes),
+          status: 'available',
+        });
+      }
+      cur += 30;
+    }
+  }
+
+  return sortAvailabilitySlots(slots);
+}
+
+/**
+ * Returns individual :00/:30-aligned available slots for a specific date.
+ * Slots already past `now` (today only) are excluded.
+ */
+export function getSlotStatusForDate(input: {
+  date: Date;
+  durationMinutes: number;
+  availability: AvailabilitySlotLike[];
+  overrides?: AvailabilityOverrideLike[];
+  bookings?: BookingLike[];
+  now?: Date;
+}): SlotItem[] {
+  const { date, durationMinutes, now } = input;
+
+  const windows = getOpenTimeWindowsForDate({
+    date,
+    durationMinutes,
+    availability: input.availability,
+    overrides: input.overrides,
+    bookings: input.bookings,
+  });
+
+  const slots = expandWindowsToSlots(windows, durationMinutes);
+
+  if (!now) return slots;
+
+  const isToday = normalizeDateKey(date) === normalizeDateKey(now);
+  if (!isToday) return slots;
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return slots.filter((slot) => timeToMinutes(slot.startTime) > nowMinutes);
 }
