@@ -56,9 +56,29 @@ export async function GET(req: NextRequest, { params }: { params: { paymentId: s
       return NextResponse.json({ error: 'Tutor data missing' }, { status: 500 });
     }
 
-    // Since we're separating out a processing fee purely for the UI match, 
-    // we'll say processing fee is exactly $0.30 fixed as requested, and subtract to find "subtotal"
-    // (Or we can consider the total amount from DB to be exactly what we charge).
+    // Fetch dynamic stats for the tutor
+    const aggregateData = await prisma.booking.aggregate({
+      where: {
+        tutorProfileId: tutorProfile.id,
+        status: { in: ['COMPLETED'] }, // depending on logic, you might include CONFIRMED
+      },
+      _count: { id: true },
+      _sum: { durationMinutes: true },
+    });
+
+    const uniqueStudents = await prisma.booking.findMany({
+      where: {
+        tutorProfileId: tutorProfile.id,
+        status: { in: ['COMPLETED', 'CONFIRMED'] },
+      },
+      distinct: ['studentId'],
+      select: { studentId: true },
+    });
+
+    const studentsCount = uniqueStudents.length;
+    const lessonsCount = aggregateData._count.id || 0;
+    const hoursTaught = Math.round((aggregateData._sum.durationMinutes || 0) / 60);
+
     const TOTAL = payment.amount;
     const PROCESSING_FEE = 0.30;
     const SUBTOTAL = Math.max(0, TOTAL - PROCESSING_FEE);
@@ -95,9 +115,9 @@ export async function GET(req: NextRequest, { params }: { params: { paymentId: s
           avatarUrl: tutorProfile.user.avatarUrl,
           rating: tutorProfile.rating,
           totalReviews: tutorProfile.totalReviews,
-          students: tutorProfile.actualStudentCount,
-          lessons: tutorProfile.actualBookingCount,
-          yearsTeaching: tutorProfile.yearsOfExperience,
+          students: studentsCount,
+          lessons: lessonsCount,
+          hoursTaught: hoursTaught,
         },
         bookings: bookingsInfo,
       }

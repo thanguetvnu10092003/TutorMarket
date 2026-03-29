@@ -274,7 +274,7 @@ export default function HorizontalTutorCard({
               event.stopPropagation();
               onBookTrial(tutor.id);
             }}
-            className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all bg-[#FF77B6] hover:bg-[#FF8DC2] text-white shadow-lg hover:translate-y-[-2px] active:translate-y-0"
+            className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all bg-gold-400 hover:bg-gold-500 text-navy-600 shadow-gold hover:translate-y-[-2px] active:translate-y-0"
           >
             Book lesson options
           </button>
