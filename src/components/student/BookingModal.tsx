@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   addWeeks,
@@ -151,6 +152,7 @@ function tutorLocalToUTC(date: Date, slotTime: string, tutorTz: string): Date {
 }
 
 export default function BookingModal({ isOpen, onClose, tutor }: BookingModalProps) {
+  const router = useRouter();
   const pricingOptions = useMemo(() => getPricingOptions(tutor), [tutor]);
   const packages = getPackages(tutor);
   const defaultDuration = pricingOptions[0]?.durationMinutes || 60;
@@ -387,9 +389,9 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
         throw new Error(json.error || 'Failed to process request');
       }
 
-      if (json.checkoutUrl) {
-        toast.success('Redirecting to Stripe checkout...');
-        window.location.href = json.checkoutUrl;
+      if (json.paymentId) {
+        toast.success('Redirecting to secure checkout...');
+        router.push(`/checkout/${json.paymentId}`);
         return;
       }
 

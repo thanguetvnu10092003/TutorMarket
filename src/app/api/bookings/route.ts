@@ -282,27 +282,18 @@ export async function POST(req: NextRequest) {
         durationMinutes: selectedDurationMinutes,
       });
 
-      let checkoutUrl: string | null = null;
-
+      // We no longer create a Stripe Checkout Session here.
+      // We just return the payment ID to the client, which will redirect to /checkout/[paymentId]
+      let paymentId: string | null = null;
       if (pkg.payment && pkg.payment.amount > 0) {
-        try {
-          const { session: checkoutSession } = await createCheckoutSessionForStudentPayment({
-            paymentId: pkg.payment.id,
-            studentId,
-            studentEmail: session.user.email,
-          });
-
-          checkoutUrl = checkoutSession.url || null;
-        } catch (checkoutError) {
-          console.error('Package Stripe checkout creation error:', checkoutError);
-        }
+        paymentId = pkg.payment.id;
       }
 
       return NextResponse.json({
         success: true,
         data: pkg,
         sessionCount: packageBookings.length,
-        checkoutUrl,
+        paymentId,
       });
     }
 
@@ -472,20 +463,11 @@ export async function POST(req: NextRequest) {
       durationMinutes: selectedDurationMinutes,
     });
 
-    let checkoutUrl: string | null = null;
-
+    // We no longer create a Stripe Checkout Session here.
+    // Return the payment ID instead.
+    let paymentId: string | null = null;
     if (booking.payment && booking.payment.amount > 0) {
-      try {
-        const { session: checkoutSession } = await createCheckoutSessionForStudentPayment({
-          paymentId: booking.payment.id,
-          studentId,
-          studentEmail: session.user.email,
-        });
-
-        checkoutUrl = checkoutSession.url || null;
-      } catch (checkoutError) {
-        console.error('Booking Stripe checkout creation error:', checkoutError);
-      }
+      paymentId = booking.payment.id;
     }
 
     return NextResponse.json({
@@ -494,7 +476,7 @@ export async function POST(req: NextRequest) {
         ...booking,
         meetingLink: buildBookingRoomUrl(booking.id),
       },
-      checkoutUrl,
+      paymentId,
     });
   } catch (error: any) {
     console.error('Booking error:', error);
