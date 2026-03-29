@@ -55,7 +55,7 @@ export async function GET(
         },
         bookings: {
           where: {
-            scheduledAt: { gte: weekStart, lte: new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate(), 23, 59, 59) },
+            scheduledAt: { gte: weekStart, lt: new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate() + 1, 0, 0, 0, 0) },
             status: { in: ['PENDING', 'CONFIRMED'] },
           },
           select: { scheduledAt: true, durationMinutes: true, status: true },
