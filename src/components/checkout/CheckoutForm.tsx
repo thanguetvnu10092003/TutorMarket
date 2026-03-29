@@ -60,6 +60,16 @@ export default function CheckoutForm({ amount, isPackage }: { amount: number, is
         <span>{isLoading ? 'Processing...' : `Book ${isPackage ? 'package' : 'lesson'} and pay $${amount.toFixed(2)}`}</span>
       </button>
 
+      <div className="text-center">
+        <button 
+          type="button"
+          onClick={() => router.push('/dashboard/student?tab=payments')} 
+          className="text-sm font-bold text-navy-400 hover:text-navy-600 dark:text-cream-400/60 dark:hover:text-cream-200 transition-colors underline"
+        >
+          Cancel payment
+        </button>
+      </div>
+
       <div className="text-[10px] text-navy-400 dark:text-cream-400/60 leading-relaxed text-center">
         By pressing the &quot;Book and pay&quot; button, you agree to PrepPass&apos;s Refund and Payment Policy.
         It&apos;s safe to pay on PrepPass. All transactions are protected by SSL encryption.

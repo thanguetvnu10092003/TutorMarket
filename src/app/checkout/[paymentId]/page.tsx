@@ -86,6 +86,15 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
 
   return (
     <div className="min-h-screen bg-cream-50 dark:bg-navy-900 pt-24 pb-12 px-6">
+      <div className="max-w-6xl mx-auto mb-6">
+        <button 
+          onClick={() => router.push('/dashboard/student?tab=payments')}
+          className="flex items-center gap-2 text-sm font-bold text-navy-400 hover:text-navy-600 dark:text-cream-400/60 dark:hover:text-cream-200 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          Cancel and return to dashboard
+        </button>
+      </div>
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
         
         {/* Left Column: Summary */}
