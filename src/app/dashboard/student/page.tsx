@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { SUBJECT_LABELS } from '@/types';
 import { formatCurrency, formatDate, formatDateInTz, formatTimeInTz, getInitials, buildBookingRoomUrl, getSessionJoinStatus } from '@/lib/utils';
 import ContinueLearningPrompt from '@/components/student/ContinueLearningPrompt';
@@ -26,6 +26,7 @@ const tabs = [
 function StudentDashboardInner() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedReportBooking, setSelectedReportBooking] = useState<any>(null);
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<any>(null);
@@ -168,32 +169,7 @@ function StudentDashboardInner() {
   }, [searchParams, session]);
 
   async function handlePayNow(paymentId: string) {
-    try {
-      setPayingPaymentId(paymentId);
-
-      const response = await fetch('/api/payments/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId }),
-      });
-
-      const json = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.error || 'Failed to start Stripe checkout');
-      }
-
-      if (!json.data?.checkoutUrl) {
-        throw new Error('Stripe checkout URL was not returned');
-      }
-
-      window.location.href = json.data.checkoutUrl;
-    } catch (error: any) {
-      console.error('Stripe checkout launch error:', error);
-      toast.error(error.message || 'Could not start Stripe checkout');
-    } finally {
-      setPayingPaymentId(null);
-    }
+    router.push(`/checkout/${paymentId}`);
   }
 
   async function handleMockPayNow(paymentId: string) {
@@ -715,6 +691,19 @@ function StudentDashboardInner() {
                               }}
                             />
                           </div>
+
+                          <button
+                            onClick={() => {
+                              if (payment.kind === 'PACKAGE' && payment.packageId) {
+                                void handleCancelPackage(payment.packageId);
+                              } else if (payment.bookingId) {
+                                void handleCancelBooking(payment.bookingId);
+                              }
+                            }}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-50 dark:bg-red-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 transition-all hover:bg-red-100"
+                          >
+                            Cancel Booking
+                          </button>
                         </div>
                       )}
                     </div>

@@ -99,6 +99,8 @@ export async function GET() {
           refundedAt: payment.refundedAt,
           canPayNow: canPay,
           kind: payment.bookingId ? 'BOOKING' : 'PACKAGE',
+          bookingId: payment.bookingId,
+          packageId: payment.package?.id || null,
           subject: payment.booking?.subject || null,
           tutorName: payment.booking?.tutorProfile?.user?.name || payment.package?.tutorProfile?.user?.name || null,
           tutorAvatarUrl: payment.booking?.tutorProfile?.user?.avatarUrl || payment.package?.tutorProfile?.user?.avatarUrl || null,
