@@ -101,7 +101,7 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
         <div className="flex-1 space-y-6">
           
           {/* Tutor Card */}
-          <div className="glass-card p-6 border-t-4 border-pink-200 dark:border-pink-800">
+          <div className="glass-card p-6 border-t-[6px] border-gold-400 dark:border-gold-500">
             <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200 mb-6">Your tutor</h3>
             <div className="flex items-start justify-between">
               <div>

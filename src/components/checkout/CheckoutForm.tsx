@@ -55,7 +55,7 @@ export default function CheckoutForm({ amount, isPackage }: { amount: number, is
       <button
         disabled={isLoading || !stripe || !elements}
         id="submit"
-        className="w-full bg-navy-100 hover:bg-navy-200 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-600 dark:text-cream-200 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+        className="w-full bg-gold-400 hover:bg-gold-500 disabled:bg-navy-100 dark:disabled:bg-navy-800 text-navy-600 disabled:text-navy-400 dark:disabled:text-cream-400/40 py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-gold disabled:shadow-none"
       >
         <span>{isLoading ? 'Processing...' : `Book ${isPackage ? 'package' : 'lesson'} and pay $${amount.toFixed(2)}`}</span>
       </button>
