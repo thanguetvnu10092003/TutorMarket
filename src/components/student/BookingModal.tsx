@@ -198,15 +198,28 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
 
     const tutorTz = tutor.timezone || 'UTC';
 
-    // Convert booked slots from UTC to tutor-local time so getBlockedRangesForDate
-    // compares dates and hours consistently with the stored availability times.
-    const localBookedSlots = (tutor.bookedSlots || []).map((b: any) => ({
-      ...b,
-      scheduledAt: utcToTutorLocal(new Date(b.scheduledAt), tutorTz),
-    }));
+    // Convert booked slots from UTC to tutor-local wall-clock time.
+    // utcToTutorLocal returns a Date whose .getFullYear()/.getDate()/.getHours()
+    // reflect the tutor's local clock, which matches how availability slots are stored.
+    const localBookedSlots = (tutor.bookedSlots || []).map((b: any) => {
+      const localDt = utcToTutorLocal(new Date(b.scheduledAt), tutorTz);
+      return {
+        startMinutes: localDt.getHours() * 60 + localDt.getMinutes(),
+        endMinutes: localDt.getHours() * 60 + localDt.getMinutes() + (b.durationMinutes as number),
+        dateKey: `${localDt.getFullYear()}-${String(localDt.getMonth() + 1).padStart(2, '0')}-${String(localDt.getDate()).padStart(2, '0')}`,
+      };
+    });
 
-    // All slots within availability + overrides, ignoring existing bookings.
-    // These are the slots that would be bookable if nobody had booked yet.
+    // Day key in the same format as localBookedSlots (using local system Date since
+    // the calendar days are constructed from local dates).
+    const dayKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+
+    // Booked ranges for this specific day (in minutes from midnight, tutor-local).
+    const bookedRangesForDay = localBookedSlots
+      .filter((b) => b.dateKey === dayKey)
+      .map((b) => ({ start: b.startMinutes, end: b.endMinutes }));
+
+    // All potential slots from availability windows (ignore bookings so we see the full grid).
     const allWindows = getOpenTimeWindowsForDate({
       date: day,
       durationMinutes: activeDuration,
@@ -215,13 +228,17 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       bookings: [],
     });
 
-    // Slots still free after blocking existing bookings.
+    // Also compute free windows (after removing booked slots) to learn which ones are still bookable.
+    const localBookedSlotsForLib = (tutor.bookedSlots || []).map((b: any) => ({
+      ...b,
+      scheduledAt: utcToTutorLocal(new Date(b.scheduledAt), tutorTz),
+    }));
     const freeWindows = getOpenTimeWindowsForDate({
       date: day,
       durationMinutes: activeDuration,
       availability: tutor.availability || [],
       overrides: tutor.blockedDates || [],
-      bookings: localBookedSlots,
+      bookings: localBookedSlotsForLib,
     });
 
     const freeSlotTimes = new Set<string>();
@@ -236,9 +253,25 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
       }
     }
 
+    // Build booked slot start-times directly from actual bookings so we never miss
+    // slots that entirely consumed an availability window (they vanish from allWindows).
+    const bookedSlotTimes = new Set<string>();
+    for (const range of bookedRangesForDay) {
+      // A slot at time T is "booked" when [T, T+duration) overlaps with the booked range.
+      // We snap T to 30-min boundaries and check overlap.
+      let t = 0;
+      while (t < 24 * 60) {
+        if (t < range.end && t + activeDuration > range.start) {
+          bookedSlotTimes.add(minutesToTime(t));
+        }
+        t += 30;
+      }
+    }
+
     const result: Array<{ time: string; isBooked: boolean }> = [];
     const seen = new Set<string>();
 
+    // Collect all slots from availability windows (without bookings).
     for (const w of allWindows) {
       let cur = timeToMinutes(w.startTime);
       const rem = cur % 30;
@@ -262,6 +295,30 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
           result.push({ time, isBooked: !freeSlotTimes.has(time) });
         }
         cur += 30;
+      }
+    }
+
+    // Also add any booked slots that were NOT in allWindows
+    // (because the booking consumed the entire window, leaving no free slot to show).
+    for (const bookedTime of Array.from(bookedSlotTimes)) {
+      if (!seen.has(bookedTime)) {
+        // Only show if it falls within any raw availability window (before booking subtraction).
+        const bookedMin = timeToMinutes(bookedTime);
+        const inAvailability = (tutor.availability || []).some((slot: any) => {
+          if (slot.dayOfWeek !== day.getDay()) return false;
+          if (slot.isActive === false) return false;
+          return timeToMinutes(slot.startTime) <= bookedMin &&
+            timeToMinutes(slot.endTime) >= bookedMin + activeDuration;
+        });
+        if (inAvailability) {
+          if (isToday(day)) {
+            const slotDate = new Date(day);
+            slotDate.setHours(Math.floor(bookedMin / 60), bookedMin % 60, 0, 0);
+            if (isBefore(slotDate, new Date())) continue;
+          }
+          seen.add(bookedTime);
+          result.push({ time: bookedTime, isBooked: true });
+        }
       }
     }
 

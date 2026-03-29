@@ -1279,6 +1279,12 @@ export async function getPublicTutorCards(filters: {
         return c.type === certType;
       })
       .map((c: any) => c.levelOrVariant || c.type),
+    blockedDates: profile.overrides,
+    bookedSlots: profile.bookings,
+    discount5: profile.discount5,
+    discount10: profile.discount10,
+    discount20: profile.discount20,
+    offerFreeTrial: profile.offerFreeTrial,
   }));
 }
 
