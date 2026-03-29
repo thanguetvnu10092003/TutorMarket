@@ -32,6 +32,154 @@ function StatBox({ label, score, pct, color = 'blue' }: { label: string; score?:
   );
 }
 
+function AvailabilityGrid({ tutorId }: { tutorId: string }) {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [gridData, setGridData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const getWeekStart = (offset: number) => {
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((day + 6) % 7) + offset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  };
+
+  const formatDateParam = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  useEffect(() => {
+    const weekStart = getWeekStart(weekOffset);
+    setLoading(true);
+    fetch(`/api/tutors/${tutorId}/weekly-availability?weekStart=${formatDateParam(weekStart)}`)
+      .then((r) => r.json())
+      .then(setGridData)
+      .finally(() => setLoading(false));
+  }, [tutorId, weekOffset]);
+
+  const weekStart = getWeekStart(weekOffset);
+  const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  // Build column headers from gridData dates
+  const days = gridData?.slots
+    ? Array.from(new Set<string>(gridData.slots.map((s: any) => s.date)))
+        .sort()
+        .map((date: string) => ({ date, day: gridData.slots.find((s: any) => s.date === date)?.day }))
+    : [];
+
+  // All unique time slots across the week
+  const times = gridData?.slots
+    ? Array.from(new Set<string>(gridData.slots.map((s: any) => s.startTime))).sort()
+    : [];
+
+  // Lookup map: "date|startTime" → status
+  const slotMap: Record<string, 'available' | 'booked'> = {};
+  if (gridData?.slots) {
+    for (const s of gridData.slots) {
+      slotMap[`${s.date}|${s.startTime}`] = s.status;
+    }
+  }
+
+  return (
+    <div>
+      {/* Week navigation */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => setWeekOffset((o) => o - 1)}
+          disabled={weekOffset <= 0}
+          className="p-2 rounded-xl border border-navy-100 dark:border-navy-500/20 hover:bg-navy-50 dark:hover:bg-navy-700 disabled:opacity-30 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+        </button>
+        <span className="text-sm font-bold text-navy-600 dark:text-cream-200">
+          Week of {weekLabel}
+          {weekOffset === 0 && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-gold-500">Current</span>}
+        </span>
+        <button
+          onClick={() => setWeekOffset((o) => o + 1)}
+          className="p-2 rounded-xl border border-navy-100 dark:border-navy-500/20 hover:bg-navy-50 dark:hover:bg-navy-700 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+        </button>
+        {gridData?.timezone && (
+          <span className="ml-auto text-[10px] text-navy-300 dark:text-cream-400/40 font-bold">
+            {gridData.timezone}
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="h-40 flex items-center justify-center text-navy-300 animate-pulse text-sm">Loading availability...</div>
+      ) : times.length === 0 ? (
+        <div className="h-40 flex items-center justify-center text-navy-300 text-sm italic">No availability this week</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr>
+                <th className="w-16 py-2 text-right pr-3 text-navy-300 font-bold" />
+                {days.map(({ date, day }) => (
+                  <th key={date} className="py-2 text-center font-black text-navy-500 dark:text-cream-300">
+                    <div>{day?.slice(0, 3)}</div>
+                    <div className="text-[10px] font-bold text-navy-300">
+                      {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {times.map((time) => (
+                <tr key={time}>
+                  <td className="py-0.5 text-right pr-3 text-[10px] text-navy-300 font-bold whitespace-nowrap">
+                    {time}
+                  </td>
+                  {days.map(({ date }) => {
+                    const status = slotMap[`${date}|${time}`];
+                    if (!status) return <td key={date} className="py-0.5 px-1"><div className="h-5 rounded" /></td>;
+                    return (
+                      <td key={date} className="py-0.5 px-1">
+                        <div
+                          className={`h-5 rounded text-[9px] font-bold flex items-center justify-center gap-0.5 ${
+                            status === 'available'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-400 dark:bg-red-900/20 dark:text-red-400 opacity-60'
+                          }`}
+                        >
+                          {status === 'booked' && (
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div className="mt-4 flex items-center gap-4 text-[10px] font-bold text-navy-300">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded bg-green-200 dark:bg-green-900/50 inline-block" />Available
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded bg-red-100 dark:bg-red-900/20 inline-block" />Booked
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function TutorProfilePage({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
   const router = useRouter();
@@ -435,47 +583,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                     <div className="w-1.5 h-6 bg-blue-400 rounded-full" />
                     Weekly Availability
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {DAYS.map((day, index) => {
-                      const slots = profile.availability?.filter((slot: any) => slot.dayOfWeek === index) || [];
-                      return (
-                        <div key={day} className="p-4 rounded-2xl bg-cream-50 dark:bg-navy-600/50 border border-navy-100/50 dark:border-navy-500/20">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-black uppercase tracking-widest text-navy-500 dark:text-cream-200">{day}</span>
-                            <span className={`w-2 h-2 rounded-full ${slots.length ? 'bg-green-500' : 'bg-red-500/30'}`} />
-                          </div>
-                          <div className="text-xs text-navy-400 dark:text-cream-300">
-                            {slots.length ? (
-                              <div className="space-y-1">
-                                {slots.map((slot: any) => (
-                                  <div key={slot.id || `${slot.startTime}-${slot.endTime}`} className="font-bold">
-                                    {slot.startTime} - {slot.endTime}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="opacity-50 italic">Unavailable</span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-6 space-y-3">
-                    <p className="text-[10px] text-center text-navy-300 dark:text-cream-400/40 font-bold uppercase tracking-widest">
-                      All times are shown in your local timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone})
-                    </p>
-                    {blockedDateLabels.length > 0 && (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Blocked dates</span>
-                        {blockedDateLabels.map((label: string) => (
-                          <span key={label} className="px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-[10px] font-bold text-red-600">
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <AvailabilityGrid tutorId={params.id} />
                 </div>
               )}
             </div>
