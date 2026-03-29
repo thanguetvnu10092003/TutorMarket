@@ -50,7 +50,7 @@ export default function StudentOnboardingSurvey() {
 
       if (!response.ok) throw new Error('Failed to save preferences');
 
-      toast.success('Welcome to TutorMarket!');
+      toast.success('Welcome to PrepPass!');
       router.push('/tutors');
     } catch (error) {
       toast.error('Something went wrong. Please try again.');

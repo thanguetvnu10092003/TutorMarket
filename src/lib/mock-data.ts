@@ -10,7 +10,7 @@ export const users: User[] = [
   // Admin
   {
     id: 'admin-001',
-    email: 'admin@tutormarket.com',
+    email: 'admin@preppass.com',
     role: 'ADMIN',
     name: 'Platform Admin',
     avatarUrl: 'https://ui-avatars.com/api/?name=Admin&background=0A1628&color=C9A84C&size=200',

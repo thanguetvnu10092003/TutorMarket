@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'How It Works',
-  description: 'Learn how TutorMarket connects you with verified CFA, GMAT, and GRE tutors. Free trial session, flexible scheduling, proven results.',
+  description: 'Learn how PrepPass connects you with verified CFA, GMAT, and GRE tutors. Free trial session, flexible scheduling, proven results.',
 };
 
 const studentSteps = [

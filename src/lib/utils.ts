@@ -73,7 +73,7 @@ export function formatResponseTime(minutes: number): string {
 }
 
 export function buildBookingRoomUrl(bookingId: string): string {
-  return `https://meet.jit.si/tutormarket-${bookingId}`;
+  return `https://meet.jit.si/preppass-${bookingId}`;
 }
 
 /**

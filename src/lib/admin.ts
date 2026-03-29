@@ -370,7 +370,7 @@ export async function processVerificationDecision(input: {
       });
     });
 
-    await sendVerificationApprovalEmail(tutor.user.email, process.env.NEXT_PUBLIC_PLATFORM_NAME || 'TutorMarket');
+    await sendVerificationApprovalEmail(tutor.user.email, process.env.NEXT_PUBLIC_PLATFORM_NAME || 'PrepPass');
 
     await recordAdminAction({
       adminId: input.adminId,

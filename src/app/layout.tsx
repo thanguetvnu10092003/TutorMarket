@@ -7,8 +7,8 @@ import { PenaltyNotificationModal } from '@/components/providers/PenaltyNotifica
 
 export const metadata: Metadata = {
   title: {
-    default: "TutorMarket — Premium CFA, GMAT & GRE Tutoring",
-    template: "%s | TutorMarket",
+    default: "PrepPass — Premium CFA, GMAT & GRE Tutoring",
+    template: "%s | PrepPass",
   },
   description:
     "Connect with verified, world-class tutors for CFA, GMAT, and GRE exam preparation. Free trial session, personalized learning, proven results.",
@@ -18,10 +18,10 @@ export const metadata: Metadata = {
     "GMAT tutoring", "GRE tutoring", "test prep marketplace",
   ],
   openGraph: {
-    title: "TutorMarket — Premium CFA, GMAT & GRE Tutoring",
+    title: "PrepPass — Premium CFA, GMAT & GRE Tutoring",
     description: "Connect with verified, world-class tutors for exam preparation.",
-    url: "https://tutormarket.com",
-    siteName: "TutorMarket",
+    url: "https://preppass.com",
+    siteName: "PrepPass",
     type: "website",
   },
   robots: { index: true, follow: true },

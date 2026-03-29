@@ -353,7 +353,7 @@ export default function HomePage() {
           <div className="text-center mb-14">
             <span className="badge-sage mb-4 inline-block">Simple Process</span>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-navy-600 dark:text-cream-200 mb-4">
-              How TutorMarket Works
+              How PrepPass Works
             </h2>
             <p className="text-navy-300 dark:text-cream-400/60 max-w-2xl mx-auto">
               From finding your perfect tutor to acing your exam — we&apos;ve streamlined every step.

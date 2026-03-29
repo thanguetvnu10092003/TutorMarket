@@ -496,7 +496,7 @@ export default function TutorVerifyPage() {
                 className="mt-1 h-4 w-4 rounded border-gold-400 accent-gold-400"
               />
               <span className="text-[11px] leading-relaxed text-navy-400 dark:text-cream-400/70">
-                I authorize TutorMarket admins to use these credentials only to verify my GMAT score on MBA.com.
+                I authorize PrepPass admins to use these credentials only to verify my GMAT score on MBA.com.
               </span>
             </label>
           </div>

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Become a Tutor',
-  description: 'Share your CFA, GMAT, or GRE expertise. Set your own rate, teach on your schedule, earn more with TutorMarket.',
+  description: 'Share your CFA, GMAT, or GRE expertise. Set your own rate, teach on your schedule, earn more with PrepPass.',
 };
 
 const perks = [

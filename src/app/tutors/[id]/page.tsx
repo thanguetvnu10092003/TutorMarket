@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -216,22 +216,20 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
     router.push(`/dashboard/student?tab=messages&tutorId=${params.id}`);
   };
 
-  useEffect(() => {
-    async function load() {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/tutors/${params.id}`, { cache: 'no-store' });
-        const json = await response.json();
-        setProfile(json.data || null);
-      } catch (error) {
-        console.error('Error loading profile:', error);
-      } finally {
-        setIsLoading(false);
-      }
+  const loadProfile = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/tutors/${params.id}`, { cache: 'no-store' });
+      const json = await response.json();
+      setProfile(json.data || null);
+    } catch (error) {
+      console.error('Error loading profile:', error);
     }
-
-    void load();
   }, [params.id]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    void loadProfile().finally(() => setIsLoading(false));
+  }, [loadProfile]);
 
   if (isLoading) {
     return (

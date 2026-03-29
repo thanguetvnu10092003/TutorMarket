@@ -12,7 +12,7 @@ export default async function TutorResourcesPage() {
   const resourceCategories = [
     {
       title: "Platform Basics",
-      description: "Learn how to use TutorMarket to find students and manage your business.",
+      description: "Learn how to use PrepPass to find students and manage your business.",
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>,
       links: [
         { label: "Getting Started Guide", href: "#" },
@@ -46,7 +46,7 @@ export default async function TutorResourcesPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-display font-bold text-navy-600 dark:text-cream-200">Tutor Resources</h1>
-        <p className="text-navy-300 dark:text-cream-400/60 mt-1">Everything you need to succeed on TutorMarket.</p>
+        <p className="text-navy-300 dark:text-cream-400/60 mt-1">Everything you need to succeed on PrepPass.</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -144,7 +144,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="py-6 border-t border-navy-500/50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-cream-400/40">
-            © {new Date().getFullYear()} TutorMarket. All rights reserved.
+            © {new Date().getFullYear()} PrepPass. All rights reserved.
           </p>
           <p className="text-xs text-cream-400/40">
             Built for students who refuse to settle for average.

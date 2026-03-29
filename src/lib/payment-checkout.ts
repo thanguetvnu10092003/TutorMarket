@@ -77,11 +77,11 @@ export async function createCheckoutSessionForStudentPayment(input: {
       ? `${payment.booking.tutorProfile.user.name} | ${payment.booking.subject}`
       : payment.package
         ? `${payment.package.totalSessions} lesson package with ${payment.package.tutorProfile.user.name}`
-        : 'TutorMarket payment';
+        : 'PrepPass payment';
 
   const productName = payment.booking
-    ? 'TutorMarket Lesson Payment'
-    : 'TutorMarket Lesson Package';
+    ? 'PrepPass Lesson Payment'
+    : 'PrepPass Lesson Package';
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

@@ -14,14 +14,14 @@ export async function sendOTP(email: string, otp: string) {
   const hasCredentials = process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD;
 
   const mailOptions = {
-    from: `"TutorMarket" <${process.env.EMAIL_FROM || 'noreply@tutormarket.com'}>`,
+    from: `"PrepPass" <${process.env.EMAIL_FROM || 'noreply@preppass.com'}>`,
     to: email,
-    subject: 'Your Verification Code - TutorMarket',
+    subject: 'Your Verification Code - PrepPass',
     text: `Your verification code is: ${otp}. It will expire in 5 minutes.`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; rounded: 12px;">
         <h2 style="color: #1e293b; text-align: center;">Email Verification</h2>
-        <p style="color: #4b5563; text-align: center;">Use the code below to verify your account on TutorMarket.</p>
+        <p style="color: #4b5563; text-align: center;">Use the code below to verify your account on PrepPass.</p>
         <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
           <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #d97706;">${otp}</span>
         </div>
@@ -76,7 +76,7 @@ async function sendResendEmail(payload: AdminEmailInput) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM || process.env.EMAIL_FROM || 'TutorMarket <onboarding@resend.dev>',
+        from: process.env.RESEND_FROM || process.env.EMAIL_FROM || 'PrepPass <onboarding@resend.dev>',
         to: [payload.to],
         subject: payload.subject,
         text: payload.text,
@@ -102,7 +102,7 @@ function buildAdminTemplate(title: string, intro: string, body: string) {
     <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; color: #102033;">
       <div style="border: 1px solid #e5ecf5; border-radius: 18px; overflow: hidden;">
         <div style="padding: 20px 24px; background: linear-gradient(135deg, #102033 0%, #1f3b5c 100%); color: #f5efe4;">
-          <div style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.75;">TutorMarket Admin</div>
+          <div style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.75;">PrepPass Admin</div>
           <h1 style="margin: 12px 0 0; font-size: 28px; line-height: 1.2;">${title}</h1>
         </div>
         <div style="padding: 24px;">
@@ -117,7 +117,7 @@ function buildAdminTemplate(title: string, intro: string, body: string) {
   `;
 }
 
-export async function sendVerificationApprovalEmail(email: string, platformName = 'TutorMarket') {
+export async function sendVerificationApprovalEmail(email: string, platformName = 'PrepPass') {
   const subject = `🎉 Your profile is now verified on ${platformName}`;
   const text = `Your tutor profile is now verified on ${platformName}. Your public profile is live in search and your verified badge is active.`;
   const html = buildAdminTemplate(
@@ -147,7 +147,7 @@ export async function sendVerificationRejectionEmail(
 }
 
 export async function sendWarningEmail(email: string, reason: string, strikeCount: number) {
-  const subject = 'Warning issued on your TutorMarket account';
+  const subject = 'Warning issued on your PrepPass account';
   const text = `An admin warning was issued on your account.\n\nReason: ${reason}\nCurrent strike count: ${strikeCount}`;
   const html = buildAdminTemplate(
     'Account warning issued',
@@ -168,7 +168,7 @@ export async function sendSuspensionEmail(email: string, reason: string, suspend
         minute: '2-digit',
       })
     : 'Until further notice';
-  const subject = 'Your TutorMarket account has been suspended';
+  const subject = 'Your PrepPass account has been suspended';
   const text = `Your account has been suspended.\n\nReason: ${reason}\nSuspended until: ${untilLabel}`;
   const html = buildAdminTemplate(
     'Account suspended',
@@ -180,7 +180,7 @@ export async function sendSuspensionEmail(email: string, reason: string, suspend
 }
 
 export async function sendBanEmail(email: string, reason: string, permanent = true) {
-  const subject = permanent ? 'Your TutorMarket account has been permanently banned' : 'Your TutorMarket account has been suspended';
+  const subject = permanent ? 'Your PrepPass account has been permanently banned' : 'Your PrepPass account has been suspended';
   const text = `${permanent ? 'Your account has been permanently banned.' : 'Your account has been suspended.'}\n\nReason: ${reason}`;
   const html = buildAdminTemplate(
     permanent ? 'Account permanently banned' : 'Account suspended',
@@ -206,7 +206,7 @@ export async function sendBookingRequestEmail(input: {
     hour: 'numeric',
     minute: '2-digit',
   });
-  const subject = 'New booking request from TutorMarket';
+  const subject = 'New booking request from PrepPass';
   const text = `${input.studentName} requested a ${input.durationMinutes}-minute ${input.subject.replace(/_/g, ' ')} lesson on ${scheduledLabel}. Review the request from your tutor dashboard.`;
   const html = buildAdminTemplate(
     'New booking request',
