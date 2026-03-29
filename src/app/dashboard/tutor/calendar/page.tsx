@@ -17,7 +17,7 @@ export default function TutorCalendarPage() {
         const response = await fetch('/api/tutor/bookings');
         if (response.ok) {
           const data = await response.json();
-          setBookings(data);
+          setBookings(data.data ?? []);
         }
       } catch (error) {
         console.error('Failed to fetch bookings:', error);
