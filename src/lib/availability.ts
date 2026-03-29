@@ -191,6 +191,21 @@ export function getOpenTimeWindowsForDate(input: {
     return [];
   }
 
+  // Merge adjacent/overlapping records so that contiguous 30-min slots (the
+  // format enforced by the availability API) are treated as one long window.
+  // Without this, a 60-min session finds no windows in back-to-back 30-min slots.
+  const mergedAvailability: AvailabilitySlotLike[] = [];
+  for (const slot of dailyAvailability) {
+    const last = mergedAvailability[mergedAvailability.length - 1];
+    if (last && timeToMinutes(last.endTime) >= timeToMinutes(slot.startTime)) {
+      if (timeToMinutes(slot.endTime) > timeToMinutes(last.endTime)) {
+        last.endTime = slot.endTime;
+      }
+    } else {
+      mergedAvailability.push({ ...slot });
+    }
+  }
+
   const blocked = getBlockedRangesForDate(date, overrides, bookings);
   if (blocked.blocksWholeDay) {
     return [];
@@ -198,7 +213,7 @@ export function getOpenTimeWindowsForDate(input: {
 
   const windows: OpenTimeWindow[] = [];
 
-  for (const slot of dailyAvailability) {
+  for (const slot of mergedAvailability) {
     const slotStart = timeToMinutes(slot.startTime);
     const slotEnd = timeToMinutes(slot.endTime);
     const freeSegments = subtractBlockedRanges(slotStart, slotEnd, blocked.blockedRanges);
