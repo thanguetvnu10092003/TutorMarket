@@ -272,7 +272,7 @@ function TutorsContent() {
             totalResults={results.length} 
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 items-start mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 mt-8">
           {/* Main Listing */}
           <div className="space-y-6 min-w-0">
             {loading ? (
@@ -303,7 +303,8 @@ function TutorsContent() {
           </div>
 
           {/* Sticky Detail Sidebar */}
-          <aside className="hidden lg:block sticky top-32 space-y-6">
+          <aside className="hidden lg:block">
+            <div className="sticky top-32 space-y-6">
             {selectedTutor && (
               <div className="glass-card bg-white dark:bg-navy-800 rounded-[32px] overflow-hidden border border-navy-100/50 dark:border-navy-500/10 shadow-2xl">
                 <div className="aspect-video relative bg-navy-900 flex items-center justify-center overflow-hidden">
@@ -334,6 +335,7 @@ function TutorsContent() {
                 </div>
               </div>
             )}
+            </div>
           </aside>
         </div>
       </div>

@@ -358,7 +358,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
 
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         <div className="glass-card p-6">
-          <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200">
+          <h2 className="text-xl font-bold text-navy-600 dark:text-cream-200">
             {activeTab === 'queue' ? 'Application queue' : 'GMAT requests'}
           </h2>
           <div className="mt-6 space-y-3">
@@ -430,7 +430,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
           {activeTab === 'queue' ? (
             selected ? (
               <div className="space-y-8">
-                <h2 className="text-2xl font-display font-bold text-navy-600 dark:text-cream-200">Reviewing {selected.name}</h2>
+                <h2 className="text-2xl font-bold text-navy-600 dark:text-cream-200">Reviewing {selected.name}</h2>
                 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-4">
@@ -460,10 +460,10 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                         
                         <div className="flex flex-wrap gap-4 rounded-2xl border border-gold-100 bg-white/50 p-4">
                           {selectedCert.fileUrl && (
-                            <a href={selectedCert.fileUrl} target="_blank" rel="noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
+                            <button type="button" onClick={() => window.open(selectedCert.fileUrl, '_blank')} className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                               View Document
-                            </a>
+                            </button>
                           )}
                           {selectedCert.type === 'GMAT' && selectedCert.gmatVerification?.id && (
                             <button onClick={() => openGmatReview(selectedCert)} className="btn-outline flex items-center gap-2 border-blue-200 px-4 py-2 text-[10px] font-black text-blue-700">
@@ -567,7 +567,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
           ) : (
             selectedGmat ? (
               <div className="space-y-8">
-                <h2 className="text-2xl font-display font-bold text-navy-600 dark:text-cream-200">GMAT Verification: {selectedGmat.tutorName}</h2>
+                <h2 className="text-2xl font-bold text-navy-600 dark:text-cream-200">GMAT Verification: {selectedGmat.tutorName}</h2>
                 {selectedGmatCert && (
                   <div className="glass-card space-y-4 border-blue-100 bg-blue-50/40 p-6">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -576,10 +576,10 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                         <div className="mt-1 text-sm text-navy-500">Use this score breakdown to compare the tutor&apos;s claim against both the uploaded report and the MBA.com portal.</div>
                       </div>
                       {selectedGmatCert.fileUrl && (
-                        <a href={selectedGmatCert.fileUrl} target="_blank" rel="noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
+                        <button type="button" onClick={() => window.open(selectedGmatCert.fileUrl, '_blank')} className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                           View Score Report
-                        </a>
+                        </button>
                       )}
                     </div>
                     <CertificationScorePanel cert={selectedGmatCert} />

@@ -292,7 +292,7 @@ export async function buildAdminDashboardData(period: AnalyticsPeriod = 'ALL_TIM
 
   const nonAdminUsers = users.filter((user: any) => user.role !== 'ADMIN');
   const activeUsers = nonAdminUsers.filter((user: any) => getUserStatus(user) === 'ACTIVE');
-  const capturedBookings = bookings.filter((b: any) => b.payment && b.payment.status === 'CAPTURED');
+  const capturedBookings = bookings.filter((b: any) => b.payment && b.payment.status === 'CAPTURED' && b.status !== 'CANCELLED');
   const capturedPackages = packages.filter((p: any) => p.payment && p.payment.status === 'CAPTURED');
 
   // Map tutorProfileId → package revenue for all captured packages

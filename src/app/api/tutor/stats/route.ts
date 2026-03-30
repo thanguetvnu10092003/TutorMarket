@@ -41,6 +41,7 @@ export async function GET() {
               tutorProfile: {
                 userId: session.user.id,
               },
+              status: { not: 'CANCELLED' }
             },
           },
           {

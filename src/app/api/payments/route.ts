@@ -13,70 +13,40 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const payments = await prisma.payment.findMany({
+    const bookingPaymentsPromise = prisma.payment.findMany({
       where:
         session.user.role === 'STUDENT'
-          ? {
-              OR: [
-                {
-                  booking: {
-                    studentId: session.user.id,
-                  },
-                },
-                {
-                  package: {
-                    studentId: session.user.id,
-                  },
-                },
-              ],
-            }
-          : {
-              OR: [
-                {
-                  booking: {
-                    tutorProfile: {
-                      userId: session.user.id,
-                    },
-                  },
-                },
-                {
-                  package: {
-                    tutorProfile: {
-                      userId: session.user.id,
-                    },
-                  },
-                },
-              ],
-            },
+          ? { booking: { studentId: session.user.id } }
+          : { booking: { tutorProfile: { userId: session.user.id } } },
       include: {
         booking: {
           include: {
-            tutorProfile: {
-              include: {
-                user: {
-                  select: { name: true, avatarUrl: true },
-                },
-              },
-            },
-            student: {
-              select: { name: true, avatarUrl: true },
-            },
-          },
-        },
-        package: {
-          include: {
-            tutorProfile: {
-              include: {
-                user: {
-                  select: { name: true, avatarUrl: true },
-                },
-              },
-            },
+            tutorProfile: { include: { user: { select: { name: true, avatarUrl: true } } } },
+            student: { select: { name: true, avatarUrl: true } },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
     });
+
+    const packagePaymentsPromise = prisma.payment.findMany({
+      where:
+        session.user.role === 'STUDENT'
+          ? { package: { studentId: session.user.id } }
+          : { package: { tutorProfile: { userId: session.user.id } } },
+      include: {
+        package: {
+          include: {
+            tutorProfile: { include: { user: { select: { name: true, avatarUrl: true } } } },
+          },
+        },
+      },
+    });
+
+    const [bookingPayments, packagePayments] = await Promise.all([bookingPaymentsPromise, packagePaymentsPromise]);
+
+    const payments = [...bookingPayments, ...packagePayments].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
 
     return NextResponse.json({
       data: payments.map((payment: any) => {
