@@ -460,10 +460,12 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                         
                         <div className="flex flex-wrap gap-4 rounded-2xl border border-gold-100 bg-white/50 p-4">
                           {selectedCert.fileUrl && (
-                            <button type="button" onClick={() => window.open(selectedCert.fileUrl, '_blank')} className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                              View Document
-                            </button>
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
+                              <a href={selectedCert.fileUrl.startsWith('http') ? selectedCert.fileUrl : `https://${selectedCert.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black w-full" onClick={(e) => e.stopPropagation()}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                View Document
+                              </a>
+                            </div>
                           )}
                           {selectedCert.type === 'GMAT' && selectedCert.gmatVerification?.id && (
                             <button onClick={() => openGmatReview(selectedCert)} className="btn-outline flex items-center gap-2 border-blue-200 px-4 py-2 text-[10px] font-black text-blue-700">
@@ -576,10 +578,12 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                         <div className="mt-1 text-sm text-navy-500">Use this score breakdown to compare the tutor&apos;s claim against both the uploaded report and the MBA.com portal.</div>
                       </div>
                       {selectedGmatCert.fileUrl && (
-                        <button type="button" onClick={() => window.open(selectedGmatCert.fileUrl, '_blank')} className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                          View Score Report
-                        </button>
+                        <div className="flex flex-col gap-1 w-full sm:w-auto">
+                          <a href={selectedGmatCert.fileUrl.startsWith('http') ? selectedGmatCert.fileUrl : `https://${selectedGmatCert.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black w-full" onClick={(e) => e.stopPropagation()}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View Score Report
+                          </a>
+                        </div>
                       )}
                     </div>
                     <CertificationScorePanel cert={selectedGmatCert} />
