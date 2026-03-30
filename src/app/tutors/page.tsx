@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter, type ReadonlyURLSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { SUBJECT_LABELS, type Subject } from '@/types';
@@ -114,6 +114,16 @@ function TutorsContent() {
   const [selectedTutorId, setSelectedTutorId] = useState<string | null>(null);
   const [bookingTutor, setBookingTutor] = useState<any>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [topOffset, setTopOffset] = useState(0);
+
+  useEffect(() => {
+    if (selectedTutorId && cardRefs.current[selectedTutorId]) {
+      setTopOffset(cardRefs.current[selectedTutorId]?.offsetTop || 0);
+    } else {
+      setTopOffset(0);
+    }
+  }, [selectedTutorId, results]);
 
   useEffect(() => {
     const nextFilters = getFiltersFromSearchParams(new URLSearchParams(searchParamsKey));
@@ -272,7 +282,7 @@ function TutorsContent() {
             totalResults={results.length} 
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 mt-8 relative">
           {/* Main Listing */}
           <div className="space-y-6 min-w-0">
             {loading ? (
@@ -281,6 +291,7 @@ function TutorsContent() {
               results.map((tutor) => (
                 <div 
                     key={tutor.id} 
+                    ref={el => { cardRefs.current[tutor.id] = el; }}
                     onClick={() => setSelectedTutorId(tutor.id)}
                     className={`cursor-pointer min-w-0 transition-all ${selectedTutorId === tutor.id ? 'ring-4 ring-gold-400 rounded-[32px]' : ''}`}
                 >
@@ -304,7 +315,10 @@ function TutorsContent() {
 
           {/* Sticky Detail Sidebar */}
           <aside className="hidden lg:block">
-            <div className="sticky top-32 space-y-6">
+            <div 
+              style={{ marginTop: `${Math.max(0, topOffset - 32)}px` }} 
+              className="space-y-6 transition-all duration-500 ease-out"
+            >
             {selectedTutor && (
               <div className="glass-card bg-white dark:bg-navy-800 rounded-[32px] overflow-hidden border border-navy-100/50 dark:border-navy-500/10 shadow-2xl">
                 <div className="aspect-video relative bg-navy-900 flex items-center justify-center overflow-hidden">
