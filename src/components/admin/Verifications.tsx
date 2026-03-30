@@ -126,6 +126,16 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
   const [gmatDetail, setGmatDetail] = useState<any>(null);
   const [checklist, setChecklist] = useState<Record<string, any>>({});
   const [certChecklist, setCertChecklist] = useState<Record<string, Record<string, boolean>>>({});
+  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
+
+  const handlePreview = (url: string) => {
+    if (!url) return;
+    if (url.startsWith('data:')) {
+      setPreviewFileUrl(url);
+    } else {
+      window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
+    }
+  };
 
   const selected = useMemo(
     () => data.queue.find((a: any) => a.id === selectedId) ?? null,
@@ -461,10 +471,10 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                         <div className="flex flex-wrap gap-4 rounded-2xl border border-gold-100 bg-white/50 p-4">
                           {selectedCert.fileUrl && (
                             <div className="flex flex-col gap-1 w-full sm:w-auto">
-                              <a href={selectedCert.fileUrl.startsWith('http') ? selectedCert.fileUrl : `https://${selectedCert.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black w-full" onClick={(e) => e.stopPropagation()}>
+                              <button type="button" onClick={() => handlePreview(selectedCert.fileUrl)} className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black w-full">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                 View Document
-                              </a>
+                              </button>
                             </div>
                           )}
                           {selectedCert.type === 'GMAT' && selectedCert.gmatVerification?.id && (
@@ -579,10 +589,10 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                       </div>
                       {selectedGmatCert.fileUrl && (
                         <div className="flex flex-col gap-1 w-full sm:w-auto">
-                          <a href={selectedGmatCert.fileUrl.startsWith('http') ? selectedGmatCert.fileUrl : `https://${selectedGmatCert.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black w-full" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" onClick={() => handlePreview(selectedGmatCert.fileUrl)} className="btn-outline flex items-center gap-2 px-4 py-2 text-[10px] font-black w-full">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                             View Score Report
-                          </a>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -668,6 +678,30 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
           )}
         </div>
       </div>
+      {/* Preview Modal for Data URIs */}
+      {previewFileUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-900/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-navy-800 w-full max-w-4xl h-[80vh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-navy-100 dark:border-navy-700">
+              <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200 uppercase tracking-widest">Document Preview</h3>
+              <button 
+                onClick={() => setPreviewFileUrl(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-navy-50 dark:bg-navy-700 text-navy-400 hover:text-red-500 transition-colors"
+                title="Close Document"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 bg-navy-50/50 dark:bg-navy-900/50 p-4">
+              <iframe 
+                src={previewFileUrl} 
+                className="w-full h-full border-2 border-dashed border-navy-200 dark:border-navy-700 rounded-2xl bg-white" 
+                title="Document Preview"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
