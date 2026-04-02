@@ -408,6 +408,7 @@ model Booking {
   @@index([tutorProfileId])
   @@index([status])
   @@index([scheduledAt])
+  @@index([tutorProfileId, hasConflict])
 }
 
 model Payment {

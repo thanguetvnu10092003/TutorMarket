@@ -5,3 +5,5 @@ ALTER TABLE "Booking" ADD COLUMN "conflictAt" TIMESTAMP(3);
 
 -- AlterTable: add timezone to AvailabilityOverride
 ALTER TABLE "AvailabilityOverride" ADD COLUMN "timezone" TEXT NOT NULL DEFAULT 'UTC';
+
+CREATE INDEX "Booking_tutorProfileId_hasConflict_idx" ON "Booking"("tutorProfileId", "hasConflict");
