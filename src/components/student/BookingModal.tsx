@@ -16,7 +16,7 @@ import {
   subWeeks,
 } from 'date-fns';
 import { toast } from 'react-hot-toast';
-import { getInitials } from '@/lib/utils';
+import { getInitials, formatDateInTz, formatTimeInTz } from '@/lib/utils';
 import { formatMoney, roundCurrencyAmount } from '@/lib/currency';
 import { getOpenTimeWindowsForDate, minutesToTime, timeToMinutes } from '@/lib/availability';
 
@@ -53,11 +53,31 @@ function getPackages(tutor: BookingModalProps['tutor']) {
   ];
 }
 
-function slotLabel(time: string) {
+function slotLabel(time: string, date: Date, tutorTz: string, studentTz: string) {
   const [hours, minutes] = time.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return format(date, 'h:mm a');
+  
+  // 1. Tutor local time (already formatted in props)
+  const tutorDate = new Date();
+  tutorDate.setHours(hours, minutes, 0, 0);
+  const tutorFormatted = format(tutorDate, 'h:mm a');
+
+  // 2. Student local time
+  // Need to get the absolute UTC first to convert to student local
+  const utcDate = tutorLocalToUTC(date, time, tutorTz);
+  const studentFormatted = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: studentTz
+  }).format(utcDate);
+
+  if (tutorTz === studentTz) return tutorFormatted;
+  return (
+    <div className="flex flex-col leading-tight">
+      <span>{tutorFormatted}</span>
+      <span className="text-[7px] opacity-60 font-medium">L: {studentFormatted}</span>
+    </div>
+  );
 }
 
 function getPricingOptions(tutor: BookingModalProps['tutor']) {
@@ -158,7 +178,12 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
   const defaultDuration = pricingOptions[0]?.durationMinutes || 60;
   const [step, setStep] = useState<(typeof STEPS)[keyof typeof STEPS]>(STEPS.TYPE);
   const [selectedType, setSelectedType] = useState<'TRIAL' | 'SINGLE' | 'PACKAGE'>('SINGLE');
-  const [selectedDuration, setSelectedDuration] = useState(defaultDuration);
+  const [selectedDuration, setSelectedDuration] = useState<number>(() => {
+    const firstOption = getPricingOptions(tutor)[0];
+    return firstOption ? firstOption.durationMinutes : 60;
+  });
+
+  const studentTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const [selectedPackage, setSelectedPackage] = useState<ReturnType<typeof getPackages>[0] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -543,7 +568,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                                   : 'bg-navy-50/50 dark:bg-navy-700/50 text-navy-400 dark:text-cream-400/40 hover:bg-gold-50 hover:text-gold-600'
                               }`}
                             >
-                              {slotLabel(time)}
+                              {slotLabel(time, day, tutor.timezone || 'UTC', studentTz)}
                             </button>
                           );
                         }) : <div className="h-full flex items-center justify-center opacity-10"><div className="w-px h-8 bg-navy-100" /></div>}
@@ -616,7 +641,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                                   : 'bg-navy-50/50 dark:bg-navy-700/50 text-navy-400 dark:text-cream-400/40 hover:bg-gold-50 hover:text-gold-600'
                               }`}
                             >
-                              {slotLabel(time)}
+                              {slotLabel(time, day, tutor.timezone || 'UTC', studentTz)}
                             </button>
                           );
                         }) : <div className="h-full flex items-center justify-center opacity-10"><div className="w-px h-8 bg-navy-100" /></div>}
@@ -631,7 +656,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                     <div className="flex flex-wrap gap-2">
                       {selectedPackageSlots.map((s, i) => (
                         <span key={`${s.date.toISOString()}-${s.slot}`} className="px-3 py-1.5 rounded-xl bg-sage-50 dark:bg-sage-500/10 text-[10px] font-black text-sage-700 dark:text-sage-300 border border-sage-200/70">
-                          {format(s.date, 'MMM d')} {slotLabel(s.slot)}
+                          {format(s.date, 'MMM d')} {slotLabel(s.slot, s.date, tutor.timezone || 'UTC', studentTz)}
                         </span>
                       ))}
                     </div>
@@ -659,7 +684,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                     {selectedType !== 'PACKAGE' ? (
                       <div className="flex justify-between gap-4">
                         <span className="text-navy-400 dark:text-cream-400/60">Date & Time</span>
-                        <span className="text-right font-bold text-navy-600 dark:text-cream-200">{selectedDate && format(selectedDate, 'EEEE, MMM d')} at {selectedSlot ? slotLabel(selectedSlot) : ''}</span>
+                        <span className="text-right font-bold text-navy-600 dark:text-cream-200">{selectedDate && format(selectedDate, 'EEEE, MMM d')} at {selectedSlot && selectedDate ? slotLabel(selectedSlot, selectedDate, tutor.timezone || 'UTC', studentTz) : ''}</span>
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -672,7 +697,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                             {selectedPackageSlots.map((s, i) => (
                               <div key={`${s.date.toISOString()}-${s.slot}`} className="flex justify-between text-xs">
                                 <span className="text-navy-300">Session {i + 1}</span>
-                                <span className="font-bold text-navy-500 dark:text-cream-300">{format(s.date, 'EEE, MMM d')} at {slotLabel(s.slot)}</span>
+                                <span className="font-bold text-navy-500 dark:text-cream-300">{format(s.date, 'EEE, MMM d')} at {slotLabel(s.slot, s.date, tutor.timezone || 'UTC', studentTz)}</span>
                               </div>
                             ))}
                           </div>
