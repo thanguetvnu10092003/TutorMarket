@@ -528,6 +528,11 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                   </div>
                 </div>
 
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-navy-50/50 dark:bg-navy-700/30 rounded-xl p-3 text-[10px] uppercase tracking-widest font-black">
+                  <div className="items-center flex gap-1.5"><span className="w-2 h-2 rounded-full bg-navy-300 dark:bg-navy-500"></span><span className="text-navy-400 dark:text-cream-400">TUTOR (MAIN):</span> <span className="text-navy-600 dark:text-cream-100">{tutor.timezone || 'UTC'}</span></div>
+                  <div className="items-center flex gap-1.5"><span className="w-2 h-2 rounded-full bg-gold-400 opacity-60"></span><span className="text-navy-400 dark:text-cream-400">YOU (L):</span> <span className="text-gold-600">{studentTz}</span></div>
+                </div>
+
                 {selectedType === 'SINGLE' && pricingOptions.length > 0 && (
                   <div className="flex flex-wrap gap-3">
                     {pricingOptions.map((option) => (
@@ -592,6 +597,11 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                     <span className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">{format(currentWeekStart, 'MMM d')} - {format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), 'MMM d')}</span>
                     <button onClick={nextWeek} className="p-1 rounded-full hover:bg-navy-50 text-navy-300">▶</button>
                   </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-navy-50/50 dark:bg-navy-700/30 rounded-xl p-3 text-[10px] uppercase tracking-widest font-black">
+                  <div className="items-center flex gap-1.5"><span className="w-2 h-2 rounded-full bg-navy-300 dark:bg-navy-500"></span><span className="text-navy-400 dark:text-cream-400">TUTOR (MAIN):</span> <span className="text-navy-600 dark:text-cream-100">{tutor.timezone || 'UTC'}</span></div>
+                  <div className="items-center flex gap-1.5"><span className="w-2 h-2 rounded-full bg-gold-400 opacity-60"></span><span className="text-navy-400 dark:text-cream-400">YOU (L):</span> <span className="text-gold-600">{studentTz}</span></div>
                 </div>
 
                 <div className="rounded-2xl bg-navy-50/60 dark:bg-navy-700/30 p-4 flex items-center justify-between">
