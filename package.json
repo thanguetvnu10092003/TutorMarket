@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "ts-node prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:backfill-tz": "ts-node prisma/scripts/backfill-override-timezone.ts",
+    "db:conflict-scan": "ts-node prisma/scripts/initial-conflict-scan.ts"
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
