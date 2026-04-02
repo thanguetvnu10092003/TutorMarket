@@ -49,7 +49,7 @@ export async function GET() {
     }));
 
     return NextResponse.json({
-        timezone: tutorProfile.availability[0]?.timezone || 'Asia/Ho_Chi_Minh',
+        timezone: tutorProfile.timezone || tutorProfile.availability[0]?.timezone || 'UTC',
         slots: tutorProfile.availability,
         overrides: tutorProfile.overrides,
         bookedSlots

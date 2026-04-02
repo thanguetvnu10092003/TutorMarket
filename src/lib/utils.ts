@@ -29,25 +29,25 @@ export function formatDateTime(dateString: string): string {
   return `${formatDate(dateString)} at ${formatTime(dateString)}`;
 }
 
-export function formatDateInTz(dateString: string, timeZone: string): string {
+export function formatDateInTz(dateString: string, timeZone?: string | null): string {
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    timeZone,
+    timeZone: timeZone || 'UTC',
   }).format(new Date(dateString));
 }
 
-export function formatTimeInTz(dateString: string, timeZone: string): string {
+export function formatTimeInTz(dateString: string, timeZone?: string | null): string {
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-    timeZone,
+    timeZone: timeZone || 'UTC',
   }).format(new Date(dateString));
 }
 
-export function formatDateTimeInTz(dateString: string, timeZone: string): string {
+export function formatDateTimeInTz(dateString: string, timeZone?: string | null): string {
   return `${formatDateInTz(dateString, timeZone)} at ${formatTimeInTz(dateString, timeZone)}`;
 }
 
@@ -55,9 +55,9 @@ export function formatDateTimeInTz(dateString: string, timeZone: string): string
  * Returns the "wall clock" year, month, day, hour, and minute for a Date in a specific timezone.
  * Useful for mapping UTC timestamps to a local calendar grid.
  */
-export function getTzDateParts(date: Date, timeZone: string) {
+export function getTzDateParts(date: Date, timeZone?: string | null) {
   const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
+    timeZone: timeZone || 'UTC',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

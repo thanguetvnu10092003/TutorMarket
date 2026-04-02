@@ -15,7 +15,9 @@ type SlotRecord = { dayOfWeek: number; startTime: string; endTime: string };
 export default function Step7Availability({ onNext, onBack }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [timezone, setTimezone] = useState('Asia/Ho_Chi_Minh');
+  const [timezone, setTimezone] = useState(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Ho_Chi_Minh'
+  );
   const [timezoneQuery, setTimezoneQuery] = useState('');
   const [loadedSlots, setLoadedSlots] = useState<SlotRecord[]>([]);
   const [gridSlots, setGridSlots] = useState<SlotRecord[]>([]);
@@ -35,7 +37,7 @@ export default function Step7Availability({ onNext, onBack }: Props) {
       .then((r) => r.json())
       .then((data) => {
         if (!data.data) return;
-        setTimezone(data.data.timezone || 'Asia/Ho_Chi_Minh');
+        setTimezone(data.data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Ho_Chi_Minh');
         const slots: SlotRecord[] = (data.data.slots || []).map((s: any) => ({
           dayOfWeek: s.dayOfWeek,
           startTime: s.startTime,
