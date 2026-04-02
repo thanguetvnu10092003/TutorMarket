@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { expandWindowsToSlots, getOpenTimeWindowsForDate, timeToMinutes, minutesToTime } from '@/lib/availability';
+import { isSameDayInTz, getTzDateParts } from '@/lib/utils';
 
 type CalendarData = {
   availability: Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
@@ -185,18 +186,22 @@ export default function TutorCalendarPage() {
                     const snapped = rem === 0 ? slotMins : slotMins + (30 - rem);
                     return snapped >= timeToMinutes(a.startTime) && snapped + 30 <= timeToMinutes(a.endTime);
                   });
+
+                  const tz = calData?.timezone || 'UTC';
                   // Find booking at this slot
                   const booking = calData?.bookings.find((b) => {
                     const bd = new Date(b.scheduledAt);
-                    if (!isSameDay(bd, day)) return false;
-                    const bStart = bd.getHours() * 60 + bd.getMinutes();
+                    if (!isSameDayInTz(bd, day, tz)) return false;
+                    const bParts = getTzDateParts(bd, tz);
+                    const bStart = bParts.hour * 60 + bParts.minute;
                     return slotMins >= bStart && slotMins < bStart + b.durationMinutes;
                   });
 
                   if (booking) {
                     const isStart = (() => {
                       const bd = new Date(booking.scheduledAt);
-                      return bd.getHours() * 60 + bd.getMinutes() === slotMins;
+                      const bParts = getTzDateParts(bd, tz);
+                      return bParts.hour * 60 + bParts.minute === slotMins;
                     })();
                     return (
                       <td key={dateKey} className="py-1 px-0.5 align-top">
@@ -254,8 +259,9 @@ export default function TutorCalendarPage() {
           {cells.map((day, idx) => {
             if (!day) return <div key={idx} className="min-h-[80px] border-r border-b border-navy-100/30 dark:border-navy-700/30 bg-navy-50/20" />;
             const date = new Date(year, month, day);
-            const dayBookings = calData?.bookings.filter((b) => isSameDay(new Date(b.scheduledAt), date)) || [];
-            const isToday = isSameDay(date, new Date());
+            const tz = calData?.timezone || 'UTC';
+            const dayBookings = calData?.bookings.filter((b) => isSameDayInTz(new Date(b.scheduledAt), date, tz)) || [];
+            const isToday = isSameDayInTz(date, new Date(), tz);
             const counts: Record<string, number> = {};
             for (const b of dayBookings) counts[b.status] = (counts[b.status] || 0) + 1;
 
@@ -283,7 +289,8 @@ export default function TutorCalendarPage() {
 
   // ── DAY VIEW ─────────────────────────────────────────────────────────────
   const renderDayView = () => {
-    const dayBookings = calData?.bookings.filter((b) => isSameDay(new Date(b.scheduledAt), currentDate)) || [];
+    const tz = calData?.timezone || 'UTC';
+    const dayBookings = calData?.bookings.filter((b) => isSameDayInTz(new Date(b.scheduledAt), currentDate, tz)) || [];
     const windows = calData ? getOpenTimeWindowsForDate({
       date: currentDate,
       durationMinutes: 30,

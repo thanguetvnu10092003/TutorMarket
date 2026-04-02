@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -14,6 +14,7 @@ import ConversationList from '@/components/chat/ConversationList';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { toast } from 'react-hot-toast';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { getTimeZoneOptions } from '@/lib/intl-data';
 
 const tabs = [
   { id: 'overview', label: 'Overview' },
@@ -36,6 +37,10 @@ function StudentDashboardInner() {
   const [payingPaymentId, setPayingPaymentId] = useState<string | null>(null);
   const [mockPayingId, setMockPayingId] = useState<string | null>(null);
   const [paypalPayingId, setPaypalPayingId] = useState<string | null>(null);
+  const [studentPreferences, setStudentPreferences] = useState<any>(null);
+  const [isUpdatingTimezone, setIsUpdatingTimezone] = useState(false);
+  const [timezoneQuery, setTimezoneQuery] = useState('');
+  
   const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(r => r.json());
 
   const { data: bookingsJson, mutate: mutateBookings } = useSWR(
@@ -58,12 +63,19 @@ function StudentDashboardInner() {
     fetcher,
     { revalidateOnFocus: true }
   );
+  const { data: prefsJson, mutate: mutatePrefs } = useSWR(
+    session?.user ? '/api/student/preferences' : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
 
   const bookings = bookingsJson?.data ?? [];
   const packages = bookingsJson?.packages ?? [];
   const favorites = favoritesJson?.data ?? [];
   const payments = paymentsJson?.data ?? [];
   const referral = referralJson?.data ?? null;
+  const preferences = prefsJson ?? null;
+  const studentTimezone = preferences?.timezone || 'UTC';
   const isLoading = !bookingsJson && !favoritesJson;
 
   useEffect(() => {
@@ -195,6 +207,32 @@ function StudentDashboardInner() {
       toast.error(error.message || 'Could not process mock payment');
     } finally {
       setMockPayingId(null);
+    }
+  }
+
+  const timeZoneOptions = useMemo(() => getTimeZoneOptions(), []);
+  const filteredTimeZones = useMemo(() => {
+    const query = timezoneQuery.trim().toLowerCase();
+    if (!query) return timeZoneOptions;
+    return timeZoneOptions.filter((o: any) => o.label.toLowerCase().includes(query));
+  }, [timeZoneOptions, timezoneQuery]);
+
+  async function handleUpdateTimezone(newTz: string) {
+    if (!session?.user) return;
+    setIsUpdatingTimezone(true);
+    try {
+      const response = await fetch('/api/student/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: newTz }),
+      });
+      if (!response.ok) throw new Error('Failed to update timezone');
+      toast.success('Timezone updated');
+      void mutatePrefs();
+    } catch (error) {
+      toast.error('Failed to save timezone');
+    } finally {
+      setIsUpdatingTimezone(false);
     }
   }
 
@@ -426,6 +464,38 @@ function StudentDashboardInner() {
                   >
                     Copy Code
                   </button>
+                </div>
+              </div>
+
+              {/* Timezone Settings */}
+              <div className="glass-card p-6">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-4">Your Timezone</h2>
+                <p className="text-xs text-navy-600 dark:text-cream-200 font-medium mb-3">
+                  We show lesson times based on your preferred timezone.
+                </p>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={timezoneQuery}
+                    onChange={(e) => setTimezoneQuery(e.target.value)}
+                    placeholder="Search timezone..."
+                    className="input-field w-full text-[10px] py-2 bg-white dark:bg-navy-700/50"
+                  />
+                  <select
+                    className="input-field w-full text-[10px] py-2 bg-white dark:bg-navy-700/50"
+                    value={studentTimezone}
+                    onChange={(e) => void handleUpdateTimezone(e.target.value)}
+                    disabled={isUpdatingTimezone}
+                  >
+                    {filteredTimeZones.map((o: any) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  {isUpdatingTimezone && (
+                    <p className="text-[9px] text-gold-600 animate-pulse font-bold uppercase tracking-widest">Saving...</p>
+                  )}
                 </div>
               </div>
             </div>

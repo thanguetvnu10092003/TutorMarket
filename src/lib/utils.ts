@@ -51,6 +51,40 @@ export function formatDateTimeInTz(dateString: string, timeZone: string): string
   return `${formatDateInTz(dateString, timeZone)} at ${formatTimeInTz(dateString, timeZone)}`;
 }
 
+/**
+ * Returns the "wall clock" year, month, day, hour, and minute for a Date in a specific timezone.
+ * Useful for mapping UTC timestamps to a local calendar grid.
+ */
+export function getTzDateParts(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date);
+  const map: Record<string, string> = {};
+  parts.forEach(p => map[p.type] = p.value);
+
+  return {
+    year: parseInt(map.year, 10),
+    month: parseInt(map.month, 10), // 1-12
+    day: parseInt(map.day, 10),
+    hour: parseInt(map.hour, 10) % 24,
+    minute: parseInt(map.minute, 10),
+  };
+}
+
+export function isSameDayInTz(d1: Date, d2: Date, timeZone: string) {
+  const p1 = getTzDateParts(d1, timeZone);
+  const p2 = getTzDateParts(d2, timeZone);
+  return p1.year === p2.year && p1.month === p2.month && p1.day === p2.day;
+}
+
 export function formatRelativeTime(dateString: string): string {
   const now = new Date();
   const date = new Date(dateString);
