@@ -70,7 +70,11 @@ export default function AvailabilityManager({ onSave }: AvailabilityManagerProps
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || 'Failed to save availability');
-      toast.success('Availability updated');
+      if (json.conflictCount > 0) {
+        toast.success(`Availability updated — ${json.conflictCount} existing booking${json.conflictCount === 1 ? '' : 's'} now outside your schedule. Check the Sessions tab.`, { duration: 6000 });
+      } else {
+        toast.success('Availability updated');
+      }
       await fetchData();
       onSave?.();
     } catch (error: any) {
