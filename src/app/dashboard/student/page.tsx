@@ -375,11 +375,11 @@ function StudentDashboardInner() {
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">{booking.tutorProfile.user.name}</h3>
                           <p className="text-[10px] text-navy-300 dark:text-cream-400/40 font-bold uppercase tracking-widest mt-0.5">
-                            {SUBJECT_LABELS[booking.subject as keyof typeof SUBJECT_LABELS]} | {formatDateInTz(booking.scheduledAt, booking.tutorProfile.timezone || 'UTC')}
+                            {SUBJECT_LABELS[booking.subject as keyof typeof SUBJECT_LABELS]} | {formatDateInTz(booking.scheduledAt, studentTimezone)}
                           </p>
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
-                          <p className="text-xs font-black text-navy-600 dark:text-cream-200">{formatTimeInTz(booking.scheduledAt, booking.tutorProfile.timezone || 'UTC')}</p>
+                          <p className="text-xs font-black text-navy-600 dark:text-cream-200">{formatTimeInTz(booking.scheduledAt, studentTimezone)}</p>
                           <div className="flex items-center gap-2">
                             <span className="text-[9px] font-black uppercase tracking-widest text-gold-600">{booking.status}</span>
                             {(() => {
@@ -513,7 +513,7 @@ function StudentDashboardInner() {
                   <div>
                     <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">{booking.tutorProfile.user.name}</h3>
                     <p className="text-[10px] text-navy-300 dark:text-cream-400/40 font-bold uppercase tracking-widest">
-                      {SUBJECT_LABELS[booking.subject as keyof typeof SUBJECT_LABELS]} | {formatDateInTz(booking.scheduledAt, booking.tutorProfile.timezone || 'UTC')} at {formatTimeInTz(booking.scheduledAt, booking.tutorProfile.timezone || 'UTC')}
+                      {SUBJECT_LABELS[booking.subject as keyof typeof SUBJECT_LABELS]} | {formatDateInTz(booking.scheduledAt, studentTimezone)} at {formatTimeInTz(booking.scheduledAt, studentTimezone)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
