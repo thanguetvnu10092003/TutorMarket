@@ -460,3 +460,65 @@ export function getSlotStatusForDate(input: {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   return slots.filter((slot) => timeToMinutes(slot.startTime) > nowMinutes);
 }
+
+/**
+ * Convert a UTC Date to "wall clock" time in the given IANA timezone.
+ * Returns a Date whose .getHours()/.getDay()/.getDate() reflect the local
+ * time in that timezone — suitable for availability checking only, not storage.
+ */
+export function toWallClockDate(utcDate: Date, timezone: string): Date {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: 'numeric', second: 'numeric',
+      hour12: false,
+    });
+    const parts: Record<string, string> = {};
+    for (const p of fmt.formatToParts(utcDate)) {
+      parts[p.type] = p.value;
+    }
+    const h = parseInt(parts.hour, 10);
+    return new Date(
+      parseInt(parts.year, 10),
+      parseInt(parts.month, 10) - 1,
+      parseInt(parts.day, 10),
+      h === 24 ? 0 : h,
+      parseInt(parts.minute, 10),
+      parseInt(parts.second, 10)
+    );
+  } catch {
+    return utcDate;
+  }
+}
+
+export type ConflictCheckBooking = {
+  id: string;
+  scheduledAt: Date | string;
+  durationMinutes: number;
+};
+
+/**
+ * Returns the IDs of bookings whose wall-clock time falls outside the
+ * availability template. Bookings must already be pre-converted to wall-clock
+ * time via toWallClockDate() before passing in — caller handles UTC→local.
+ */
+export function detectBookingConflicts(input: {
+  bookings: ConflictCheckBooking[];
+  availability: AvailabilitySlotLike[];
+  overrides: AvailabilityOverrideLike[];
+}): string[] {
+  const conflictIds: string[] = [];
+  for (const booking of input.bookings) {
+    const localDate = toDate(booking.scheduledAt);
+    const ok = isSlotBookable({
+      scheduledAt: localDate,
+      durationMinutes: booking.durationMinutes,
+      availability: input.availability,
+      overrides: input.overrides,
+      bookings: [], // check against availability template only, not other bookings
+    });
+    if (!ok) conflictIds.push(booking.id);
+  }
+  return conflictIds;
+}
