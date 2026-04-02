@@ -207,8 +207,9 @@ export default function TutorCalendarPage() {
                   });
 
                   const tz = calData?.timezone || 'UTC';
-                  // Map the calendar cell date to tutor-tz to compare with booking timestamps
-                  const cellDateStr = formatDateInTutorTz(day, tz);
+                  // Use browser-local date number directly — matches how the grid headers are built.
+                  // Booking comparison uses utcToDateString(booking, tutorTz) which gives the same YYYY-MM-DD.
+                  const cellDateStr = formatDateParam(day);
 
                   // Find booking at this slot by comparing booking's date-in-tutorTZ against cell
                   const booking = calData?.bookings.find((b) => {
@@ -282,11 +283,11 @@ export default function TutorCalendarPage() {
             if (!day) return <div key={idx} className="min-h-[80px] border-r border-b border-navy-100/30 dark:border-navy-700/30 bg-navy-50/20" />;
             const date = new Date(year, month, day);
             const tz = calData?.timezone || 'UTC';
-            const cellStr = formatDateInTutorTz(date, tz);
+            const cellStr = formatDateParam(date); // browser-local YYYY-MM-DD for this calendar cell
             const dayBookings = calData?.bookings.filter((b) =>
               utcToDateString(new Date(b.scheduledAt), tz) === cellStr
             ) || [];
-            const isToday = utcToDateString(new Date(), tz) === cellStr;
+            const isToday = formatDateParam(new Date()) === cellStr;
             const counts: Record<string, number> = {};
             for (const b of dayBookings) counts[b.status] = (counts[b.status] || 0) + 1;
 
@@ -315,7 +316,7 @@ export default function TutorCalendarPage() {
   // ── DAY VIEW ─────────────────────────────────────────────────────────────
   const renderDayView = () => {
     const tz = calData?.timezone || 'UTC';
-    const cellStr = formatDateInTutorTz(currentDate, tz);
+    const cellStr = formatDateParam(currentDate); // browser-local YYYY-MM-DD
     const dayBookings = calData?.bookings.filter((b) =>
       utcToDateString(new Date(b.scheduledAt), tz) === cellStr
     ) || [];
