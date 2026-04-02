@@ -31,7 +31,10 @@
       "Bash(tasklist)",
       "Bash(npx ts-node -e \":*)",
       "Bash(grep -r \"parseInt.*durationParam\\\\|parseInt.*duration\" /c/Users/Admin/Desktop/WEB/src --include=*.ts --include=*.tsx)",
-      "Bash(grep -n \"bookedSlots\\\\|blockedDates\\\\|bookedSlot\\\\|booked_slots\" src/app/api/tutors/[id]/route.ts src/lib/admin-dashboard.ts)"
+      "Bash(grep -n \"bookedSlots\\\\|blockedDates\\\\|bookedSlot\\\\|booked_slots\" src/app/api/tutors/[id]/route.ts src/lib/admin-dashboard.ts)",
+      "Bash(xargs grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx ts-node:*)"
     ]
   },
   "prefersReducedMotion": false
