@@ -6,7 +6,7 @@ import { createCheckoutSessionForStudentPayment } from '@/lib/payment-checkout';
 import { buildBookingRoomUrl, formatDateTime } from '@/lib/utils';
 import { createInAppNotification } from '@/lib/in-app-notifications';
 import { getPrimaryPriceOption } from '@/lib/currency';
-import { isSlotBookable } from '@/lib/availability';
+import { isSlotBookable, toWallClockDate } from '@/lib/availability';
 import { notifyTutorAboutBookingRequest } from '@/lib/admin';
 import { z } from 'zod';
 
@@ -30,34 +30,6 @@ const MAX_SESSION_DURATION_MINUTES = 90;
 function normalizeSubject(raw: string): string {
   const MAP: Record<string, string> = { 'CFA': 'CFA_LEVEL_1' };
   return MAP[raw] ?? raw;
-}
-
-// Convert a UTC Date to "wall clock" time in the given timezone
-// Returns a Date whose .getHours()/.getDay() reflect the local time in that timezone
-function toWallClockDate(utcDate: Date, timezone: string): Date {
-  try {
-    const fmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      year: 'numeric', month: 'numeric', day: 'numeric',
-      hour: 'numeric', minute: 'numeric', second: 'numeric',
-      hour12: false,
-    });
-    const parts: Record<string, string> = {};
-    for (const p of fmt.formatToParts(utcDate)) {
-      parts[p.type] = p.value;
-    }
-    const h = parseInt(parts.hour, 10);
-    return new Date(
-      parseInt(parts.year, 10),
-      parseInt(parts.month, 10) - 1,
-      parseInt(parts.day, 10),
-      h === 24 ? 0 : h,
-      parseInt(parts.minute, 10),
-      parseInt(parts.second, 10)
-    );
-  } catch {
-    return utcDate;
-  }
 }
 
 function hasConflictStatus(status?: string | null) {
