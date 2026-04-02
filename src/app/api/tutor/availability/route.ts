@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { sortAvailabilitySlots, validateDailyAvailabilitySlots, timeToMinutes, minutesToTime } from '@/lib/availability';
+import { sortAvailabilitySlots, validateDailyAvailabilitySlots, timeToMinutes, minutesToTime, detectBookingConflicts, toWallClockDate } from '@/lib/availability';
 
 export async function GET() {
   try {
@@ -158,12 +158,74 @@ export async function POST(request: Request) {
               endTime: override.endTime || null,
               isAvailable: override.isAvailable ?? false,
               reason: override.reason || 'Blocked',
+              timezone: timezone || tutorProfile.timezone || 'UTC',
             })),
           })]
         : []),
     ]);
 
-    return NextResponse.json({ success: true });
+    // --- Conflict scan after availability save ---
+    const newTimezone = timezone || tutorProfile.timezone || 'UTC';
+
+    const activeBookings = await prisma.booking.findMany({
+      where: {
+        tutorProfileId: tutorProfile.id,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        scheduledAt: { gte: new Date() },
+      },
+      select: { id: true, scheduledAt: true, durationMinutes: true },
+    });
+
+    let conflictCount = 0;
+    let conflictIds: string[] = [];
+
+    if (activeBookings.length > 0) {
+      const freshAvailability = await prisma.availability.findMany({
+        where: { tutorProfileId: tutorProfile.id, isActive: true },
+      });
+      const freshOverrides = await prisma.availabilityOverride.findMany({
+        where: { tutorProfileId: tutorProfile.id, date: { gte: new Date() } },
+      });
+
+      const localBookings = activeBookings.map((b) => ({
+        ...b,
+        scheduledAt: toWallClockDate(b.scheduledAt, newTimezone),
+      }));
+      const localOverrides = freshOverrides.map((o) => ({
+        ...o,
+        date: toWallClockDate(o.date, newTimezone),
+      }));
+
+      conflictIds = detectBookingConflicts({
+        bookings: localBookings,
+        availability: freshAvailability,
+        overrides: localOverrides,
+      });
+      conflictCount = conflictIds.length;
+
+      if (conflictIds.length > 0) {
+        await prisma.booking.updateMany({
+          where: { id: { in: conflictIds } },
+          data: {
+            hasConflict: true,
+            conflictReason: 'Booking falls outside tutor availability after timezone change',
+            conflictAt: new Date(),
+          },
+        });
+      }
+
+      // Clear stale flags for bookings that are now fine
+      await prisma.booking.updateMany({
+        where: {
+          tutorProfileId: tutorProfile.id,
+          status: { in: ['PENDING', 'CONFIRMED'] },
+          ...(conflictIds.length > 0 ? { id: { notIn: conflictIds } } : {}),
+        },
+        data: { hasConflict: false, conflictReason: null, conflictAt: null },
+      });
+    }
+
+    return NextResponse.json({ success: true, conflictCount, conflictIds });
   } catch (error) {
     console.error('Update availability error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
