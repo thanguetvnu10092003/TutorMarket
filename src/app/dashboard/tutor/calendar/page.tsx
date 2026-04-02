@@ -5,7 +5,16 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { expandWindowsToSlots, getOpenTimeWindowsForDate, timeToMinutes, minutesToTime } from '@/lib/availability';
-import { isSameDayInTz, getTzDateParts } from '@/lib/utils';
+import { getTzDateParts } from '@/lib/utils';
+
+/**
+ * Convert a UTC Date to a YYYY-MM-DD string in the given IANA timezone.
+ * This is the canonical way to map a UTC timestamp onto a calendar day cell.
+ */
+function utcToDateString(utcDate: Date, tz: string): string {
+  const p = getTzDateParts(utcDate, tz);
+  return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+}
 
 type CalendarData = {
   availability: Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
@@ -31,8 +40,18 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: 'bg-gray-200 border-gray-300 text-gray-600 dark:bg-gray-600/50 dark:border-gray-500 dark:text-gray-300',
 };
 
+/** Format a calendar cell date as YYYY-MM-DD in browser local time (matches how days[] is constructed). */
 function formatDateParam(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Format a calendar cell date as YYYY-MM-DD in the tutor's timezone.
+ * We use this when we need the cell date and booking date to be in the same reference frame.
+ * Since the `days` array is built from browser-local dates, we reformat via Intl to tutor-tz.
+ */
+function formatDateInTutorTz(d: Date, tz: string) {
+  return utcToDateString(d, tz);
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -188,10 +207,13 @@ export default function TutorCalendarPage() {
                   });
 
                   const tz = calData?.timezone || 'UTC';
-                  // Find booking at this slot
+                  // Map the calendar cell date to tutor-tz to compare with booking timestamps
+                  const cellDateStr = formatDateInTutorTz(day, tz);
+
+                  // Find booking at this slot by comparing booking's date-in-tutorTZ against cell
                   const booking = calData?.bookings.find((b) => {
                     const bd = new Date(b.scheduledAt);
-                    if (!isSameDayInTz(bd, day, tz)) return false;
+                    if (utcToDateString(bd, tz) !== cellDateStr) return false;
                     const bParts = getTzDateParts(bd, tz);
                     const bStart = bParts.hour * 60 + bParts.minute;
                     return slotMins >= bStart && slotMins < bStart + b.durationMinutes;
@@ -260,8 +282,11 @@ export default function TutorCalendarPage() {
             if (!day) return <div key={idx} className="min-h-[80px] border-r border-b border-navy-100/30 dark:border-navy-700/30 bg-navy-50/20" />;
             const date = new Date(year, month, day);
             const tz = calData?.timezone || 'UTC';
-            const dayBookings = calData?.bookings.filter((b) => isSameDayInTz(new Date(b.scheduledAt), date, tz)) || [];
-            const isToday = isSameDayInTz(date, new Date(), tz);
+            const cellStr = formatDateInTutorTz(date, tz);
+            const dayBookings = calData?.bookings.filter((b) =>
+              utcToDateString(new Date(b.scheduledAt), tz) === cellStr
+            ) || [];
+            const isToday = utcToDateString(new Date(), tz) === cellStr;
             const counts: Record<string, number> = {};
             for (const b of dayBookings) counts[b.status] = (counts[b.status] || 0) + 1;
 
@@ -290,7 +315,10 @@ export default function TutorCalendarPage() {
   // ── DAY VIEW ─────────────────────────────────────────────────────────────
   const renderDayView = () => {
     const tz = calData?.timezone || 'UTC';
-    const dayBookings = calData?.bookings.filter((b) => isSameDayInTz(new Date(b.scheduledAt), currentDate, tz)) || [];
+    const cellStr = formatDateInTutorTz(currentDate, tz);
+    const dayBookings = calData?.bookings.filter((b) =>
+      utcToDateString(new Date(b.scheduledAt), tz) === cellStr
+    ) || [];
     const windows = calData ? getOpenTimeWindowsForDate({
       date: currentDate,
       durationMinutes: 30,

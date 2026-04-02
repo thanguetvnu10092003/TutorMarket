@@ -23,8 +23,10 @@ export async function GET(request: NextRequest) {
 
     const [sy, sm, sd] = startParam.split('-').map(Number);
     const [ey, em, ed] = endParam.split('-').map(Number);
-    const startDate = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-    const endDate = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+    // Use a wide UTC window: start of start-date minus 14h, end of end-date plus 14h.
+    // This ensures bookings at any timezone offset are included for the requested local week.
+    const startDate = new Date(Date.UTC(sy, sm - 1, sd) - 14 * 3600 * 1000);
+    const endDate = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999) + 14 * 3600 * 1000);
 
     const tutorProfile = await prisma.tutorProfile.findUnique({
       where: { userId: session.user.id },

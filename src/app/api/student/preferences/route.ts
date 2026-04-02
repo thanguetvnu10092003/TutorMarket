@@ -81,13 +81,13 @@ export async function POST(request: NextRequest) {
       update: {
         targetSubjects: (validatedData.targetSubjects || existing?.targetSubjects || []) as any,
         examDates: nextExamDates,
-        timezone: validatedData.timezone || 'UTC',
+        ...(validatedData.timezone ? { timezone: validatedData.timezone } : {}),
       },
       create: {
         userId: session.user.id,
         targetSubjects: (validatedData.targetSubjects || []) as any,
         examDates: nextExamDates,
-        timezone: validatedData.timezone || 'UTC',
+        timezone: validatedData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Ho_Chi_Minh',
       },
     });
 
