@@ -36,6 +36,7 @@ function TutorDashboardInner() {
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
+  const [dismissingConflictId, setDismissingConflictId] = useState<string | null>(null);
 
   const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(r => r.json());
 
@@ -205,6 +206,23 @@ function TutorDashboardInner() {
       toast.error(error.message || `Could not ${action} booking`);
     } finally {
       setUpdatingBookingId(null);
+    }
+  };
+
+  const handleDismissConflict = async (bookingId: string) => {
+    try {
+      setDismissingConflictId(bookingId);
+      const response = await fetch(`/api/tutor/bookings/${bookingId}/resolve-conflict`, {
+        method: 'PATCH',
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Failed to dismiss conflict');
+      await mutateBookings();
+    } catch (error: any) {
+      console.error('Dismiss conflict error:', error);
+      toast.error(error.message || 'Could not dismiss conflict');
+    } finally {
+      setDismissingConflictId(null);
     }
   };
 
@@ -471,6 +489,11 @@ function TutorDashboardInner() {
                               <span className="px-2.5 py-1 rounded-full bg-navy-50 dark:bg-navy-600 text-[10px] font-black uppercase tracking-widest text-navy-500 dark:text-cream-300">
                                 {booking.status}
                               </span>
+                              {booking.hasConflict && (
+                                <span className="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                                  Conflict
+                                </span>
+                              )}
                             </div>
                             <p className="text-sm text-navy-400 dark:text-cream-300/70 mt-3">
                               {formatDateTimeInTz(booking.scheduledAt, tutorTimezone)} | {booking.durationMinutes} minutes
@@ -487,6 +510,15 @@ function TutorDashboardInner() {
                             >
                               Notes
                             </button>
+                            {booking.hasConflict && (
+                              <button
+                                onClick={() => void handleDismissConflict(booking.id)}
+                                disabled={dismissingConflictId === booking.id}
+                                className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                              >
+                                {dismissingConflictId === booking.id ? 'Dismissing...' : 'Dismiss Conflict'}
+                              </button>
+                            )}
                             {booking.status === 'PENDING' && (
                               <>
                                 <button
@@ -555,6 +587,11 @@ function TutorDashboardInner() {
                           </div>
                         </div>
 
+                        {booking.hasConflict && (
+                          <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                            This session falls outside your current availability after a timezone change. Dismiss to acknowledge, or cancel if it can no longer proceed.
+                          </p>
+                        )}
                         {booking.status === 'PENDING' && (
                           <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-blue-500">
                             This is a new booking request. Accept or decline it before the lesson can proceed.
@@ -665,7 +702,7 @@ function TutorDashboardInner() {
           </div>
         )}
 
-        {activeTab === 'availability' && <AvailabilityManager onSave={mutateAvailability} />}
+        {activeTab === 'availability' && <AvailabilityManager onSave={() => { void mutateBookings(); }} />}
         {activeTab === 'pricing' && <PricingManager />}
         {activeTab === 'reviews' && <ReviewsSection />}
       </div>
