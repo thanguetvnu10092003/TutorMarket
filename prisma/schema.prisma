@@ -367,6 +367,7 @@ model AvailabilityOverride {
   endTime        String?
   isAvailable    Boolean      @default(false)
   reason         String?
+  timezone       String       @default("UTC")
 
   @@index([tutorProfileId, date])
 }
@@ -393,6 +394,9 @@ model Booking {
   completedAt     DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  hasConflict     Boolean       @default(false)
+  conflictReason  String?
+  conflictAt      DateTime?
 
   // Relations
   payment Payment?
