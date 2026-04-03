@@ -108,13 +108,23 @@ export default function Step6Video({ onNext, onBack }: Props) {
     if (!streamRef.current) return;
     setRecordingState('RECORDING');
     setRecordedChunks([]);
+    // Prefer specific codecs for better compatibility across browsers
+    const mimeTypes = [
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp9,opus',
+      'video/webm',
+      'video/mp4'
+    ];
     
-    // Choose mime type available in browser
-    const mimeType = MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' 
-                   : MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' 
-                   : '';
+    let selectedMimeType = '';
+    for (const type of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        selectedMimeType = type;
+        break;
+      }
+    }
 
-    const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType });
+    const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType: selectedMimeType });
     mediaRecorderRef.current = mediaRecorder;
     
     const chunks: Blob[] = [];
@@ -123,13 +133,13 @@ export default function Step6Video({ onNext, onBack }: Props) {
     };
     
     mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
+      const blob = new Blob(chunks, { type: selectedMimeType || 'video/webm' });
       setVideoBlob(blob);
       setPreviewBlobUrl(URL.createObjectURL(blob));
       setRecordingState('PREVIEW');
     };
 
-    mediaRecorder.start(1000); // chunk every 1 second
+    mediaRecorder.start(); // No timeslice, get all data at stop
   };
 
   const handleStopRecording = () => {
