@@ -198,6 +198,13 @@ See `.env.example` for the full list. Required for production:
 - **Analytics**: Vercel Analytics
 - **Deployment**: Docker + Vercel + Railway
 
+## 👥 Contributors
+
+| Name | GitHub | Role |
+|------|--------|------|
+| LeToanThang | [@thanguetvnu10092003](https://github.com/thanguetvnu10092003) | Lead Developer |
+| Hoàng Sơn | [@sonhoang](https://github.com/sonhoang) | Developer |
+
 ## License
 
 MIT
