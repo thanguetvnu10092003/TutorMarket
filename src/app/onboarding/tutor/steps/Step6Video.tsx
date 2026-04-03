@@ -95,13 +95,21 @@ export default function Step6Video({ onNext, onBack }: Props) {
   };
 
   useEffect(() => {
-    if (activeTab === 'RECORD' && recordingState === 'IDLE') {
-      startCamera();
+    const shouldCameraBeOn = activeTab === 'RECORD' && recordingState !== 'PREVIEW';
+    
+    if (shouldCameraBeOn) {
+      if (!streamRef.current) {
+        startCamera();
+      }
     } else {
       stopCamera();
     }
-    return () => stopCamera();
   }, [activeTab, recordingState]);
+
+  // Ensure camera shuts down completely if user leaves the page
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
 
   // 3. Recording Controls
   const handleStartRecording = () => {
