@@ -13,7 +13,6 @@ A two-sided marketplace connecting students with verified tutors specializing in
 
 ```bash
 # Clone and install
-cd WEB
 npm install
 
 # Start development server
@@ -47,12 +46,12 @@ npm run db:seed
 src/
 ├── app/                      # Next.js App Router pages
 │   ├── api/                  # API routes
-│   │   ├── admin/            # Admin endpoints
+│   │   ├── admin/            # Admin endpoints & analytics
 │   │   ├── auth/             # NextAuth config
-│   │   ├── bookings/         # Booking CRUD
+│   │   ├── bookings/         # Booking CRUD & conflict resolution
 │   │   ├── conversations/    # Messaging
 │   │   ├── messages/         # Message threads
-│   │   ├── payments/         # Stripe webhooks
+│   │   ├── payments/         # Stripe & PayPal webhooks
 │   │   ├── reviews/          # Review system
 │   │   └── tutors/           # Tutor search & profiles
 │   ├── auth/                 # Login & Register pages
@@ -62,7 +61,7 @@ src/
 │   ├── dashboard/
 │   │   ├── admin/            # Admin dashboard
 │   │   ├── student/          # Student dashboard
-│   │   └── tutor/            # Tutor dashboard
+│   │   └── tutor/            # Tutor dashboard (timezone-aware)
 │   ├── how-it-works/         # Explainer page
 │   ├── tutors/
 │   │   ├── [id]/             # Tutor profile page
@@ -74,11 +73,41 @@ src/
 │   ├── layout/               # Navbar, Footer
 │   └── providers/            # ThemeProvider
 ├── lib/
+│   ├── availability.ts       # Timezone-aware slot logic & conflict detection
 │   ├── mock-data.ts          # Sample data store
 │   └── utils.ts              # Utility functions
 ├── types/
 │   └── index.ts              # TypeScript types
 └── middleware.ts              # Route protection
+
+prisma/
+├── schema.prisma             # Database schema
+├── seed.ts                   # Sample data seeder
+└── scripts/
+    ├── backfill-override-timezone.ts   # Backfill timezone to AvailabilityOverride rows
+    └── initial-conflict-scan.ts        # Scan all bookings for timezone conflicts
+```
+
+## 🕐 Timezone & Conflict Detection System
+
+Tutors set their availability in their **local timezone**. When a tutor changes their timezone, the system automatically:
+
+1. **Shifts availability slots** to preserve the same UTC teaching windows.
+2. **Scans all existing bookings** against the new availability to detect conflicts.
+3. **Badges conflicting sessions** on the dashboard with a dismissible conflict indicator.
+
+### Key behaviours
+- `AvailabilityOverride` rows store the tutor's `timezone` at the time of the override so historical records remain accurate.
+- `Booking.hasConflict` is set server-side; tutors can dismiss conflicts via `PATCH /api/bookings/:id/resolve-conflict`.
+- A compound index on `(tutorProfileId, hasConflict)` keeps dashboard queries fast.
+
+### Migration scripts
+```bash
+# Backfill timezone field on existing AvailabilityOverride rows
+npm run db:backfill-tz
+
+# Scan all existing bookings and flag any with timezone conflicts
+npm run db:conflict-scan
 ```
 
 ## 🎨 Design System
@@ -90,8 +119,8 @@ src/
 | Gold `#C9A84C` | Accent | CTAs, highlights |
 | Sage `#4A7C6F` | Secondary | Success states, badges |
 
-**Typography**: Playfair Display (headings) + DM Sans (body)  
-**Components**: Glassmorphism cards, grain texture overlay, skeleton loaders  
+**Typography**: Playfair Display (headings) + DM Sans (body)
+**Components**: Glassmorphism cards, grain texture overlay, skeleton loaders
 **Theme**: Full dark/light mode via `ThemeProvider`
 
 ## 🔌 API Routes
@@ -103,16 +132,17 @@ src/
 | PUT | `/api/tutors/:id` | Update profile |
 | POST | `/api/bookings` | Create booking |
 | GET | `/api/bookings` | List bookings |
-| PATCH | `/api/bookings/:id` | Cancel/complete |
+| PATCH | `/api/bookings/:id` | Cancel / complete |
+| PATCH | `/api/bookings/:id/resolve-conflict` | Dismiss timezone conflict |
 | POST | `/api/reviews` | Submit review |
 | GET | `/api/reviews/tutor/:id` | Tutor reviews |
 | GET | `/api/conversations` | List conversations |
 | POST | `/api/messages` | Send message |
 | GET | `/api/messages` | Load thread |
 | GET | `/api/admin/verifications` | Pending verifications |
-| POST | `/api/admin/verifications` | Approve/reject |
+| POST | `/api/admin/verifications` | Approve / reject |
 | GET | `/api/admin/analytics` | Platform stats |
-| POST | `/api/payments` | Stripe webhooks |
+| POST | `/api/payments` | Stripe / PayPal webhooks |
 | GET | `/api/payments` | Payment history |
 
 ## 💼 Business Logic
@@ -121,7 +151,7 @@ src/
 First session between any student-tutor pair is free. No credit card required.
 
 ### Commission Structure
-- **Sessions 1**: Free (no charge)
+- **Session 1**: Free (no charge)
 - **Sessions 2+**: 20% platform fee
 - **Cap**: Once cumulative fees reach $500 per student-tutor pair, fee drops to 0%
 
@@ -142,6 +172,8 @@ See `.env.example` for the full list. Required for production:
 | `GOOGLE_CLIENT_ID` | Google OAuth |
 | `STRIPE_SECRET_KEY` | Stripe payments |
 | `STRIPE_WEBHOOK_SECRET` | Webhook verification |
+| `PAYPAL_CLIENT_ID` | PayPal client ID |
+| `PAYPAL_CLIENT_SECRET` | PayPal secret |
 
 ## 🚢 Deployment
 
@@ -161,8 +193,9 @@ See `.env.example` for the full list. Required for production:
 - **Styling**: Tailwind CSS + custom design system
 - **Database**: PostgreSQL + Prisma ORM
 - **Auth**: NextAuth.js (credentials + Google OAuth)
-- **Payments**: Stripe Connect (stubbed)
-- **Email**: Resend (stubbed)
+- **Payments**: Stripe Connect + PayPal
+- **Email**: Nodemailer
+- **Analytics**: Vercel Analytics
 - **Deployment**: Docker + Vercel + Railway
 
 ## License
