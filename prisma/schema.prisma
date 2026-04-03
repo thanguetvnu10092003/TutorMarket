@@ -128,65 +128,65 @@ enum DiscountType {
 // ─── MODELS ─────────────────────────────────────────
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String?
-  role          Role     @default(STUDENT)
-  name          String
-  avatarUrl     String?
-  bio           String?
-  isVerified    Boolean  @default(false)
-  isBanned      Boolean  @default(false)
-  banReason     String?
-  suspendedUntil DateTime?
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String?
+  role             Role      @default(STUDENT)
+  name             String
+  avatarUrl        String?
+  bio              String?
+  isVerified       Boolean   @default(false)
+  isBanned         Boolean   @default(false)
+  banReason        String?
+  suspendedUntil   DateTime?
   suspensionReason String?
-  warningCount  Int      @default(0)
-  strikeCount   Int      @default(0)
-  hasChosenRole Boolean  @default(true)
-  otpCode       String?
-  otpExpires    DateTime?
-  otpLastResent DateTime?
-  lastActiveAt  DateTime?
-  country       String?
-  countryFlag   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  referralCode  String?  @unique
+  warningCount     Int       @default(0)
+  strikeCount      Int       @default(0)
+  hasChosenRole    Boolean   @default(true)
+  otpCode          String?
+  otpExpires       DateTime?
+  otpLastResent    DateTime?
+  lastActiveAt     DateTime?
+  country          String?
+  countryFlag      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  referralCode     String?   @unique
 
   // Relations
-  tutorProfile                TutorProfile?
-  bookingsAsStudent           Booking[]             @relation("StudentBookings")
-  reviewsGiven                Review[]              @relation("ReviewsGiven")
-  messagesSent                Message[]             @relation("MessagesSent")
-  notifications               Notification[]
-  conversationsAsStudent      Conversation[]        @relation("StudentConversations")
-  credentialsVerified         TutorCredential[]     @relation("VerifiedBy")
-  certificationsVerified    TutorCertification[] @relation("CertVerifiedBy")
-  adminActionsTaken           AdminAction[]         @relation("AdminActor")
-  adminActionsReceived        AdminAction[]         @relation("AdminTarget")
-  contentFlagsReported        ContentFlag[]         @relation("ContentFlagReporter")
-  contentFlagsTargeted        ContentFlag[]         @relation("ContentFlagTargetUser")
-  contentFlagsResolved        ContentFlag[]         @relation("ContentFlagResolvedBy")
-  reportsFiled                UserReport[]          @relation("ReportReporter")
-  reportsAgainst              UserReport[]          @relation("ReportTargetUser")
-  reportsResolved             UserReport[]          @relation("ReportResolvedBy")
-  verificationLogsWritten     TutorVerificationLog[] @relation("VerificationLogAdmin")
-  discountCampaignsCreated    DiscountCampaign[]    @relation("DiscountCreatedBy")
-  seoMetadataUpdated          SeoMetadata[]         @relation("SeoMetadataUpdatedBy")
-  issuedStrikes             UserStrike[]          @relation("StrikeIssuer")
-  receivedStrikes           UserStrike[]          @relation("StrikeRecipient")
-  receivedPenalties         UserPenalty[]         @relation("ReceivedPenalties")
-  issuedPenalties           UserPenalty[]         @relation("IssuedPenalties")
-  userAppeals               Appeal[]              @relation("UserAppeals")
+  tutorProfile             TutorProfile?
+  bookingsAsStudent        Booking[]              @relation("StudentBookings")
+  reviewsGiven             Review[]               @relation("ReviewsGiven")
+  messagesSent             Message[]              @relation("MessagesSent")
+  notifications            Notification[]
+  conversationsAsStudent   Conversation[]         @relation("StudentConversations")
+  credentialsVerified      TutorCredential[]      @relation("VerifiedBy")
+  certificationsVerified   TutorCertification[]   @relation("CertVerifiedBy")
+  adminActionsTaken        AdminAction[]          @relation("AdminActor")
+  adminActionsReceived     AdminAction[]          @relation("AdminTarget")
+  contentFlagsReported     ContentFlag[]          @relation("ContentFlagReporter")
+  contentFlagsTargeted     ContentFlag[]          @relation("ContentFlagTargetUser")
+  contentFlagsResolved     ContentFlag[]          @relation("ContentFlagResolvedBy")
+  reportsFiled             UserReport[]           @relation("ReportReporter")
+  reportsAgainst           UserReport[]           @relation("ReportTargetUser")
+  reportsResolved          UserReport[]           @relation("ReportResolvedBy")
+  verificationLogsWritten  TutorVerificationLog[] @relation("VerificationLogAdmin")
+  discountCampaignsCreated DiscountCampaign[]     @relation("DiscountCreatedBy")
+  seoMetadataUpdated       SeoMetadata[]          @relation("SeoMetadataUpdatedBy")
+  issuedStrikes            UserStrike[]           @relation("StrikeIssuer")
+  receivedStrikes          UserStrike[]           @relation("StrikeRecipient")
+  receivedPenalties        UserPenalty[]          @relation("ReceivedPenalties")
+  issuedPenalties          UserPenalty[]          @relation("IssuedPenalties")
+  userAppeals              Appeal[]               @relation("UserAppeals")
 
   // Student Experience Relations
-  studentPreference           StudentPreference?
-  savedTutors                 StudentSavedTutor[]
-  bookingPackages             BookingPackage[]
-  referralsMade               Referral[]            @relation("Referrer")
-  referralReceived            Referral?             @relation("Referred")
-  credits                     StudentCredit[]
-  notificationPreferences     NotificationPreference[]
+  studentPreference       StudentPreference?
+  savedTutors             StudentSavedTutor[]
+  bookingPackages         BookingPackage[]
+  referralsMade           Referral[]               @relation("Referrer")
+  referralReceived        Referral?                @relation("Referred")
+  credits                 StudentCredit[]
+  notificationPreferences NotificationPreference[]
 
   @@index([email])
   @@index([role])
@@ -235,23 +235,23 @@ model TutorProfile {
   updatedAt           DateTime           @updatedAt
 
   // Relations
-  credentials        TutorCredential[]
-  certifications     TutorCertification[]
-  tutorLanguages     TutorLanguage[]
-  education          TutorEducation[]
-  pricing            TutorPricing[]
-  availability       Availability[]
-  overrides          AvailabilityOverride[]
-  bookings           Booking[]            @relation("TutorBookings")
-  reviews            Review[]             @relation("TutorReviews")
-  conversations      Conversation[]       @relation("TutorConversations")
-  contentFlags       ContentFlag[]        @relation("ContentFlagTutorProfile")
-  reports            UserReport[]         @relation("ReportTutorProfile")
-  verificationLogs   TutorVerificationLog[]
-  
+  credentials      TutorCredential[]
+  certifications   TutorCertification[]
+  tutorLanguages   TutorLanguage[]
+  education        TutorEducation[]
+  pricing          TutorPricing[]
+  availability     Availability[]
+  overrides        AvailabilityOverride[]
+  bookings         Booking[]              @relation("TutorBookings")
+  reviews          Review[]               @relation("TutorReviews")
+  conversations    Conversation[]         @relation("TutorConversations")
+  contentFlags     ContentFlag[]          @relation("ContentFlagTutorProfile")
+  reports          UserReport[]           @relation("ReportTutorProfile")
+  verificationLogs TutorVerificationLog[]
+
   // Student Experience Relations
-  savedByStudents    StudentSavedTutor[]
-  bookingPackages    BookingPackage[]
+  savedByStudents StudentSavedTutor[]
+  bookingPackages BookingPackage[]
 
   @@index([verificationStatus])
   @@index([rating])
@@ -273,28 +273,28 @@ model TutorLanguage {
 }
 
 model TutorCertification {
-  id                   String              @id @default(cuid())
+  id                   String                   @id @default(cuid())
   tutorProfileId       String
-  tutorProfile         TutorProfile        @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  tutorProfile         TutorProfile             @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
   type                 CertificationType
-  levelOrVariant       String?             // e.g. "CFA_LEVEL_1", "GMAT", "GRE"
+  levelOrVariant       String? // e.g. "CFA_LEVEL_1", "GMAT", "GRE"
   score                Float?
-  percentiles          Json?               // {verbal, quant, analytical, dataInsights, total}
+  percentiles          Json? // {verbal, quant, analytical, dataInsights, total}
   testDate             DateTime?
-  fileUrl              String?             // S3 or local path
-  mbaEmail             String?             // For GMAT verification
-  mbaPasswordEncrypted String?             // Encrypted, deleted after admin verification
-  status               CertificationStatus @default(NONE)
-  selfReportedData     Json?               // {scores, percentiles, year, testDate}
+  fileUrl              String? // S3 or local path
+  mbaEmail             String? // For GMAT verification
+  mbaPasswordEncrypted String? // Encrypted, deleted after admin verification
+  status               CertificationStatus      @default(NONE)
+  selfReportedData     Json? // {scores, percentiles, year, testDate}
   rejectionReason      String?
   resubmittedAt        DateTime?
   verifiedAt           DateTime?
   verifiedById         String?
-  verifiedBy           User?               @relation("CertVerifiedBy", fields: [verifiedById], references: [id])
+  verifiedBy           User?                    @relation("CertVerifiedBy", fields: [verifiedById], references: [id])
   notes                String?
   gmatVerification     GmatVerificationRequest?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   @@index([tutorProfileId])
   @@index([status])
@@ -348,9 +348,9 @@ model Availability {
   id             String       @id @default(cuid())
   tutorProfileId String
   tutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
-  dayOfWeek      Int          // 0 = Sunday, 6 = Saturday
-  startTime      String       // "09:00" format
-  endTime        String       // "17:00" format
+  dayOfWeek      Int // 0 = Sunday, 6 = Saturday
+  startTime      String // "09:00" format
+  endTime        String // "17:00" format
   timezone       String       @default("UTC")
   isRecurring    Boolean      @default(true)
   isActive       Boolean      @default(true)
@@ -363,7 +363,7 @@ model AvailabilityOverride {
   tutorProfileId String
   tutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
   date           DateTime
-  startTime      String?      // null = unavailable entire day
+  startTime      String? // null = unavailable entire day
   endTime        String?
   isAvailable    Boolean      @default(false)
   reason         String?
@@ -373,16 +373,16 @@ model AvailabilityOverride {
 }
 
 model Booking {
-  id              String        @id @default(cuid())
+  id              String          @id @default(cuid())
   studentId       String
-  student         User          @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
+  student         User            @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
   tutorProfileId  String
-  tutorProfile    TutorProfile  @relation("TutorBookings", fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  tutorProfile    TutorProfile    @relation("TutorBookings", fields: [tutorProfileId], references: [id], onDelete: Cascade)
   scheduledAt     DateTime
-  durationMinutes Int           @default(60)
-  status          BookingStatus @default(PENDING)
-  sessionNumber   Int           @default(1)
-  isFreeSession   Boolean       @default(false)
+  durationMinutes Int             @default(60)
+  status          BookingStatus   @default(PENDING)
+  sessionNumber   Int             @default(1)
+  isFreeSession   Boolean         @default(false)
   packageId       String?
   package         BookingPackage? @relation("PackageBookings", fields: [packageId], references: [id], onDelete: SetNull)
   subject         Subject
@@ -392,9 +392,9 @@ model Booking {
   startedAt       DateTime?
   cancelledAt     DateTime?
   completedAt     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  hasConflict     Boolean       @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  hasConflict     Boolean         @default(false)
   conflictReason  String?
   conflictAt      DateTime?
 
@@ -443,7 +443,7 @@ model Review {
   student        User         @relation("ReviewsGiven", fields: [studentId], references: [id], onDelete: Cascade)
   tutorProfileId String
   tutorProfile   TutorProfile @relation("TutorReviews", fields: [tutorProfileId], references: [id], onDelete: Cascade)
-  rating         Int          // 1-5
+  rating         Int // 1-5
   comment        String?
   tutorReply     String?
   repliedAt      DateTime?
@@ -539,25 +539,25 @@ model ContentFlag {
 }
 
 model UserReport {
-  id                String       @id @default(cuid())
+  id                String        @id @default(cuid())
   type              ReportType
   reporterId        String
-  reporter          User         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporter          User          @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   reportedUserId    String
-  reportedUser      User         @relation("ReportTargetUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reportedUser      User          @relation("ReportTargetUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
   tutorProfileId    String?
   tutorProfile      TutorProfile? @relation("ReportTutorProfile", fields: [tutorProfileId], references: [id], onDelete: SetNull)
   bookingId         String?
-  booking           Booking?     @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  booking           Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   description       String
-  status            ReportStatus @default(OPEN)
+  status            ReportStatus  @default(OPEN)
   adminNote         String?
   resolvedByAdminId String?
-  resolvedByAdmin   User?        @relation("ReportResolvedBy", fields: [resolvedByAdminId], references: [id], onDelete: SetNull)
+  resolvedByAdmin   User?         @relation("ReportResolvedBy", fields: [resolvedByAdminId], references: [id], onDelete: SetNull)
   refundAmount      Float?
   resolvedAt        DateTime?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@index([status, createdAt])
   @@index([type, createdAt])
@@ -572,7 +572,7 @@ model DiscountCampaign {
   expiryDate  DateTime
   usageLimit  Int
   usageCount  Int          @default(0)
-  maxUses     Int?         // for consistency with prompt
+  maxUses     Int? // for consistency with prompt
   usedCount   Int          @default(0) // for consistency with prompt
   isActive    Boolean      @default(true)
   createdById String?
@@ -622,13 +622,13 @@ model BookingEvent {
 }
 
 model UserStrike {
-  id        String   @id @default(cuid())
-  userId    String
-  recipient User     @relation("StrikeRecipient", fields: [userId], references: [id], onDelete: Cascade)
-  reason    String
+  id         String   @id @default(cuid())
+  userId     String
+  recipient  User     @relation("StrikeRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  reason     String
   issuedById String
-  issuer    User     @relation("StrikeIssuer", fields: [issuedById], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  issuer     User     @relation("StrikeIssuer", fields: [issuedById], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
   @@index([userId, createdAt])
 }
@@ -655,18 +655,18 @@ enum AppealStatus {
 }
 
 model UserPenalty {
-  id         String        @id @default(cuid())
-  userId     String
-  user       User          @relation("ReceivedPenalties", fields: [userId], references: [id], onDelete: Cascade)
-  adminId    String?
-  admin      User?         @relation("IssuedPenalties", fields: [adminId], references: [id], onDelete: SetNull)
-  type       PenaltyType
-  reason     String
-  status     PenaltyStatus @default(ACTIVE)
-  expiresAt  DateTime?
-  revokedAt  DateTime?
-  createdAt  DateTime      @default(now())
-  appeals    Appeal[]
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation("ReceivedPenalties", fields: [userId], references: [id], onDelete: Cascade)
+  adminId   String?
+  admin     User?         @relation("IssuedPenalties", fields: [adminId], references: [id], onDelete: SetNull)
+  type      PenaltyType
+  reason    String
+  status    PenaltyStatus @default(ACTIVE)
+  expiresAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime      @default(now())
+  appeals   Appeal[]
 
   @@index([userId, status])
 }
@@ -690,32 +690,32 @@ model Appeal {
 }
 
 model GmatVerificationRequest {
-  id                   String            @id @default(cuid())
-  tutorCertificationId String            @unique
+  id                   String             @id @default(cuid())
+  tutorCertificationId String             @unique
   tutorCertification   TutorCertification @relation(fields: [tutorCertificationId], references: [id], onDelete: Cascade)
   encryptedEmail       String
   encryptedPassword    String
-  consentGiven         Boolean           @default(false)
+  consentGiven         Boolean            @default(false)
   portalVerifiedAt     DateTime?
   portalVerifiedById   String?
   documentReviewedAt   DateTime?
   documentReviewedById String?
   reviewNotes          String?
   rejectionReason      String?
-  usedAt              DateTime?
-  deletedAt           DateTime?
-  createdAt           DateTime          @default(now())
+  usedAt               DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime           @default(now())
 }
 
 model StudentPreference {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   targetSubjects Subject[]
-  examDates      Json?    // e.g. {"CFA_L1": "2025-06", "GMAT": "2025-09"}
-  timezone       String   @default("UTC")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  examDates      Json? // e.g. {"CFA_L1": "2025-06", "GMAT": "2025-09"}
+  timezone       String    @default("UTC")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model StudentSavedTutor {
@@ -745,7 +745,7 @@ model BookingPackage {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   payment           Payment?
-  bookings          Booking[]       @relation("PackageBookings")
+  bookings          Booking[]    @relation("PackageBookings")
 
   @@index([studentId])
   @@index([tutorProfileId])
@@ -761,16 +761,16 @@ model ReviewTag {
 }
 
 model Referral {
-  id              String    @id @default(cuid())
-  referrerId      String
-  referrer        User      @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referredUserId  String    @unique
-  referredUser    User      @relation("Referred", fields: [referredUserId], references: [id], onDelete: Cascade)
-  referralCode    String    @unique
-  creditAmount    Float
-  creditGranted   Boolean   @default(false)
-  grantedAt       DateTime?
-  createdAt       DateTime  @default(now())
+  id             String    @id @default(cuid())
+  referrerId     String
+  referrer       User      @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUserId String    @unique
+  referredUser   User      @relation("Referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  referralCode   String    @unique
+  creditAmount   Float
+  creditGranted  Boolean   @default(false)
+  grantedAt      DateTime?
+  createdAt      DateTime  @default(now())
 
   @@index([referrerId])
   @@index([referralCode])
@@ -781,7 +781,7 @@ model StudentCredit {
   studentId String
   student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   amount    Float
-  source    String    // REFERRAL | PROMO | REFUND
+  source    String // REFERRAL | PROMO | REFUND
   usedAt    DateTime?
   expiresAt DateTime?
   createdAt DateTime  @default(now())
