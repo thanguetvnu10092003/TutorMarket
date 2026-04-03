@@ -33,6 +33,12 @@ export default function Step7Availability({ onNext, onBack }: Props) {
   }, [timeZoneOptions, timezoneQuery]);
 
   useEffect(() => {
+    if (filteredTimeZones.length > 0 && !filteredTimeZones.some((t) => t.value === timezone)) {
+      setTimezone(filteredTimeZones[0].value);
+    }
+  }, [filteredTimeZones, timezone]);
+
+  useEffect(() => {
     fetch('/api/onboarding/step/7')
       .then((r) => r.json())
       .then((data) => {

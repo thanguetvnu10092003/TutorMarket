@@ -28,6 +28,12 @@ export default function AvailabilityManager({ onSave }: AvailabilityManagerProps
     return timeZoneOptions.filter((o) => o.label.toLowerCase().includes(query));
   }, [timeZoneOptions, timezoneQuery]);
 
+  useEffect(() => {
+    if (filteredTimeZones.length > 0 && !filteredTimeZones.some((t) => t.value === timezone)) {
+      setTimezone(filteredTimeZones[0].value);
+    }
+  }, [filteredTimeZones, timezone]);
+
   async function fetchData() {
     try {
       const response = await fetch('/api/tutor/availability');
