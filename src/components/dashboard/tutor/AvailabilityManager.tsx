@@ -70,8 +70,19 @@ export default function AvailabilityManager({ onSave }: AvailabilityManagerProps
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || 'Failed to save availability');
+
+      const shifted = json.timezoneShiftApplied && json.timezoneShiftApplied !== 0;
+
       if (json.conflictCount > 0) {
-        toast.success(`Availability updated — ${json.conflictCount} existing booking${json.conflictCount === 1 ? '' : 's'} now outside your schedule. Check the Sessions tab.`, { duration: 6000 });
+        toast.error(
+          `${json.conflictCount} existing booking${json.conflictCount === 1 ? '' : 's'} no longer fit your schedule. Check the Sessions tab to resolve.`,
+          { duration: 8000 }
+        );
+      } else if (shifted) {
+        toast.success(
+          'Timezone changed — your availability times have been automatically adjusted to keep the same teaching hours.',
+          { duration: 6000 }
+        );
       } else {
         toast.success('Availability updated');
       }
@@ -83,6 +94,7 @@ export default function AvailabilityManager({ onSave }: AvailabilityManagerProps
       setIsSaving(false);
     }
   };
+
 
   if (isLoading) {
     return <div className="glass-card p-12 animate-pulse text-center">Loading availability manager...</div>;

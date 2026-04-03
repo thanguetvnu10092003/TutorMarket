@@ -60,6 +60,56 @@ export async function GET() {
   }
 }
 
+// ─── Timezone shift helpers ───────────────────────────────────────────────────
+
+/**
+ * Returns the UTC offset in minutes for a given IANA timezone at a reference moment.
+ * E.g. Europe/Berlin (CEST, UTC+2) → +120, Asia/Qatar (UTC+3) → +180
+ */
+function getTzOffsetMinutes(tz: string, ref: Date = new Date()): number {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false,
+  });
+  const parts: Record<string, number> = {};
+  for (const p of fmt.formatToParts(ref)) {
+    if (p.type !== 'literal') parts[p.type] = parseInt(p.value);
+  }
+  const h = parts.hour === 24 ? 0 : parts.hour;
+  const localMs = Date.UTC(parts.year, parts.month - 1, parts.day, h, parts.minute, parts.second);
+  return (localMs - ref.getTime()) / 60000;
+}
+
+/**
+ * Shifts a slot's startTime/endTime by shiftMins and adjusts dayOfWeek if crossing midnight.
+ * Shift is always a multiple of 30 min (all practical tz offsets are multiples of 30).
+ */
+function shiftSlotTimes(
+  slot: { dayOfWeek: number; startTime: string; endTime: string },
+  shiftMins: number
+): { dayOfWeek: number; startTime: string; endTime: string } {
+  let startMins = timeToMinutes(slot.startTime) + shiftMins;
+  let endMins   = timeToMinutes(slot.endTime)   + shiftMins;
+  let dow = slot.dayOfWeek;
+
+  // Handle crossing midnight (shift the day as well)
+  if (startMins < 0) {
+    dow = (dow - 1 + 7) % 7;
+    startMins += 24 * 60;
+    endMins   += 24 * 60;
+  } else if (startMins >= 24 * 60) {
+    dow = (dow + 1) % 7;
+    startMins -= 24 * 60;
+    endMins   -= 24 * 60;
+  }
+
+  return { ...slot, dayOfWeek: dow, startTime: minutesToTime(startMins), endTime: minutesToTime(endMins) };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -104,7 +154,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tutor profile not found' }, { status: 404 });
     }
 
-    const slotsByDay = normalizedSlots.reduce<Record<number, Array<{ startTime: string; endTime: string }>>>((accumulator, slot) => {
+    // ── Timezone shift: preserve UTC teaching windows when TZ changes ──────────
+    const oldTimezone = tutorProfile.timezone || 'UTC';
+    const newTimezone = timezone || oldTimezone;
+
+    let shiftMins = 0;
+    if (newTimezone !== oldTimezone) {
+      const ref = new Date();
+      shiftMins = getTzOffsetMinutes(newTimezone, ref) - getTzOffsetMinutes(oldTimezone, ref);
+    }
+
+    // Shift slot times so the same UTC moments are preserved in the new timezone.
+    // e.g. Berlin 09:00 (UTC+2 = UTC 07:00) → shift +60 min → Qatar 10:00 (UTC+3 = UTC 07:00) ✅
+    const slotsToSave = shiftMins !== 0
+      ? normalizedSlots.map((s: any) => shiftSlotTimes(s, shiftMins))
+      : normalizedSlots;
+
+    // Shift override window times as well (where present)
+    const overridesToSave = shiftMins !== 0
+      ? normalizedOverrides.map((o: any) => {
+          if (!o.startTime || !o.endTime) return o;
+          const shifted = shiftSlotTimes({ dayOfWeek: 0, startTime: o.startTime, endTime: o.endTime }, shiftMins);
+          return { ...o, startTime: shifted.startTime, endTime: shifted.endTime };
+        })
+      : normalizedOverrides;
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const slotsByDay = slotsToSave.reduce<Record<number, Array<{ startTime: string; endTime: string }>>>((accumulator, slot: any) => {
       const dayOfWeek = Number(slot.dayOfWeek);
       accumulator[dayOfWeek] = accumulator[dayOfWeek] || [];
       accumulator[dayOfWeek].push({
@@ -127,7 +203,7 @@ export async function POST(request: Request) {
         dayOfWeek: Number(dayOfWeek),
         startTime: slot.startTime,
         endTime: slot.endTime,
-        timezone: timezone || 'Asia/Ho_Chi_Minh',
+        timezone: newTimezone,
         isRecurring: true,
       }))
     );
@@ -139,34 +215,32 @@ export async function POST(request: Request) {
       prisma.tutorProfile.update({
         where: { id: tutorProfile.id },
         data: {
-          timezone: timezone || tutorProfile.timezone || 'Asia/Ho_Chi_Minh',
+          timezone: newTimezone,
         },
       }),
       
-      // Create new slots
+      // Create new (shifted) slots
       ...(orderedSlots.length > 0
         ? [prisma.availability.createMany({ data: orderedSlots })]
         : []),
 
-      // Create new overrides
-      ...(normalizedOverrides.length > 0
+      // Create new (shifted) overrides
+      ...(overridesToSave.length > 0
         ? [prisma.availabilityOverride.createMany({
-            data: normalizedOverrides.map((override: any) => ({
+            data: overridesToSave.map((override: any) => ({
               tutorProfileId: tutorProfile.id,
               date: new Date(override.date),
               startTime: override.startTime || null,
               endTime: override.endTime || null,
               isAvailable: override.isAvailable ?? false,
               reason: override.reason || 'Blocked',
-              timezone: timezone || tutorProfile.timezone || 'UTC',
+              timezone: newTimezone,
             })),
           })]
         : []),
     ]);
 
-    // --- Conflict scan after availability save ---
-    const newTimezone = timezone || tutorProfile.timezone || 'UTC';
-
+    // ── Safety-net conflict scan (should be 0 after correct shift) ────────────
     const activeBookings = await prisma.booking.findMany({
       where: {
         tutorProfileId: tutorProfile.id,
@@ -208,13 +282,13 @@ export async function POST(request: Request) {
           where: { id: { in: conflictIds } },
           data: {
             hasConflict: true,
-            conflictReason: 'Booking falls outside tutor availability after timezone change',
+            conflictReason: 'Booking falls outside tutor availability after schedule change',
             conflictAt: new Date(),
           },
         });
       }
 
-      // Clear stale flags for bookings that are now fine
+      // Clear stale conflict flags for bookings that are now fine
       await prisma.booking.updateMany({
         where: {
           tutorProfileId: tutorProfile.id,
@@ -225,7 +299,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, conflictCount, conflictIds });
+    return NextResponse.json({ success: true, conflictCount, conflictIds, timezoneShiftApplied: shiftMins });
   } catch (error) {
     console.error('Update availability error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
