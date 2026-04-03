@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { SUBJECT_COLORS, SUBJECT_LABELS, type Subject } from '@/types';
 import { formatDate, formatResponseTime, getInitials } from '@/lib/utils';
 import BookingModal from '@/components/student/BookingModal';
+import VideoPlayer from '@/components/shared/VideoPlayer';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -370,8 +371,15 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                   <section className="glass-card p-8">
                     <h2 className="text-xl font-display font-bold text-navy-600 dark:text-cream-200 mb-6 flex items-center gap-3">
                       <div className="w-1.5 h-6 bg-gold-400 rounded-full" />
-                      About Me
+                      Intro Video & About Me
                     </h2>
+                    
+                    {profile.videoUrl && (
+                      <div className="mb-8 rounded-3xl overflow-hidden shadow-2xl border border-navy-100 dark:border-navy-500/20">
+                        <VideoPlayer url={profile.videoUrl} poster={profile.user.avatarUrl} />
+                      </div>
+                    )}
+
                     <p className="whitespace-pre-line break-words text-navy-400 dark:text-cream-300/80 leading-relaxed">
                       {profile.about}
                     </p>

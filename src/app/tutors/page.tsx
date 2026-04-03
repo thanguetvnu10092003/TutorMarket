@@ -9,6 +9,7 @@ import HorizontalTutorCard from '@/components/tutors/HorizontalTutorCard';
 import BookingModal from '@/components/student/BookingModal';
 import { dispatchFavoritesUpdated } from '@/lib/favorite-events';
 import { toast } from 'react-hot-toast';
+import VideoPlayer from '@/components/shared/VideoPlayer';
 
 type TutorFilters = {
   subject: string;
@@ -321,31 +322,24 @@ function TutorsContent() {
             >
             {selectedTutor && (
               <div className="glass-card bg-white dark:bg-navy-800 rounded-[32px] overflow-hidden border border-navy-100/50 dark:border-navy-500/10 shadow-2xl">
-                <div className="aspect-video relative bg-navy-900 flex items-center justify-center overflow-hidden">
-                    {/* Mock Video Placeholder */}
-                    <img src={selectedTutor.user?.avatarUrl} alt="" className="w-full h-full object-cover opacity-60 blur-sm" />
-                    <button 
-                        onClick={() => navigateToProfile(selectedTutor.id)}
-                        className="absolute inset-0 flex items-center justify-center group/play"
-                    >
-                        <div className="w-16 h-16 bg-gold-400 text-navy-900 rounded-full flex items-center justify-center shadow-2xl group-hover/play:scale-110 transition-transform">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
-                    </button>
-                </div>
+                <VideoPlayer 
+                    url={selectedTutor.videoUrl} 
+                    poster={selectedTutor.user?.avatarUrl} 
+                    className="aspect-video"
+                />
                 <div className="p-8 space-y-4">
-                    <button 
-                        onClick={() => navigateToProfile(selectedTutor.id)}
-                        className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
-                    >
-                        View full schedule
-                    </button>
-                    <button 
-                        onClick={() => navigateToProfile(selectedTutor.id)}
-                        className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
-                    >
-                        See {selectedTutor.user?.name.split(' ')[0]}&apos;s profile
-                    </button>
+                  <button 
+                    onClick={() => navigateToProfile(selectedTutor.id)}
+                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
+                  >
+                    View full schedule
+                  </button>
+                  <button 
+                    onClick={() => navigateToProfile(selectedTutor.id)}
+                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
+                  >
+                    See {selectedTutor.user?.name.split(' ')[0]}&apos;s profile
+                  </button>
                 </div>
               </div>
             )}
