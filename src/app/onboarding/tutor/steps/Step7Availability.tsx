@@ -121,8 +121,8 @@ export default function Step7Availability({ onNext, onBack }: Props) {
       <div className="space-y-3">
         <label className="text-sm font-bold text-navy-500 dark:text-cream-300">Weekly Schedule</label>
         <WeeklyAvailabilityGrid
-          key={loadKey}
-          initialSlots={loadedSlots}
+          key={`${loadKey}-${timezone}`}
+          initialSlots={gridSlots.length > 0 ? gridSlots : loadedSlots}
           onChange={setGridSlots}
           timezone={timezone}
         />

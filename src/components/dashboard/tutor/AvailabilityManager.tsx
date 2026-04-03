@@ -139,8 +139,8 @@ export default function AvailabilityManager({ onSave }: AvailabilityManagerProps
       </div>
 
       <WeeklyAvailabilityGrid
-        key={loadKey}
-        initialSlots={loadedSlots}
+        key={`${loadKey}-${timezone}`}
+        initialSlots={gridSlots.length > 0 ? gridSlots : loadedSlots}
         onChange={setGridSlots}
         timezone={timezone}
       />

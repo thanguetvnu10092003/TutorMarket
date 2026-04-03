@@ -67,6 +67,20 @@ export default function Step8Pricing({ onNext, onBack }: Props) {
 
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol || '$';
 
+  // Format a raw price string as an international number with thousands separators
+  const formatPrice = (raw: string): string => {
+    const num = parseFloat(raw.replace(/,/g, ''));
+    if (!raw || isNaN(num)) return raw;
+    return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
+
+  const handlePriceInput = (index: number, inputVal: string) => {
+    // Strip commas so the raw value in state is always a plain number string
+    const raw = inputVal.replace(/,/g, '');
+    if (/^\d*\.?\d*$/.test(raw)) {
+      updateRow(index, 'price', raw);
+    }
+  };
   const handleSave = async () => {
     const enabled = pricing.filter(p => p.isEnabled);
     if (enabled.length === 0) {
@@ -142,14 +156,12 @@ export default function Step8Pricing({ onNext, onBack }: Props) {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-400 font-bold text-sm">{currencySymbol}</span>
                 <input
-                  type="number"
-                  min="0"
-                  step="1"
+                  type="text"
                   disabled={!row.isEnabled}
                   className="input-field pl-8 w-32 disabled:opacity-50"
                   placeholder="0"
-                  value={row.price}
-                  onChange={e => updateRow(idx, 'price', e.target.value)}
+                  value={formatPrice(row.price)}
+                  onChange={e => handlePriceInput(idx, e.target.value)}
                 />
               </div>
               <div className="flex justify-center">
