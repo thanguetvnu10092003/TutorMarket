@@ -228,7 +228,7 @@ export default function Step6Video({ onNext, onBack }: Props) {
          
        } catch (err: any) {
          console.error('Upload Error:', err);
-         toast.error('Failed to upload video. Are Supabase keys set up correctly?');
+         toast.error('Supabase error: ' + (err.message || err.toString()));
          setIsSaving(false);
        }
     }
