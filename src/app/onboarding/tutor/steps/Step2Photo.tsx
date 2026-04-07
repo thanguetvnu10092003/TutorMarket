@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 
 interface Props { onNext: () => void; onBack: () => void; }
 
@@ -11,6 +12,7 @@ export default function Step2Photo({ onNext, onBack }: Props) {
   const { data: session } = useSession();
   const [isSaving, setIsSaving] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [profileInfo, setProfileInfo] = useState<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -33,23 +35,53 @@ export default function Step2Photo({ onNext, onBack }: Props) {
       toast.error('Photo must be under 5MB');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    
+    // Create an object URL for instant preview, instead of heavy Base64
+    setPreview(URL.createObjectURL(file));
+    setSelectedFile(file);
   };
 
   const handleSave = async (skip = false) => {
     setIsSaving(true);
+    let finalAvatarUrl = preview;
+
     try {
+      if (!skip && selectedFile) {
+        toast.loading('Uploading photo to cloud...', { id: 'upload-toast' });
+        const fileExt = selectedFile.name.split('.').pop() || 'jpg';
+        const userId = (session?.user as any)?.id || `temp_${Date.now()}`;
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, selectedFile, { 
+            upsert: true,
+            contentType: selectedFile.type
+          });
+
+        if (uploadError) {
+          throw new Error('Supabase error: ' + uploadError.message);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        finalAvatarUrl = publicUrl;
+        toast.dismiss('upload-toast');
+      }
+
       await fetch('/api/onboarding/step/2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarUrl: skip ? null : (preview || null) }),
+        body: JSON.stringify({ avatarUrl: skip ? null : (finalAvatarUrl || null) }),
       });
       if (!skip) toast.success('Photo saved!');
       onNext();
     } catch (e: any) {
-      toast.error('Failed to save');
+      toast.dismiss('upload-toast');
+      console.error(e);
+      toast.error(e.message || 'Failed to save photo');
     } finally {
       setIsSaving(false);
     }
