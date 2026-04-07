@@ -50,7 +50,7 @@ export async function PATCH(request: Request) {
     }
 
     const data = await request.json();
-    const { hourlyRate, languages, headline, about, yearsOfExperience, education, certifications } = data;
+    const { hourlyRate, languages, headline, about, yearsOfExperience, education, certifications, videoUrl } = data;
 
     // Basic validation
     if (hourlyRate !== undefined && (typeof hourlyRate !== 'number' || hourlyRate < 0)) {
@@ -72,6 +72,7 @@ export async function PATCH(request: Request) {
           headline: headline !== undefined ? headline : undefined,
           about: about !== undefined ? about : undefined,
           yearsOfExperience: yearsOfExperience !== undefined ? yearsOfExperience : undefined,
+          videoUrl: videoUrl !== undefined ? videoUrl : undefined,
         }
       });
 

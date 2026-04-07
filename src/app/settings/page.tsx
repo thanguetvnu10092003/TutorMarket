@@ -168,6 +168,7 @@ function SettingsPageInner() {
     location: '',
     languages: 'English',
     education: [] as any[],
+    videoUrl: '',
   });
 
   const [showAddEdu, setShowAddEdu] = useState(false);
@@ -209,6 +210,7 @@ function SettingsPageInner() {
           bio: data.about || '',
           languages: data.languages?.join(', ') || 'English',
           education: data.education || [],
+          videoUrl: data.videoUrl || '',
         }));
 
         // Hydrate certifications
@@ -372,6 +374,7 @@ function SettingsPageInner() {
             languages: profileData.languages.split(',').map(l => l.trim()).filter(Boolean),
             education: profileData.education,
             certifications: buildCertifications(),
+            videoUrl: profileData.videoUrl,
           }),
         });
         if (!res.ok) throw new Error('Failed to update tutor profile');
@@ -517,6 +520,15 @@ function SettingsPageInner() {
                     <input type="text" value={profileData.location} onChange={e => setProfileData({ ...profileData, location: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none" />
                   </div>
+
+                  {session?.user?.role === 'TUTOR' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-navy-600 dark:text-cream-200">Intro Video URL (YouTube or Loom)</label>
+                      <input type="text" placeholder="https://www.youtube.com/watch?v=..." value={profileData.videoUrl} onChange={e => setProfileData({ ...profileData, videoUrl: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none" />
+                      <p className="text-xs text-navy-300 dark:text-cream-400/60">Help students connect with you by sharing a short video introduction.</p>
+                    </div>
+                  )}
 
                   {/* ── EDUCATION (Tutor only) ── */}
                   {session?.user?.role === 'TUTOR' && (

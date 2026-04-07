@@ -4,33 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { useSession } from 'next-auth/react';
+import VideoPlayer, { parseVideoSource } from '@/components/shared/VideoPlayer';
 
 interface Props { onNext: () => void; onBack: () => void; }
 
 type TabType = 'LINK' | 'RECORD';
 type RecordingState = 'IDLE' | 'RECORDING' | 'PREVIEW';
-
-function parseVideoSource(url: string): { type: 'IFRAME' | 'NATIVE' | 'INVALID', src: string } {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes('youtube.com')) {
-      const v = u.searchParams.get('v');
-      return v ? { type: 'IFRAME', src: `https://www.youtube.com/embed/${v}` } : { type: 'INVALID', src: '' };
-    }
-    if (u.hostname === 'youtu.be') {
-      return { type: 'IFRAME', src: `https://www.youtube.com/embed${u.pathname}` };
-    }
-    if (u.hostname.includes('loom.com')) {
-      const parts = u.pathname.split('/');
-      const id = parts[parts.length - 1];
-      return { type: 'IFRAME', src: `https://www.loom.com/embed/${id}` };
-    }
-    if (u.hostname.includes('supabase.co')) {
-      return { type: 'NATIVE', src: url };
-    }
-    return { type: 'INVALID', src: '' };
-  } catch { return { type: 'INVALID', src: '' }; }
-}
 
 export default function Step6Video({ onNext, onBack }: Props) {
   const { data: session } = useSession();
@@ -270,14 +249,9 @@ export default function Step6Video({ onNext, onBack }: Props) {
                />
              </div>
 
-             {parsedVideo.type === 'IFRAME' && (
+             {(parsedVideo.type === 'IFRAME' || parsedVideo.type === 'NATIVE') && (
                <div className="rounded-2xl overflow-hidden border border-navy-100 dark:border-navy-400/20 aspect-video bg-navy-50">
-                 <iframe src={parsedVideo.src} className="w-full h-full" allowFullScreen title="Video preview" />
-               </div>
-             )}
-              {parsedVideo.type === 'NATIVE' && (
-               <div className="rounded-2xl overflow-hidden border border-navy-100 dark:border-navy-400/20 aspect-video bg-black flex items-center justify-center">
-                  <video src={parsedVideo.src} controls className="w-full h-full" />
+                 <VideoPlayer url={videoUrl} />
                </div>
              )}
 
@@ -383,7 +357,7 @@ export default function Step6Video({ onNext, onBack }: Props) {
           <button onClick={() => handleSave(true)} disabled={isSaving} className="text-sm text-navy-400 hover:text-navy-600 dark:hover:text-cream-200 font-bold transition-colors">
             Skip for now
           </button>
-          <button onClick={() => handleSave(false)} disabled={isSaving || recordingState === 'RECORDING'} className="btn-primary px-8 py-3 rounded-2xl font-bold flex items-center gap-2">
+          <button onClick={() => handleSave(false)} disabled={isSaving || recordingState === 'RECORDING' || (activeTab === 'LINK' && (!videoUrl || parsedVideo.type === 'INVALID')) || (activeTab === 'RECORD' && !videoBlob && !(recordingState === 'PREVIEW' && previewBlobUrl?.startsWith('http')))} className="btn-primary px-8 py-3 rounded-2xl font-bold flex items-center gap-2">
             {isSaving ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> Saving...</> : <>Save and continue <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg></>}
           </button>
         </div>
