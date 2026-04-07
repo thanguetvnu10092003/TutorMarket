@@ -390,6 +390,21 @@ function SettingsPageInner() {
     }
   };
 
+  // Immediately save videoUrl to the database (called by VideoUploader after upload)
+  const handleVideoSave = async (url: string) => {
+    try {
+      setProfileData(prev => ({ ...prev, videoUrl: url }));
+      const res = await fetch('/api/tutor/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: url }),
+      });
+      if (!res.ok) throw new Error('Failed to save video');
+    } catch {
+      toast.error('Failed to save video to profile');
+    }
+  };
+
   // ── Education helpers ──
   const addEducation = () => {
     if (!newEdu.institution || !newEdu.fieldOfStudy) { toast.error('Please fill in institution and field of study'); return; }
@@ -577,7 +592,8 @@ function SettingsPageInner() {
                       </div>
                       <VideoUploader 
                         value={profileData.videoUrl || ''} 
-                        onChange={(url) => setProfileData({ ...profileData, videoUrl: url })} 
+                        onChange={(url) => setProfileData({ ...profileData, videoUrl: url })}
+                        onSave={handleVideoSave}
                       />
                     </div>
                   )}

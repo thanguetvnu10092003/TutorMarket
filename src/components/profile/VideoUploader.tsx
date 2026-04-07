@@ -9,12 +9,13 @@ import VideoPlayer, { parseVideoSource } from '@/components/shared/VideoPlayer';
 interface Props {
   value: string;
   onChange: (url: string) => void;
+  onSave?: (url: string) => Promise<void>;
 }
 
 type TabType = 'LINK' | 'RECORD';
 type RecordingState = 'IDLE' | 'RECORDING' | 'PREVIEW';
 
-export default function VideoUploader({ value, onChange }: Props) {
+export default function VideoUploader({ value, onChange, onSave }: Props) {
   const { data: session } = useSession();
   
   const [activeTab, setActiveTab] = useState<TabType>('LINK');
@@ -126,8 +127,14 @@ export default function VideoUploader({ value, onChange }: Props) {
        if (uploadError) throw uploadError;
 
        const { data: publicUrlData } = supabase.storage.from('tutor-videos').getPublicUrl(filePath);
-       onChange(publicUrlData.publicUrl);
-       toast.success('Video uploaded successfully!');
+       const publicUrl = publicUrlData.publicUrl;
+       
+       onChange(publicUrl);
+       if (onSave) {
+         await onSave(publicUrl);
+       }
+       
+       toast.success('Video saved to your profile!');
      } catch (err: any) {
        toast.error('Upload Error: ' + err.message);
      } finally {
