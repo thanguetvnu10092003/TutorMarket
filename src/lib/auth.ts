@@ -217,6 +217,9 @@ export const authOptions: NextAuthOptions = {
         token.hasPassword = (user as any).hasPassword;
         token.isVerified = (user as any).isVerified;
         token.hasChosenRole = (user as any).hasChosenRole;
+        if ((user as any).avatarUrl) {
+          token.picture = (user as any).avatarUrl;
+        }
 
         // Fetch onboardingCompleted for tutors from DB on first sign-in
         if ((user as any).role === 'TUTOR') {
@@ -237,6 +240,7 @@ export const authOptions: NextAuthOptions = {
         if (session.hasChosenRole !== undefined) token.hasChosenRole = session.hasChosenRole;
         if (session.role !== undefined) token.role = session.role;
         if (session.onboardingCompleted !== undefined) token.onboardingCompleted = session.onboardingCompleted;
+        if (session.picture !== undefined) token.picture = session.picture;
       }
 
       return token;
@@ -249,6 +253,9 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).isVerified = token.isVerified;
         (session.user as any).hasChosenRole = token.hasChosenRole;
         (session.user as any).onboardingCompleted = token.onboardingCompleted;
+        if (token.picture) {
+          session.user.image = token.picture as string;
+        }
       }
       return session;
     },

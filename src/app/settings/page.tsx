@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { getInitials } from '@/lib/utils';
 import PasswordInput from '@/components/ui/PasswordInput';
 import { CURRENCY_META } from '@/lib/currency';
+import VideoUploader from '@/components/profile/VideoUploader';
 
 const tabs = [
   { id: 'profile', label: 'Profile', icon: (
@@ -153,10 +154,12 @@ function ScoreRow({ title, scoreKey, pctKey, data, setData, isPrimary, color = '
 }
 
 function SettingsPageInner() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = React.useRef<HTMLInputElement>(null);
   const [notificationPreferences, setNotificationPreferences] = useState(defaultNotificationPreferences);
   const [savingNotificationType, setSavingNotificationType] = useState<string | null>(null);
 
@@ -441,6 +444,48 @@ function SettingsPageInner() {
     }
   };
 
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error('File must be under 2MB'); return; }
+    
+    setUploadingPhoto(true);
+    try {
+        const fileExt = file.name.split('.').pop() || 'jpg';
+        const userId = session?.user?.id || `temp_${Date.now()}`;
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+
+        // Dynamic import supabase since it's a client component, or just use normal import at top.
+        // I will need to make sure supabase is imported at the top.
+        const { supabase } = await import('@/lib/supabase');
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, file, { 
+            upsert: true,
+            contentType: file.type
+          });
+
+        if (uploadError) throw new Error(uploadError.message);
+
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+        const res = await fetch('/api/user/avatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatarUrl: publicUrl }),
+        });
+        if (!res.ok) throw new Error('Failed to update user profile');
+
+        await update({ picture: publicUrl });
+        toast.success('Photo updated successfully');
+    } catch (err: any) {
+        toast.error(err.message || 'Error uploading photo');
+    } finally {
+        setUploadingPhoto(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-cream-200 dark:bg-navy-600 pt-24 md:pt-28 pb-16">
       <div className="page-container max-w-5xl">
@@ -475,7 +520,10 @@ function SettingsPageInner() {
                       {session?.user?.image ? <img src={session.user.image} alt="" className="w-full h-full object-cover" /> : getInitials(session?.user?.name || '')}
                     </div>
                     <div className="space-y-2">
-                      <button type="button" className="btn-primary py-2 px-4 text-xs">Change Photo</button>
+                      <input type="file" ref={photoInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} />
+                      <button type="button" disabled={uploadingPhoto} onClick={() => photoInputRef.current?.click()} className="btn-primary py-2 px-4 text-xs">
+                        {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                      </button>
                       <p className="text-[11px] text-navy-300 dark:text-cream-400/60">JPG, GIF or PNG. Max size of 2MB.</p>
                     </div>
                   </div>
@@ -522,11 +570,15 @@ function SettingsPageInner() {
                   </div>
 
                   {session?.user?.role === 'TUTOR' && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-navy-600 dark:text-cream-200">Intro Video URL (YouTube or Loom)</label>
-                      <input type="text" placeholder="https://www.youtube.com/watch?v=..." value={profileData.videoUrl} onChange={e => setProfileData({ ...profileData, videoUrl: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none" />
-                      <p className="text-xs text-navy-300 dark:text-cream-400/60">Help students connect with you by sharing a short video introduction.</p>
+                    <div className="space-y-4 pt-4 border-t border-navy-100 dark:border-navy-400/20">
+                      <div>
+                        <label className="text-[15px] font-bold text-navy-600 dark:text-cream-200">Intro Video</label>
+                        <p className="text-[13px] text-navy-400 dark:text-cream-400/60 mt-1">Help students connect with you by sharing a short video introduction.</p>
+                      </div>
+                      <VideoUploader 
+                        value={profileData.videoUrl || ''} 
+                        onChange={(url) => setProfileData({ ...profileData, videoUrl: url })} 
+                      />
                     </div>
                   )}
 

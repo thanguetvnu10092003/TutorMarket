@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 interface Props { onNext: () => void; onBack: () => void; }
 
 export default function Step2Photo({ onNext, onBack }: Props) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const [isSaving, setIsSaving] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -76,7 +76,10 @@ export default function Step2Photo({ onNext, onBack }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatarUrl: skip ? null : (finalAvatarUrl || null) }),
       });
-      if (!skip) toast.success('Photo saved!');
+      if (!skip) {
+        await update({ picture: finalAvatarUrl || null });
+        toast.success('Photo saved!');
+      }
       onNext();
     } catch (e: any) {
       toast.dismiss('upload-toast');
