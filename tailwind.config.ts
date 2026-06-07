@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   content: [
@@ -67,6 +68,8 @@ const config: Config = {
         float: "float 6s ease-in-out infinite",
         "pulse-soft": "pulseSoft 2s ease-in-out infinite",
         "scale-in": "scaleIn 0.3s ease-out",
+        "gradient-shift": "gradientShift 8s ease infinite",
+        shine: "shine 0.6s ease-out",
       },
       keyframes: {
         fadeIn: {
@@ -97,19 +100,51 @@ const config: Config = {
           "0%": { opacity: "0", transform: "scale(0.95)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
+        gradientShift: {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        shine: {
+          "0%": { transform: "translateX(-100%) skewX(-15deg)" },
+          "100%": { transform: "translateX(200%) skewX(-15deg)" },
+        },
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        "dot-grid": "radial-gradient(circle, rgba(201,168,76,0.15) 1px, transparent 1px)",
+      },
+      backgroundSize: {
+        "dot-grid": "24px 24px",
       },
       boxShadow: {
         glass: "0 8px 32px 0 rgba(10, 22, 40, 0.12)",
         "glass-lg": "0 16px 48px 0 rgba(10, 22, 40, 0.16)",
         gold: "0 4px 20px 0 rgba(201, 168, 76, 0.25)",
+        "navy-sm": "0 2px 8px 0 rgba(10, 22, 40, 0.08)",
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(function ({ addUtilities }) {
+      addUtilities({
+        ".label-xs": {
+          fontSize: "0.625rem",
+          fontWeight: "700",
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          lineHeight: "1rem",
+        },
+        ".label-sm": {
+          fontSize: "0.75rem",
+          fontWeight: "700",
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          lineHeight: "1rem",
+        },
+      });
+    }),
+  ],
 };
 
 export default config;
