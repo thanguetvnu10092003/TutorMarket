@@ -8,6 +8,7 @@ import { SUBJECT_COLORS, SUBJECT_LABELS, type Subject } from '@/types';
 import { formatDate, formatResponseTime, getInitials } from '@/lib/utils';
 import BookingModal from '@/components/student/BookingModal';
 import VideoPlayer from '@/components/shared/VideoPlayer';
+import { Star, Users, Clock, Calendar, Globe, ChevronRight, ChevronLeft, Check, Award } from '@/components/ui/icons';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -22,7 +23,7 @@ function StatBox({ label, score, pct, color = 'blue' }: { label: string; score?:
 
   return (
     <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-white dark:bg-navy-800/40 border border-navy-50 dark:border-navy-700/50">
-      <p className="text-[9px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/30 line-clamp-1">{label}</p>
+      <p className="label-xs text-navy-400 dark:text-cream-400/30 line-clamp-1">{label}</p>
       <div className="flex items-end justify-between gap-2">
         <p className="text-sm font-black text-navy-600 dark:text-cream-200">{score || '---'}</p>
         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${colorClasses[color]}`}>
@@ -95,17 +96,17 @@ function AvailabilityGrid({ tutorId }: { tutorId: string }) {
           disabled={weekOffset <= 0}
           className="p-2 rounded-xl border border-navy-100 dark:border-navy-500/20 hover:bg-navy-50 dark:hover:bg-navy-700 disabled:opacity-30 transition-colors"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+          <ChevronLeft size={16} />
         </button>
         <span className="text-sm font-bold text-navy-600 dark:text-cream-200">
           Week of {weekLabel}
-          {weekOffset === 0 && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-gold-500">Current</span>}
+          {weekOffset === 0 && <span className="ml-2 label-xs text-gold-500">Current</span>}
         </span>
         <button
           onClick={() => setWeekOffset((o) => o + 1)}
           className="p-2 rounded-xl border border-navy-100 dark:border-navy-500/20 hover:bg-navy-50 dark:hover:bg-navy-700 transition-colors"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+          <ChevronRight size={16} />
         </button>
         {gridData?.timezone && (
           <span className="ml-auto text-[10px] text-navy-300 dark:text-cream-400/40 font-bold">
@@ -273,7 +274,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
           <span className="text-navy-600 dark:text-cream-200">{profile.user.name}</span>
         </nav>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
           <div className="space-y-6">
             <div className="glass-card p-8">
               <div className="flex flex-col gap-8 sm:flex-row">
@@ -299,9 +300,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                     </h1>
                     {profile.verificationStatus === 'APPROVED' && (
                       <div className="p-1.5 rounded-full bg-blue-50 border border-blue-100 dark:bg-blue-500/10 dark:border-blue-400/20 text-blue-500" title="Identity Verified">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
+                        <Check size={16} />
                       </div>
                     )}
                     {profile.countryFlag && <span className="text-xl">{profile.countryFlag}</span>}
@@ -322,26 +321,24 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
 
                   <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-6">
                     <div className="space-y-1">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Rating</div>
+                      <div className="label-xs text-navy-300 dark:text-cream-400/40">Rating</div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-base font-black text-navy-600 dark:text-cream-200">{profile.rating}</span>
                         <div className="flex text-gold-500">
-                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
+                          <Star size={12} fill="currentColor" />
                         </div>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Sessions</div>
+                      <div className="label-xs text-navy-300 dark:text-cream-400/40">Sessions</div>
                       <div className="text-base font-black text-navy-600 dark:text-cream-200">{profile.totalSessions}</div>
                     </div>
                     <div className="space-y-1">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Experience</div>
+                      <div className="label-xs text-navy-300 dark:text-cream-400/40">Experience</div>
                       <div className="text-base font-black text-navy-600 dark:text-cream-200">{profile.yearsOfExperience}y</div>
                     </div>
                     <div className="space-y-1">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Response</div>
+                      <div className="label-xs text-navy-300 dark:text-cream-400/40">Response</div>
                       <div className="text-base font-black text-navy-600 dark:text-cream-200">{formatResponseTime(profile.responseTime)}</div>
                     </div>
                   </div>
@@ -354,7 +351,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest transition-all ${
+                  className={`flex-1 rounded-xl px-6 py-3 label-sm transition-all ${
                     activeTab === tab
                       ? 'bg-white dark:bg-navy-600 text-gold-600 shadow-glass'
                       : 'text-navy-400 dark:text-cream-400/40 hover:text-navy-600 dark:hover:text-cream-200'
@@ -386,7 +383,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
 
                     <div className="mt-10 pt-8 border-t border-navy-100/50 dark:border-navy-500/20 grid gap-8 sm:grid-cols-2">
                       <div>
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-3">
+                        <h4 className="label-xs text-navy-300 dark:text-cream-400/40 mb-3">
                           Languages
                         </h4>
                         <div className="flex flex-wrap gap-2">
@@ -398,7 +395,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                         </div>
                       </div>
                       <div>
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-3">
+                        <h4 className="label-xs text-navy-300 dark:text-cream-400/40 mb-3">
                           Origin
                         </h4>
                         <div className="text-sm font-bold text-navy-600 dark:text-cream-200 flex items-center gap-2">
@@ -444,11 +441,11 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                                     )}
                                   </div>
                                   <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/40">{result.label}</p>
+                                    <p className="label-xs text-navy-400 dark:text-cream-400/40">{result.label}</p>
                                     <div className="flex items-center gap-2 mt-0.5">
                                       {result.isVerified ? (
                                         <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tight text-sage-600 dark:text-sage-400">
-                                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
+                                          <Check size={10} />
                                           Verified
                                         </span>
                                       ) : (
@@ -559,9 +556,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                           </div>
                           <div className="flex text-gold-500 gap-0.5">
                             {[...Array(5)].map((_, index) => (
-                              <svg key={index} width="12" height="12" fill={index < review.rating ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
+                              <Star key={index} size={12} fill={index < review.rating ? 'currentColor' : 'none'} />
                             ))}
                           </div>
                         </div>
@@ -595,8 +590,8 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
             </div>
           </div>
 
-          <aside className="space-y-6">
-            <div className="glass-card p-7 sticky top-28 border-gold-400/30 shadow-gold-sm">
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <div className="glass-card p-7 border-gold-400/30 shadow-gold-sm">
               <div className="mb-6">
                 <div className="flex items-baseline justify-between gap-4">
                   <div>
@@ -611,9 +606,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                   </div>
                   {profile.totalReviews > 0 && (
                     <div className="flex items-center gap-1 text-gold-500 font-bold text-sm">
-                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
+                      <Star size={14} fill="currentColor" />
                       {profile.rating}
                     </div>
                   )}
@@ -621,7 +614,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                 {profile.pricingOptions?.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {profile.pricingOptions.map((option: any) => (
-                      <span key={option.id || option.durationMinutes} className="px-3 py-1.5 rounded-full bg-navy-50 dark:bg-navy-600 text-[10px] font-black uppercase tracking-widest text-navy-500 dark:text-cream-300">
+                      <span key={option.id || option.durationMinutes} className="px-3 py-1.5 rounded-full bg-navy-50 dark:bg-navy-600 label-xs text-navy-500 dark:text-cream-300">
                         {option.durationMinutes}m • {option.priceDisplay?.formatted || option.price}
                       </span>
                     ))}
@@ -650,7 +643,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
               </div>
 
               <div className="pb-6 border-b border-navy-100/50 dark:border-navy-500/20">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-4">
+                <h3 className="label-xs text-navy-300 dark:text-cream-400/40 mb-4">
                   Test Results & Certifications
                 </h3>
                 <div className="space-y-3">
@@ -674,9 +667,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                         </div>
                         {result.detailText && (
                           <div className="flex items-start gap-2 mt-2">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={result.isVerified ? 'text-sage-500' : 'text-blue-500'}>
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
+                            <Check size={12} className={result.isVerified ? 'text-sage-500' : 'text-blue-500'} />
                             <p className={`text-[11px] font-medium leading-relaxed ${
                               result.isVerified ? 'text-sage-700/80 dark:text-sage-400' : 'text-blue-700/80 dark:text-blue-400'
                             }`}>
