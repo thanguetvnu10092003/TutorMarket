@@ -117,7 +117,7 @@ export default function CertificationStatus({ certifications }: { certifications
         <p className="text-[10px] text-navy-400 dark:text-cream-400/60 font-medium mb-3 text-center">
           Have other relevant certifications like TESOL or IELTS?
         </p>
-        <Link href="/dashboard/tutor/verify" className="flex items-center justify-center gap-2 text-[10px] font-bold text-gold-500 hover:text-gold-600 transition-colors uppercase tracking-widest bg-gold-400/10 hover:bg-gold-400/20 px-6 py-2.5 rounded-full border border-gold-400/20">
+        <Link href="/dashboard/tutor/verify" className="flex items-center justify-center gap-2 label-xs text-gold-500 hover:text-gold-600 transition-colors bg-gold-400/10 hover:bg-gold-400/20 px-6 py-2.5 rounded-full border border-gold-400/20">
           <Plus size={12} strokeWidth={3} />
           Upload Other Documents
         </Link>

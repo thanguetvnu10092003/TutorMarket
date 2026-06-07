@@ -165,7 +165,7 @@ export default function ReviewsSection() {
                         rows={3}
                       />
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => {setReplyingTo(null); setReplyText('');}} className="px-3 py-1.5 text-[10px] font-bold text-navy-400 uppercase tracking-widest">Cancel</button>
+                        <button onClick={() => {setReplyingTo(null); setReplyText('');}} className="px-3 py-1.5 label-xs text-navy-400">Cancel</button>
                         <button
                           onClick={() => handleReply(review.id)}
                           disabled={submittingReply}
