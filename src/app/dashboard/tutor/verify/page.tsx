@@ -396,7 +396,7 @@ export default function TutorVerifyPage() {
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">Year Passed</label>
+              <label className="label-xs text-navy-400">Year Passed</label>
               <input
                 type="number"
                 value={details.year}
@@ -414,7 +414,7 @@ export default function TutorVerifyPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">CFA Score</label>
+              <label className="label-xs text-navy-400">CFA Score</label>
               <input
                 type="text"
                 value={details.score}
@@ -453,7 +453,7 @@ export default function TutorVerifyPage() {
             <ScoreField label="Data Insights Percentile" value={gmatDetails.dataInsightsPercentile} onChange={(value) => setGmatDetails((previous) => ({ ...previous, dataInsightsPercentile: value }))} />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">Test Date</label>
+            <label className="label-xs text-navy-400">Test Date</label>
             <input
               type="date"
               value={gmatDetails.testDate}
@@ -468,7 +468,7 @@ export default function TutorVerifyPage() {
             </p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">MBA Email</label>
+                <label className="label-xs text-navy-400">MBA Email</label>
                 <input
                   type="email"
                   value={gmatDetails.mbaEmail}
@@ -478,7 +478,7 @@ export default function TutorVerifyPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">MBA Password</label>
+                <label className="label-xs text-navy-400">MBA Password</label>
                 <input
                   type="password"
                   value={gmatDetails.mbaPassword}
@@ -518,7 +518,7 @@ export default function TutorVerifyPage() {
           <ScoreField label="Analytical Writing Percentile" value={greDetails.writingPercentile} onChange={(value) => setGreDetails((previous) => ({ ...previous, writingPercentile: value }))} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">Test Date</label>
+          <label className="label-xs text-navy-400">Test Date</label>
           <input
             type="date"
             value={greDetails.testDate}
@@ -687,7 +687,7 @@ function ScoreField({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-black uppercase tracking-widest text-navy-400">{label}</label>
+      <label className="label-xs text-navy-400">{label}</label>
       <input
         type="number"
         value={value}

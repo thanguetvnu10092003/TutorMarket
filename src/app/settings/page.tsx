@@ -598,7 +598,7 @@ function SettingsPageInner() {
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold text-navy-600 dark:text-cream-200">Education</h3>
                         {!showAddEdu && (
-                          <button type="button" onClick={() => setShowAddEdu(true)} className="text-xs font-bold text-gold-600 hover:text-gold-500 uppercase tracking-widest">+ Add Education</button>
+                          <button type="button" onClick={() => setShowAddEdu(true)} className="label-sm text-gold-600 hover:text-gold-500">+ Add Education</button>
                         )}
                       </div>
                       <div className="space-y-3">
@@ -618,22 +618,22 @@ function SettingsPageInner() {
                         <div className="p-5 rounded-2xl border-2 border-dashed border-gold-400/30 bg-gold-50/5 space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-navy-400 uppercase tracking-widest">Degree</label>
+                              <label className="label-sm text-navy-400">Degree</label>
                               <select value={newEdu.degree} onChange={e => setNewEdu({ ...newEdu, degree: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm">
                                 {DEGREE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                               </select>
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-navy-400 uppercase tracking-widest">Graduation Year</label>
+                              <label className="label-sm text-navy-400">Graduation Year</label>
                               <input type="number" value={newEdu.graduationYear} onChange={e => setNewEdu({ ...newEdu, graduationYear: Number(e.target.value) })} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm" />
                             </div>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-navy-400 uppercase tracking-widest">Institution</label>
+                            <label className="label-sm text-navy-400">Institution</label>
                             <input type="text" placeholder="e.g. Harvard University" value={newEdu.institution} onChange={e => setNewEdu({ ...newEdu, institution: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm" />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-navy-400 uppercase tracking-widest">Field of Study</label>
+                            <label className="label-sm text-navy-400">Field of Study</label>
                             <input type="text" placeholder="e.g. Economics" value={newEdu.fieldOfStudy} onChange={e => setNewEdu({ ...newEdu, fieldOfStudy: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm" />
                           </div>
                           <div className="flex justify-end gap-3 pt-2">
@@ -853,7 +853,7 @@ function SettingsPageInner() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/60">Currency</label>
+                            <label className="label-sm text-navy-300 dark:text-cream-400/60">Currency</label>
                             <select value={studentPreferences.preferredCurrency}
                               onChange={e => setStudentPreferences(cur => ({ ...cur, preferredCurrency: e.target.value }))}
                               className="w-full px-4 py-3 rounded-xl bg-cream-100 dark:bg-navy-500 border border-navy-100 dark:border-navy-400 text-navy-600 dark:text-cream-200 text-sm focus:ring-2 focus:ring-gold-400 outline-none">
@@ -861,7 +861,7 @@ function SettingsPageInner() {
                             </select>
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/60">Timezone</label>
+                            <label className="label-sm text-navy-300 dark:text-cream-400/60">Timezone</label>
                             <input readOnly value={studentPreferences.timezone} className="w-full px-4 py-3 rounded-xl bg-navy-50 dark:bg-navy-600 border border-navy-100 dark:border-navy-400 text-navy-400 dark:text-cream-400/60 text-sm outline-none cursor-not-allowed" />
                           </div>
                         </div>

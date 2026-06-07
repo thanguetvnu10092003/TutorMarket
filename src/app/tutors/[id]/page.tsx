@@ -262,7 +262,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
   return (
     <div className="min-h-screen bg-cream-200 pt-24 pb-16 dark:bg-navy-600 md:pt-28">
       <div className="page-container">
-        <nav className="mb-8 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+        <nav className="mb-8 flex items-center gap-2 label-sm text-navy-300 dark:text-cream-400/40">
           <Link href="/tutors" className="hover:text-gold-500 transition-colors">
             Tutors
           </Link>
@@ -675,7 +675,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                     ))
                   ) : (
                     <div className="p-6 rounded-2xl bg-navy-50/50 dark:bg-navy-800/30 border border-dashed border-navy-100 dark:border-navy-700 text-center">
-                      <p className="text-xs font-bold text-navy-300 dark:text-cream-400/40 uppercase tracking-widest leading-loose">
+                      <p className="label-sm text-navy-300 dark:text-cream-400/40 leading-loose">
                         No verified scores are public yet
                       </p>
                     </div>

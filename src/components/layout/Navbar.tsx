@@ -301,7 +301,7 @@ export default function Navbar() {
                     <div className="p-4 border-b border-navy-100 dark:border-navy-400 flex items-center justify-between">
                       <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">Saved Tutors</h3>
                       {favoriteTutors.length > 0 && (
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gold-600">
+                        <span className="label-xs text-gold-600">
                           {favoriteTutors.length} saved
                         </span>
                       )}
@@ -330,10 +330,10 @@ export default function Navbar() {
                                   {tutor.headline || 'Saved from Find Tutors'}
                                 </p>
                                 <div className="mt-2 flex items-center justify-between gap-3">
-                                  <span className="text-[10px] font-bold uppercase tracking-widest text-gold-600">
+                                  <span className="label-xs text-gold-600">
                                     {formatRelativeTime(tutor.savedAt)}
                                   </span>
-                                  <Link href={`/dashboard/student?tab=messages&tutorId=${tutor.id}`} className="text-[10px] font-black uppercase tracking-widest text-navy-500 hover:text-gold-600 transition-colors">
+                                  <Link href={`/dashboard/student?tab=messages&tutorId=${tutor.id}`} className="label-xs text-navy-500 hover:text-gold-600 transition-colors">
                                     Message
                                   </Link>
                                 </div>
@@ -383,7 +383,7 @@ export default function Navbar() {
                   <div className="p-4 border-b border-navy-100 dark:border-navy-400 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">Notifications</h3>
                     {notifications.length > 0 && (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gold-600">
+                      <span className="label-xs text-gold-600">
                         {notifications.length} recent
                       </span>
                     )}

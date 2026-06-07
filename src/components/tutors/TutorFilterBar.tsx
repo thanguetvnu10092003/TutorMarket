@@ -121,7 +121,7 @@ export default function TutorFilterBar({
     <div className="w-full space-y-4 mb-8">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className="relative group">
-          <label className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 absolute left-10 top-2 z-10">
+          <label className="label-xs text-navy-300 dark:text-cream-400/40 absolute left-10 top-2 z-10">
             I want to learn
           </label>
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-500 z-10 pointer-events-none">
@@ -149,7 +149,7 @@ export default function TutorFilterBar({
         </div>
 
         <div className="relative">
-          <label className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 absolute left-4 top-2 z-10">
+          <label className="label-xs text-navy-300 dark:text-cream-400/40 absolute left-4 top-2 z-10">
             Price per 60-min session
           </label>
           <select
@@ -181,7 +181,7 @@ export default function TutorFilterBar({
         </div>
 
         <div className="relative">
-          <label className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 absolute left-4 top-2 z-10">
+          <label className="label-xs text-navy-300 dark:text-cream-400/40 absolute left-4 top-2 z-10">
             Country
           </label>
           <select
@@ -204,7 +204,7 @@ export default function TutorFilterBar({
         </div>
 
         <div className="relative">
-          <label className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 absolute left-4 top-2 z-10">
+          <label className="label-xs text-navy-300 dark:text-cream-400/40 absolute left-4 top-2 z-10">
             I&apos;m available
           </label>
           <select
@@ -232,7 +232,7 @@ export default function TutorFilterBar({
             <select
               value={filters.language}
               onChange={(event) => onFilterChange('language', event.target.value)}
-              className="bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl py-2 pl-4 pr-8 text-[10px] font-black uppercase tracking-widest text-navy-400 hover:border-navy-200 transition-all appearance-none cursor-pointer shadow-sm"
+              className="bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl py-2 pl-4 pr-8 label-xs text-navy-400 hover:border-navy-200 transition-all appearance-none cursor-pointer shadow-sm"
             >
               <option value="">Also speaks</option>
               {languageOptions.map((option) => (
@@ -250,7 +250,7 @@ export default function TutorFilterBar({
 
           <button
             onClick={() => onFilterChange('nativeSpeaker', !filters.nativeSpeaker)}
-            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+            className={`px-4 py-2 rounded-xl label-xs border transition-all ${
               filters.nativeSpeaker
                 ? 'bg-navy-600 border-navy-600 text-white'
                 : 'bg-white dark:bg-navy-700 border-navy-100 dark:border-navy-500/20 text-navy-400 hover:border-navy-200'
@@ -265,7 +265,7 @@ export default function TutorFilterBar({
             <select
               value={filters.sortBy}
               onChange={(event) => onFilterChange('sortBy', event.target.value)}
-              className="bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl py-2 pl-4 pr-10 text-[10px] font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:border-navy-200 transition-all appearance-none cursor-pointer shadow-sm"
+              className="bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl py-2 pl-4 pr-10 label-xs text-navy-600 dark:text-cream-200 hover:border-navy-200 transition-all appearance-none cursor-pointer shadow-sm"
             >
               <option value="default">Sort by: Our top picks</option>
               <option value="price_asc">Price: Low to High</option>
@@ -301,7 +301,7 @@ export default function TutorFilterBar({
         {hasActiveFilters && (
           <button
             onClick={onResetFilters}
-            className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all border border-red-100 dark:border-red-500/20"
+            className="flex items-center gap-2 px-4 py-2 label-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all border border-red-100 dark:border-red-500/20"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -313,7 +313,7 @@ export default function TutorFilterBar({
 
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-2 pt-3 border-t border-navy-100/50 dark:border-navy-500/20">
-          <span className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 self-center">Active:</span>
+          <span className="label-xs text-navy-300 dark:text-cream-400/40 self-center">Active:</span>
 
           {filters.subject && (
             <button
@@ -405,7 +405,7 @@ export default function TutorFilterBar({
 
           <button
             onClick={onResetFilters}
-            className="text-[10px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/40 hover:text-red-500 transition-colors self-center ml-auto"
+            className="label-xs text-navy-400 dark:text-cream-400/40 hover:text-red-500 transition-colors self-center ml-auto"
           >
             Clear all
           </button>

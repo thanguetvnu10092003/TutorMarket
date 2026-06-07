@@ -661,7 +661,7 @@ function TutorDashboardInner() {
             <div className={`lg:col-span-4 min-w-0 min-h-0 glass-card overflow-hidden flex flex-col ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
               <div className="p-4 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Student Messages</h2>
+                  <h2 className="label-sm text-navy-600 dark:text-cream-200">Student Messages</h2>
                   {messageUnreadCount > 0 && (
                     <span className="min-w-6 h-6 px-2 rounded-full bg-blue-500 text-white text-[10px] font-black flex items-center justify-center">
                       {messageUnreadCount > 99 ? '99+' : messageUnreadCount}

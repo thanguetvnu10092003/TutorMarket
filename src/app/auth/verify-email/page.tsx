@@ -215,7 +215,7 @@ function VerifyEmailContent() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-1">
+          <div className="flex items-center justify-between label-xs px-1">
             <span className={expiresIn > 0 ? 'text-navy-300 dark:text-cream-400/40' : 'text-red-500'}>
               {expiresIn > 0 ? `Expires in ${formatTime(expiresIn)}` : 'Code expired'}
             </span>

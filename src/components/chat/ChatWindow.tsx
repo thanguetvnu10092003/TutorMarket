@@ -217,7 +217,7 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
           </div>
           <div>
             <h3 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">{tutorName}</h3>
-            <p className="text-[10px] text-green-500 font-black uppercase tracking-widest">Messages</p>
+            <p className="label-xs text-green-500">Messages</p>
           </div>
         </div>
         {onClose && (
@@ -237,7 +237,7 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-10 opacity-30">
-            <p className="text-xs font-bold uppercase tracking-widest">No messages yet. Say hi!</p>
+            <p className="label-sm">No messages yet. Say hi!</p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -292,7 +292,7 @@ export default function ChatWindow({ tutorProfileId, conversationId, tutorName, 
                           type="button"
                           onClick={() => handleRecallMessage(msg.id)}
                           disabled={recallingMessageId === msg.id}
-                          className="mt-2 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors disabled:opacity-50"
+                          className="mt-2 label-xs text-red-500 hover:text-red-600 transition-colors disabled:opacity-50"
                         >
                           {recallingMessageId === msg.id ? 'Unsending...' : `Unsend (${recallWindowMinutes}m)`}
                         </button>

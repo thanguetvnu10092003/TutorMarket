@@ -504,7 +504,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                         <div>
                           <div className="flex items-center gap-2">
                             <h4 className="font-bold text-navy-600 dark:text-cream-200">{pkg.sessions} Lessons</h4>
-                            <span className="px-2 py-0.5 rounded-full bg-sage-100 text-[10px] font-black text-sage-600 uppercase tracking-widest">{pkg.discount * 100}% off</span>
+                            <span className="px-2 py-0.5 rounded-full bg-sage-100 label-xs text-sage-600">{pkg.discount * 100}% off</span>
                           </div>
                           <p className="mt-2 text-sm text-navy-300">{pkg.label} • {selectedDuration}m</p>
                           {total.usesConversion && <p className="mt-2 text-xs text-navy-300">Original total: {total.originalFormatted}</p>}
@@ -546,7 +546,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                 <div className="grid grid-cols-7 gap-1 border-b border-navy-100/50 pb-2">
                   {daysInWeek.map((day) => (
                     <div key={day.toString()} className="text-center">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/30">{format(day, 'EEE')}</div>
+                      <div className="label-xs text-navy-300 dark:text-cream-400/30">{format(day, 'EEE')}</div>
                       <div className={`mt-1 text-xs font-black w-7 h-7 flex items-center justify-center mx-auto rounded-full ${isToday(day) ? 'bg-gold-400 text-navy-600' : 'text-navy-600 dark:text-cream-200'}`}>{format(day, 'd')}</div>
                     </div>
                   ))}
@@ -614,7 +614,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                 <div className="grid grid-cols-7 gap-1 border-b border-navy-100/50 pb-2">
                   {daysInWeek.map((day) => (
                     <div key={day.toString()} className="text-center">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/30">{format(day, 'EEE')}</div>
+                      <div className="label-xs text-navy-300 dark:text-cream-400/30">{format(day, 'EEE')}</div>
                       <div className={`mt-1 text-xs font-black w-7 h-7 flex items-center justify-center mx-auto rounded-full ${isToday(day) ? 'bg-gold-400 text-navy-600' : 'text-navy-600 dark:text-cream-200'}`}>{format(day, 'd')}</div>
                     </div>
                   ))}
@@ -662,7 +662,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
 
                 {selectedPackageSlots.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 ml-1">Selected sessions</p>
+                    <p className="label-xs text-navy-300 ml-1">Selected sessions</p>
                     <div className="flex flex-wrap gap-2">
                       {selectedPackageSlots.map((s, i) => (
                         <span key={`${s.date.toISOString()}-${s.slot}`} className="px-3 py-1.5 rounded-xl bg-sage-50 dark:bg-sage-500/10 text-[10px] font-black text-sage-700 dark:text-sage-300 border border-sage-200/70">
@@ -741,7 +741,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/60 ml-1">Notes for {tutor.user.name.split(' ')[0]} (optional)</label>
+                  <label className="label-xs text-navy-300 dark:text-cream-400/60 ml-1">Notes for {tutor.user.name.split(' ')[0]} (optional)</label>
                   <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="What would you like to focus on during this session?" className="w-full bg-white dark:bg-navy-700 border-2 border-navy-100 dark:border-navy-500/20 rounded-2xl p-4 text-sm text-navy-600 dark:text-cream-200 focus:border-gold-400 outline-none transition-all resize-none h-24" />
                 </div>
 

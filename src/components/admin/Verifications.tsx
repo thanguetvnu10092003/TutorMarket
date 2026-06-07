@@ -444,7 +444,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-4">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-navy-400">Certifications</h3>
+                    <h3 className="label-xs text-navy-400">Certifications</h3>
                     {selected.certifications?.map((cert: any) => (
                       <button 
                         key={cert.id} 
@@ -464,7 +464,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                     {selectedCert ? (
                       <div className="space-y-4 p-6 rounded-3xl bg-gold-400/5 border border-gold-400">
                         <div className="flex justify-between items-center">
-                          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-700">Reviewing: {formatCertificationName(selectedCert)}</h3>
+                          <h3 className="label-xs text-gold-700">Reviewing: {formatCertificationName(selectedCert)}</h3>
                           <button onClick={() => setSelectedCertId(null)} className="text-[10px] font-bold text-navy-400 hover:text-navy-600">CLOSE</button>
                         </div>
                         
@@ -560,7 +560,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                       </div>
                     ) : (
                       <div className="space-y-4 p-6 rounded-3xl bg-gold-400/5 border border-gold-200">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-700">Tutor Verification</h3>
+                        <h3 className="label-xs text-gold-700">Tutor Verification</h3>
                         <div className="p-4 rounded-2xl bg-white/50 border border-gold-100 text-xs text-navy-400 leading-relaxed">
                           Click an individual certification on the left to review its documents and verify it separately. Approve the overall profile only after verifying key credentials.
                         </div>
@@ -600,7 +600,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                   </div>
                 )}
                 <div className="rounded-[28px] bg-navy-900 p-8 text-cream-200">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-400">Decrypted Credentials</div>
+                  <div className="label-xs text-gold-400">Decrypted Credentials</div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
                       selectedGmatDocumentReviewed ? 'bg-sage-50 text-sage-700' : 'bg-white/10 text-cream-300'
@@ -637,7 +637,7 @@ export function Verifications({ data, onRefresh }: { data: any; onRefresh: () =>
                 </div>
 
                 <div className="glass-card p-6 border-gold-200 bg-gold-400/5">
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gold-700">Verification Steps</h3>
+                  <h3 className="label-sm text-gold-700">Verification Steps</h3>
                   <p className="mt-2 text-sm text-navy-400">Login to the official GMAT portal using the credentials above and verify the score reported in the profile certifications. This is only one half of the process; the uploaded GMAT document must also be reviewed in the application queue.</p>
                   <div className="mt-4 rounded-2xl border border-gold-200 bg-white/70 p-4 text-xs text-navy-500">
                     <div className="flex flex-wrap gap-2">

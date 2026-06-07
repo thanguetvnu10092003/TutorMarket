@@ -53,7 +53,7 @@ export default function ContinueLearningPrompt({ bookings, packages }: ContinueL
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xs font-black text-navy-300 dark:text-cream-400/40 uppercase tracking-widest ml-1">Continue Learning</h3>
+      <h3 className="label-sm text-navy-300 dark:text-cream-400/40 ml-1">Continue Learning</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {allPrompts.slice(0, 2).map((prompt: any, i) => (
           <motion.div 
@@ -72,7 +72,7 @@ export default function ContinueLearningPrompt({ bookings, packages }: ContinueL
                   </p>
                   <Link 
                     href={prompt.link}
-                    className="mt-2 inline-block text-[10px] font-black text-gold-600 dark:text-gold-400 uppercase tracking-widest hover:underline"
+                    className="mt-2 inline-block label-xs text-gold-600 dark:text-gold-400 hover:underline"
                   >
                     {prompt.cta} →
                   </Link>

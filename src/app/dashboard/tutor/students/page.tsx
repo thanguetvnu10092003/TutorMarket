@@ -90,7 +90,7 @@ export default async function TutorStudentsPage() {
         </div>
         <Link
           href="/dashboard/tutor?tab=overview"
-          className="inline-flex items-center justify-center rounded-2xl border border-navy-200/70 dark:border-navy-500/30 bg-white dark:bg-navy-700/30 px-4 py-3 text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 transition-colors hover:border-gold-400 hover:text-gold-600"
+          className="inline-flex items-center justify-center rounded-2xl border border-navy-200/70 dark:border-navy-500/30 bg-white dark:bg-navy-700/30 px-4 py-3 label-sm text-navy-600 dark:text-cream-200 transition-colors hover:border-gold-400 hover:text-gold-600"
         >
           Back to Dashboard
         </Link>

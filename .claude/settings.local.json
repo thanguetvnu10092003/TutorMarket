@@ -34,7 +34,14 @@
       "Bash(grep -n \"bookedSlots\\\\|blockedDates\\\\|bookedSlot\\\\|booked_slots\" src/app/api/tutors/[id]/route.ts src/lib/admin-dashboard.ts)",
       "Bash(xargs grep:*)",
       "Bash(mkdir:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(node -e \"const lucide = require\\('lucide-react'\\); const icons = Object.keys\\(lucide\\).filter\\(k => k.match\\(/twitter|linkedin|instagram|facebook|github/i\\)\\); console.log\\('Social icons found:', icons\\);\")",
+      "Bash(node -e \"const lucide = require\\('lucide-react'\\); const socialRelated = ['Twitter', 'Linkedin', 'Instagram', 'Github', 'Facebook']; socialRelated.forEach\\(icon => { console.log\\(\\\\`\\\\${icon}: \\\\${icon in lucide}\\\\`\\); }\\);\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path src -Recurse -Include *.tsx,*.ts | Select-String -Pattern 'lucide-react' | Select-Object -First 20\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path src -Recurse -Include *.tsx,*.ts | Select-String -Pattern 'from.*Spinner|import.*Spinner'\")",
+      "Bash(cat src/components/ui/Spinner.tsx)",
+      "Bash(find \"C:\\\\Users\\\\Admin\\\\Desktop\\\\WEB\\\\src\\\\components\\\\ui\" -name \"Spinner*\")",
+      "Bash(node -e \"const lucide = require\\('lucide-react'\\); console.log\\('CornerUpLeft:', !!lucide.CornerUpLeft\\); console.log\\('Plus:', !!lucide.Plus\\); console.log\\('AlertCircle:', !!lucide.AlertCircle\\);\")"
     ]
   },
   "prefersReducedMotion": false

@@ -319,7 +319,7 @@ function StudentDashboardInner() {
               <h1 className="text-3xl font-display font-black text-navy-600 dark:text-cream-200 tracking-tight">
                 Hey, {session?.user?.name?.split(' ')[0] || 'there'}!
               </h1>
-              <p className="text-xs font-bold text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mt-1">
+              <p className="label-sm text-navy-300 dark:text-cream-400/40 mt-1">
                 Student Portal | {formatDate(new Date().toISOString())}
               </p>
             </div>
@@ -377,7 +377,7 @@ function StudentDashboardInner() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">{booking.tutorProfile.user.name}</h3>
-                          <p className="text-[10px] text-navy-300 dark:text-cream-400/40 font-bold uppercase tracking-widest mt-0.5">
+                          <p className="label-xs text-navy-300 dark:text-cream-400/40 mt-0.5">
                             {SUBJECT_LABELS[booking.subject as keyof typeof SUBJECT_LABELS]} | {formatDateInTz(booking.scheduledAt, studentTimezone)}
                           </p>
                         </div>
@@ -511,7 +511,7 @@ function StudentDashboardInner() {
                     ))}
                   </select>
                   {isUpdatingTimezone && (
-                    <p className="text-[9px] text-gold-600 animate-pulse font-bold uppercase tracking-widest">Saving...</p>
+                    <p className="label-xs text-gold-600 animate-pulse">Saving...</p>
                   )}
                 </div>
               </div>
@@ -529,7 +529,7 @@ function StudentDashboardInner() {
                 <div key={booking.id} className="py-5 flex items-center justify-between gap-4">
                   <div>
                     <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">{booking.tutorProfile.user.name}</h3>
-                    <p className="text-[10px] text-navy-300 dark:text-cream-400/40 font-bold uppercase tracking-widest">
+                    <p className="label-xs text-navy-300 dark:text-cream-400/40">
                       {SUBJECT_LABELS[booking.subject as keyof typeof SUBJECT_LABELS]} | {formatDateInTz(booking.scheduledAt, studentTimezone)} at {formatTimeInTz(booking.scheduledAt, studentTimezone)}
                     </p>
                   </div>
@@ -583,14 +583,14 @@ function StudentDashboardInner() {
                         {!booking.review && (
                           <button
                             onClick={() => setSelectedReviewBooking(booking)}
-                            className="text-[10px] font-bold text-gold-600 hover:text-gold-700 transition-colors uppercase tracking-widest"
+                            className="label-xs text-gold-600 hover:text-gold-700 transition-colors"
                           >
                             Write a Review
                           </button>
                         )}
                         <button
                           onClick={() => setSelectedReportBooking(booking)}
-                          className="text-[10px] font-bold text-navy-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+                          className="label-xs text-navy-400 hover:text-red-500 transition-colors"
                         >
                           Report
                         </button>
@@ -616,7 +616,7 @@ function StudentDashboardInner() {
             <div className={`lg:col-span-4 min-w-0 min-h-0 glass-card overflow-hidden flex flex-col ${chatTarget ? 'hidden lg:flex' : 'flex'}`}>
               <div className="p-4 bg-white dark:bg-navy-700/50 border-b border-navy-100/50 dark:border-navy-500/20">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-xs font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest">Conversations</h2>
+                  <h2 className="label-sm text-navy-600 dark:text-cream-200">Conversations</h2>
                   {messageUnreadCount > 0 && (
                     <span className="min-w-6 h-6 px-2 rounded-full bg-blue-500 text-white text-[10px] font-black flex items-center justify-center">
                       {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
@@ -691,7 +691,7 @@ function StudentDashboardInner() {
                       <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200">
                         {payment.kind === 'PACKAGE' ? `${payment.packageSessions} Lesson Package` : payment.tutorName || 'Lesson Payment'}
                       </h3>
-                      <p className="text-[10px] text-navy-300 dark:text-cream-400/40 font-bold uppercase tracking-widest mt-1">
+                      <p className="label-xs text-navy-300 dark:text-cream-400/40 mt-1">
                         {payment.subject ? `${SUBJECT_LABELS[payment.subject as keyof typeof SUBJECT_LABELS]} | ` : ''}
                         {formatDate(payment.paidAt || payment.createdAt)}
                       </p>
@@ -797,7 +797,7 @@ function StudentDashboardInner() {
               ) : (
                 <div className="py-12 text-center">
                   <p className="text-sm font-bold text-navy-600 dark:text-cream-200">No payments recorded yet.</p>
-                  <p className="text-[10px] font-black text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mt-2">
+                  <p className="label-xs text-navy-300 dark:text-cream-400/40 mt-2">
                     Your lesson and package payments will appear here.
                   </p>
                 </div>

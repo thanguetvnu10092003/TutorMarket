@@ -49,7 +49,7 @@ export default function VideoPlayer({ url, poster, className = '' }: VideoPlayer
             <path d="M23 7l-7 5 7 5V7z" />
             <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
           </svg>
-          <span className="mt-2 text-[10px] font-black uppercase tracking-widest opacity-60">No intro video</span>
+          <span className="mt-2 label-xs opacity-60">No intro video</span>
         </div>
       </div>
     );

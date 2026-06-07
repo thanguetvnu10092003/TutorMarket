@@ -117,7 +117,7 @@ export default function ConversationList({ onSelectConversation, selectedId, onS
   if (conversations.length === 0) {
     return (
         <div className="p-10 text-center opacity-30">
-            <p className="text-xs font-black uppercase tracking-widest">No conversations yet</p>
+            <p className="label-sm">No conversations yet</p>
         </div>
     );
   }
@@ -173,7 +173,7 @@ export default function ConversationList({ onSelectConversation, selectedId, onS
                       <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                     )}
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${hasUnread ? 'text-blue-600 dark:text-blue-300' : 'text-navy-300 dark:text-cream-400/40'}`}>
+                  <span className={`label-xs ${hasUnread ? 'text-blue-600 dark:text-blue-300' : 'text-navy-300 dark:text-cream-400/40'}`}>
                     {formatRelativeTime(conv.lastMessageAt.toString())}
                   </span>
                 </div>

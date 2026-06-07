@@ -66,14 +66,14 @@ export default function ReportIssueModal({ booking, isOpen, onClose }: ReportIss
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h2 className="text-2xl font-display font-black text-navy-600 dark:text-cream-200">Report an Issue</h2>
-                        <p className="text-xs font-bold text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mt-1">Booking with {booking.tutorProfile.user.name}</p>
+                        <p className="label-sm text-navy-300 dark:text-cream-400/40 mt-1">Booking with {booking.tutorProfile.user.name}</p>
                     </div>
                     <button onClick={onClose} className="w-10 h-10 rounded-full bg-navy-50 dark:bg-navy-700 flex items-center justify-center text-navy-400 hover:text-navy-600 transition-colors">✕</button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="text-[10px] font-black text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mb-2 block">Issue Type</label>
+                        <label className="label-xs text-navy-300 dark:text-cream-400/40 mb-2 block">Issue Type</label>
                         <div className="grid grid-cols-2 gap-2">
                             {[
                               { value: 'NO_SHOW_TUTOR', label: 'Lesson Issue' },
@@ -85,7 +85,7 @@ export default function ReportIssueModal({ booking, isOpen, onClose }: ReportIss
                                     key={t}
                                     type="button"
                                     onClick={() => setType(t)}
-                                    className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                                    className={`px-4 py-3 rounded-xl label-xs border-2 transition-all ${
                                         type === t
                                             ? 'bg-navy-600 border-navy-600 text-white shadow-lg'
                                             : 'border-navy-100 dark:border-navy-700 text-navy-400 hover:border-navy-200'
@@ -98,7 +98,7 @@ export default function ReportIssueModal({ booking, isOpen, onClose }: ReportIss
                     </div>
 
                     <div>
-                        <label className="text-[10px] font-black text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mb-2 block">Tell us what happened</label>
+                        <label className="label-xs text-navy-300 dark:text-cream-400/40 mb-2 block">Tell us what happened</label>
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
@@ -116,7 +116,7 @@ export default function ReportIssueModal({ booking, isOpen, onClose }: ReportIss
                         >
                             {isSubmitting ? 'Submitting...' : 'Submit Report'}
                         </button>
-                        <p className="text-[10px] text-center text-navy-300 dark:text-cream-400/40 font-bold mt-4 uppercase tracking-widest">Reports are reviewed within 24 hours.</p>
+                        <p className="label-xs text-center text-navy-300 dark:text-cream-400/40 mt-4">Reports are reviewed within 24 hours.</p>
                     </div>
                 </form>
             </div>

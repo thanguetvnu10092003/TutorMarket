@@ -71,7 +71,7 @@ export function AdminOverview({ data, onNavigate, onRefresh }: { data: any; onNa
 
         <div className="space-y-6">
           <div className="glass-card p-6">
-            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-navy-300 dark:text-cream-400/40">Quick links</h3>
+            <h3 className="label-sm text-navy-300 dark:text-cream-400/40">Quick links</h3>
             <div className="mt-4 grid gap-3">
               <button 
                 onClick={() => onNavigate('moderation')}

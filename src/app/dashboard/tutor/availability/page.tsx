@@ -84,7 +84,7 @@ export default function AvailabilityPage() {
       <div className="page-container max-w-4xl">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <Link href="/dashboard/tutor" className="text-xs font-bold text-navy-400 hover:text-gold-500 flex items-center gap-1 mb-2 uppercase tracking-widest">
+            <Link href="/dashboard/tutor" className="label-sm text-navy-400 hover:text-gold-500 flex items-center gap-1 mb-2">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="15 18 9 12 15 6"/></svg>
               Back to Dashboard
             </Link>
@@ -122,7 +122,7 @@ export default function AvailabilityPage() {
                 {isActive ? (
                   <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-black text-navy-300 uppercase tracking-widest">Start Time</label>
+                      <label className="label-xs text-navy-300">Start Time</label>
                       <input 
                         type="time" 
                         value={slot.startTime}
@@ -132,7 +132,7 @@ export default function AvailabilityPage() {
                     </div>
                     <div className="h-px w-4 bg-navy-100 dark:bg-navy-400 mt-4" />
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-black text-navy-300 uppercase tracking-widest">End Time</label>
+                      <label className="label-xs text-navy-300">End Time</label>
                       <input 
                         type="time" 
                         value={slot.endTime}

@@ -86,7 +86,7 @@ export function Analytics({
                   <button
                     key={option.value}
                     onClick={() => onPeriodChange(option.value)}
-                    className={`rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${
+                    className={`rounded-2xl px-4 py-2 label-sm transition-all ${
                       period === option.value
                         ? 'bg-gold-400 text-navy-600'
                         : 'bg-navy-50 dark:bg-navy-700/50 text-navy-500 dark:text-cream-300'
@@ -114,7 +114,7 @@ export function Analytics({
                 <button
                   onClick={handleSaveCommission}
                   disabled={isSavingCommission}
-                  className="btn-primary px-4 py-2 text-xs font-black uppercase tracking-widest"
+                  className="btn-primary px-4 py-2 label-sm"
                 >
                   {isSavingCommission ? 'Saving...' : 'Save'}
                 </button>

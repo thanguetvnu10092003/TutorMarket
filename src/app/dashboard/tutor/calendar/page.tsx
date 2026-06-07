@@ -275,7 +275,7 @@ export default function TutorCalendarPage() {
       <div>
         <div className="grid grid-cols-7 border-b border-navy-100 dark:border-navy-400/20">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-            <div key={d} className="py-3 text-center text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">{d}</div>
+            <div key={d} className="py-3 text-center label-xs text-navy-300 dark:text-cream-400/40">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7">
@@ -354,7 +354,7 @@ export default function TutorCalendarPage() {
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold">{slot.startTime} — {minutesToTime(timeToMinutes(slot.startTime) + booking.durationMinutes)}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{booking.status}</span>
+                  <span className="label-xs opacity-60">{booking.status}</span>
                 </div>
                 <div className="text-sm font-bold mt-1">{booking.student.name}</div>
                 <div className="text-[10px] opacity-70">{booking.subject} • {booking.durationMinutes} min</div>

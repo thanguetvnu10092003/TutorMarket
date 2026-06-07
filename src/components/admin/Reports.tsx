@@ -116,7 +116,7 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
               <div className="mt-3 text-sm font-bold text-navy-600 dark:text-cream-200">{report.reporter.name}</div>
               <div className="mt-1 text-xs text-navy-400 dark:text-cream-400/60 line-clamp-2">{report.description}</div>
               <div className="mt-3 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+                <span className="label-xs text-navy-300 dark:text-cream-400/40">
                   Against {report.reportedParty.name}
                 </span>
                 <Badge value={report.status} />
@@ -177,7 +177,7 @@ export function Reports({ data, onRefresh }: { data: any; onRefresh: () => Promi
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-navy-400">Resolution tools</h3>
+              <h3 className="label-sm text-navy-400">Resolution tools</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-3">
                   <textarea

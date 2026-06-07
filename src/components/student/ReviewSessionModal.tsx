@@ -77,7 +77,7 @@ export default function ReviewSessionModal({ booking, isOpen, onClose, onSubmitt
 
             <form onSubmit={handleSubmit} className="space-y-6 px-8 py-8">
               <div>
-                <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+                <label className="mb-3 block label-xs text-navy-300 dark:text-cream-400/40">
                   Rating
                 </label>
                 <div className="flex gap-2">
@@ -104,7 +104,7 @@ export default function ReviewSessionModal({ booking, isOpen, onClose, onSubmitt
               </div>
 
               <div>
-                <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+                <label className="mb-3 block label-xs text-navy-300 dark:text-cream-400/40">
                   Review
                 </label>
                 <textarea
@@ -119,14 +119,14 @@ export default function ReviewSessionModal({ booking, isOpen, onClose, onSubmitt
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-2xl border border-navy-200 px-5 py-3 text-xs font-black uppercase tracking-widest text-navy-500 dark:border-navy-500/20 dark:text-cream-300"
+                  className="rounded-2xl border border-navy-200 px-5 py-3 label-sm text-navy-500 dark:border-navy-500/20 dark:text-cream-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-2xl bg-gold-400 px-5 py-3 text-xs font-black uppercase tracking-widest text-navy-600 disabled:opacity-50"
+                  className="rounded-2xl bg-gold-400 px-5 py-3 label-sm text-navy-600 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Review'}
                 </button>

@@ -112,7 +112,7 @@ export function PenaltyNotificationModal() {
         </div>
 
         <div className="rounded-2xl bg-navy-50/80 dark:bg-navy-700/40 p-4">
-          <p className="text-xs font-black uppercase tracking-widest text-navy-300 mb-2">Reason</p>
+          <p className="label-sm text-navy-300 mb-2">Reason</p>
           <p className="text-sm text-navy-600 dark:text-cream-200">{activePenalty.reason}</p>
           {isSuspend && activePenalty.expiresAt && (
             <p className="mt-3 text-xs font-bold text-orange-600">
@@ -134,7 +134,7 @@ export function PenaltyNotificationModal() {
           </div>
         ) : showAppealForm ? (
           <div className="space-y-4">
-            <p className="text-xs font-black uppercase tracking-widest text-navy-300">Submit an Appeal</p>
+            <p className="label-sm text-navy-300">Submit an Appeal</p>
             <textarea
               value={appealReason}
               onChange={e => setAppealReason(e.target.value)}
@@ -151,14 +151,14 @@ export function PenaltyNotificationModal() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowAppealForm(false)}
-                className="flex-1 border border-navy-200 dark:border-navy-500/20 py-3 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50"
+                className="flex-1 border border-navy-200 dark:border-navy-500/20 py-3 rounded-2xl label-sm text-navy-600 dark:text-cream-200 hover:bg-navy-50"
               >
                 Cancel
               </button>
               <button
                 onClick={() => void handleSubmitAppeal()}
                 disabled={isSubmitting || appealReason.trim().length < 10}
-                className="flex-1 bg-gold-400 hover:bg-gold-500 disabled:opacity-50 text-navy-600 py-3 rounded-2xl text-xs font-black uppercase tracking-widest"
+                className="flex-1 bg-gold-400 hover:bg-gold-500 disabled:opacity-50 text-navy-600 py-3 rounded-2xl label-sm"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Appeal'}
               </button>

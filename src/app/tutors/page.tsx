@@ -342,13 +342,13 @@ function TutorsContent() {
                 <div className="p-8 space-y-4">
                   <button 
                     onClick={() => navigateToProfile(selectedTutor.id)}
-                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
+                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl label-sm text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
                   >
                     View full schedule
                   </button>
                   <button 
                     onClick={() => navigateToProfile(selectedTutor.id)}
-                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl text-xs font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
+                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl label-sm text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
                   >
                     See {selectedTutor.user?.name.split(' ')[0]}&apos;s profile
                   </button>

@@ -83,17 +83,17 @@ export default function CertificationStatus({ certifications }: { certifications
                 <div className="flex flex-col items-end gap-2">
                   {getStatusBadge(status)}
                   {status === 'SELF_REPORTED' && (
-                    <Link href="/dashboard/tutor/verify" className="text-[9px] font-black text-gold-500 hover:text-gold-600 uppercase tracking-widest underline decoration-2 underline-offset-4">
+                    <Link href="/dashboard/tutor/verify" className="label-xs text-gold-500 hover:text-gold-600 underline decoration-2 underline-offset-4">
                       Upload Proof
                     </Link>
                   )}
                   {status === 'REJECTED' && (
-                    <Link href="/dashboard/tutor/verify" className="text-[9px] font-black text-red-500 hover:text-red-600 uppercase tracking-widest underline decoration-2 underline-offset-4">
+                    <Link href="/dashboard/tutor/verify" className="label-xs text-red-500 hover:text-red-600 underline decoration-2 underline-offset-4">
                       Re-submit
                     </Link>
                   )}
                   {status === 'NONE' && (
-                    <Link href="/dashboard/tutor/verify" className="text-[9px] font-black text-navy-300 hover:text-gold-400 uppercase tracking-widest underline decoration-2 underline-offset-4">
+                    <Link href="/dashboard/tutor/verify" className="label-xs text-navy-300 hover:text-gold-400 underline decoration-2 underline-offset-4">
                       Add Certification
                     </Link>
                   )}

@@ -446,7 +446,7 @@ export default function HomePage() {
                   <p className="text-sm text-navy-300 dark:text-cream-400/60 leading-relaxed mb-5">{item.description}</p>
                   <Link
                     href={href}
-                    className="inline-flex items-center text-xs font-black uppercase tracking-widest text-gold-600 hover:text-gold-700 transition-colors"
+                    className="inline-flex items-center label-sm text-gold-600 hover:text-gold-700 transition-colors"
                   >
                     {item.actionLabel}
                   </Link>

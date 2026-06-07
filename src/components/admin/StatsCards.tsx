@@ -13,7 +13,7 @@ interface StatsCardProps {
 export function StatsCard({ label, value, subtext }: StatsCardProps) {
   return (
     <div className="glass-card p-5">
-      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-navy-300 dark:text-cream-400/40">{label}</div>
+      <div className="label-xs text-navy-300 dark:text-cream-400/40">{label}</div>
       <div className="mt-3 text-3xl font-display font-bold text-navy-600 dark:text-cream-200">{value}</div>
       <div className="mt-2 text-xs text-navy-400 dark:text-cream-400/60">{subtext}</div>
     </div>
