@@ -48,4 +48,6 @@ export {
   Loader2,
   DollarSign,
   Flag,
+  Plus,
+  CornerUpLeft,
 } from 'lucide-react';

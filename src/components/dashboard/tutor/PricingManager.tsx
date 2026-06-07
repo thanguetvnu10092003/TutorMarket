@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { Check } from '@/components/ui/icons';
 
 const DURATIONS = [30, 60, 90];
 
@@ -104,7 +105,7 @@ export default function PricingManager() {
               <button
                 key={curr}
                 onClick={() => setCurrency(curr)}
-                className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all ${
+                className={`px-3 py-1 rounded-lg label-xs transition-all ${
                   currency === curr ? 'bg-white dark:bg-navy-500 text-navy-600 dark:text-cream-200 shadow-sm' : 'text-navy-300'
                 }`}
               >
@@ -154,7 +155,7 @@ export default function PricingManager() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-navy-300">{currency}</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 label-xs text-navy-300">{currency}</span>
                   <input
                     type="number"
                     value={prices[dur].price}
@@ -181,9 +182,9 @@ export default function PricingManager() {
           <div className="p-4 rounded-2xl border border-navy-100 dark:border-navy-400/10 bg-navy-50/50 dark:bg-navy-700/20 space-y-3">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-full bg-gold-400/20 flex items-center justify-center flex-shrink-0 text-gold-500">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                <Check size={10} strokeWidth={3} />
               </div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-navy-500 dark:text-cream-300/80">Package Discounts — Auto</h4>
+              <h4 className="label-xs text-navy-500 dark:text-cream-300/80">Package Discounts — Auto</h4>
             </div>
             <p className="text-xs text-navy-400 dark:text-cream-400/60 leading-relaxed">
               Package discounts are applied automatically when students purchase a lesson bundle. Starter Bundle (5 lessons) gets 5% off, Success Pack (10 lessons) 10% off, and Elite Mastery (20 lessons) 20% off — no configuration needed.
@@ -193,10 +194,10 @@ export default function PricingManager() {
           {/* Free Trial — auto-managed info */}
           <div className="p-4 rounded-2xl border border-navy-100 dark:border-navy-400/10 bg-navy-50/50 dark:bg-navy-700/20 flex items-start gap-3">
             <div className="w-5 h-5 rounded-full bg-gold-400/20 flex items-center justify-center flex-shrink-0 text-gold-500 mt-0.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+              <Check size={10} strokeWidth={3} />
             </div>
             <div>
-              <p className="text-xs font-black text-navy-500 dark:text-cream-300/80 uppercase tracking-widest">Free Trial — Auto</p>
+              <p className="label-xs text-navy-500 dark:text-cream-300/80">Free Trial — Auto</p>
               <p className="text-xs text-navy-400 dark:text-cream-400/60 leading-relaxed mt-1">
                 New students automatically receive one free 30-minute trial lesson with any tutor. This is handled by the platform at no cost to you.
               </p>
@@ -212,18 +213,18 @@ export default function PricingManager() {
             <ul className="space-y-4 relative z-10">
               <li className="flex gap-3">
                 <div className="w-5 h-5 rounded-full bg-gold-400/20 flex items-center justify-center flex-shrink-0 text-gold-400">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
+                  <Check size={10} strokeWidth={4} />
                 </div>
                 <p className="text-xs text-cream-200/80 leading-relaxed">Price changes only apply to new bookings. Existing sessions keep their original rate.</p>
               </li>
               <li className="flex gap-3">
                 <div className="w-5 h-5 rounded-full bg-gold-400/20 flex items-center justify-center flex-shrink-0 text-gold-400">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
+                  <Check size={10} strokeWidth={4} />
                 </div>
                 <p className="text-xs text-cream-200/80 leading-relaxed">Students see rates converted to their local currency (approximate).</p>
               </li>
               {lastUpdated && (
-                <li className="pt-4 border-t border-white/10 mt-4 flex items-center justify-between text-[10px] uppercase font-black tracking-widest opacity-40">
+                <li className="pt-4 border-t border-white/10 mt-4 flex items-center justify-between label-xs opacity-40">
                   <span>Last Updated</span>
                   <span>{new Date(lastUpdated).toLocaleDateString()}</span>
                 </li>

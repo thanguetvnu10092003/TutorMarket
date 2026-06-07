@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Check, Clock, AlertCircle, Plus } from '@/components/ui/icons';
 
 interface Certification {
   id: string;
@@ -17,21 +18,21 @@ export default function CertificationStatus({ certifications }: { certifications
       case 'VERIFIED':
         return (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-sage-500/10 text-sage-600 text-[10px] font-bold border border-sage-500/20">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>
+            <Check size={10} strokeWidth={4} />
             Verified
           </span>
         );
       case 'PENDING_VERIFICATION':
         return (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-400/10 text-gold-600 text-[10px] font-bold border border-gold-400/20">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <Clock size={10} strokeWidth={3} />
             Under Review
           </span>
         );
       case 'REJECTED':
         return (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 text-[10px] font-bold border border-red-500/20">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <AlertCircle size={10} strokeWidth={3} />
             Rejected
           </span>
         );
@@ -55,12 +56,12 @@ export default function CertificationStatus({ certifications }: { certifications
   return (
     <div className="glass-card p-6">
       <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200 mb-6 uppercase tracking-wider">Certification Status</h3>
-      
+
       <div className="space-y-4">
         {allTypes.map(type => {
           const cert = certifications.find(c => c.type === type);
           const status = cert?.status || 'NONE';
-          
+
           return (
             <div key={type} className="group">
               <div className="flex items-center justify-between p-4 rounded-2xl bg-white/50 dark:bg-navy-600/50 border border-navy-100 dark:border-navy-400/10 hover:border-gold-400/30 transition-all">
@@ -78,7 +79,7 @@ export default function CertificationStatus({ certifications }: { certifications
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col items-end gap-2">
                   {getStatusBadge(status)}
                   {status === 'SELF_REPORTED' && (
@@ -98,7 +99,7 @@ export default function CertificationStatus({ certifications }: { certifications
                   )}
                 </div>
               </div>
-              
+
               {status === 'REJECTED' && cert?.notes && (
                 <div className="mt-2 ml-4 p-3 rounded-xl bg-red-500/5 border-l-2 border-red-500">
                   <p className="text-[10px] text-red-600 font-black uppercase tracking-tighter mb-0.5">Note from Admin:</p>
@@ -117,7 +118,7 @@ export default function CertificationStatus({ certifications }: { certifications
           Have other relevant certifications like TESOL or IELTS?
         </p>
         <Link href="/dashboard/tutor/verify" className="flex items-center justify-center gap-2 text-[10px] font-bold text-gold-500 hover:text-gold-600 transition-colors uppercase tracking-widest bg-gold-400/10 hover:bg-gold-400/20 px-6 py-2.5 rounded-full border border-gold-400/20">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <Plus size={12} strokeWidth={3} />
           Upload Other Documents
         </Link>
       </div>

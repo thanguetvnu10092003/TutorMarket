@@ -259,7 +259,7 @@ function TutorDashboardInner() {
                 <h1 className="text-3xl font-body font-bold tracking-tight text-navy-600 dark:text-cream-200">
                   {session?.user?.name || 'Tutor Dashboard'}
                 </h1>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isVerified ? 'bg-sage-500 text-white' : 'bg-gold-100 text-gold-700 dark:bg-gold-500/20 dark:text-gold-400'}`}>
+                <span className={`px-3 py-1 rounded-full label-xs ${isVerified ? 'bg-sage-500 text-white' : 'bg-gold-100 text-gold-700 dark:bg-gold-500/20 dark:text-gold-400'}`}>
                   {isVerified ? 'Verified' : 'Verification Pending'}
                 </span>
               </div>
@@ -270,12 +270,12 @@ function TutorDashboardInner() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/dashboard/tutor/calendar" className="btn-outline border-navy-200 dark:border-navy-500 px-5 py-3 text-xs font-black uppercase tracking-widest">
+            <Link href="/dashboard/tutor/calendar" className="btn-outline border-navy-200 dark:border-navy-500 px-5 py-3 label-sm">
               Open Calendar
             </Link>
             <button
               onClick={() => setActiveTab('sessions')}
-              className="btn-primary px-5 py-3 text-xs font-black uppercase tracking-widest"
+              className="btn-primary px-5 py-3 label-sm"
             >
               Manage Sessions
             </button>
@@ -287,7 +287,7 @@ function TutorDashboardInner() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all inline-flex items-center justify-center ${
+              className={`px-6 py-3 rounded-[18px] label-sm transition-all inline-flex items-center justify-center ${
                 activeTab === tab.id
                   ? 'bg-navy-600 text-white shadow-xl scale-105'
                   : 'text-navy-400 dark:text-cream-400/60 hover:text-navy-600 dark:hover:text-cream-200 hover:bg-white dark:hover:bg-navy-700/50'
@@ -313,23 +313,23 @@ function TutorDashboardInner() {
                 <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-5">Dashboard Snapshot</h2>
                 <div className="space-y-4">
                   <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Pending Requests</p>
+                    <p className="label-xs text-navy-300 dark:text-cream-400/40">Pending Requests</p>
                     <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
                       {(bookings || [] as any[]).filter((booking: any) => booking.status === 'PENDING').length} booking request(s) waiting
                     </p>
                   </div>
                   <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Next Session</p>
+                    <p className="label-xs text-navy-300 dark:text-cream-400/40">Next Session</p>
                     <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">
                         {nextBooking ? `${nextBooking.student.name} | ${formatDateTimeInTz(nextBooking.scheduledAt, tutorTimezone)}` : 'No upcoming session'}
                       </p>
                     </div>
                     <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Availability Slots</p>
+                      <p className="label-xs text-navy-300 dark:text-cream-400/40">Availability Slots</p>
                       <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">{activeAvailabilityCount} recurring slots active</p>
                     </div>
                     <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Submitted Files</p>
+                      <p className="label-xs text-navy-300 dark:text-cream-400/40">Submitted Files</p>
                       <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">{documents.length} document{documents.length === 1 ? '' : 's'} on file</p>
                     </div>
                   </div>
@@ -347,7 +347,7 @@ function TutorDashboardInner() {
                         Open the exact file you uploaded, or remove it from the review queue if it needs to be replaced.
                       </p>
                     </div>
-                    <Link href="/dashboard/tutor/verify" className="text-[10px] font-black uppercase tracking-widest text-gold-600 hover:text-gold-700 transition-colors">
+                    <Link href="/dashboard/tutor/verify" className="label-xs text-gold-600 hover:text-gold-700 transition-colors">
                       Upload More
                     </Link>
                   </div>
@@ -360,12 +360,12 @@ function TutorDashboardInner() {
                             <p className="text-sm font-bold text-navy-600 dark:text-cream-200 break-words">{doc.fileName}</p>
                             <div className="flex flex-wrap gap-2 mt-3">
                               {doc.subject && (
-                                <span className="px-2.5 py-1 rounded-full bg-gold-50 dark:bg-gold-500/10 text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">
+                                <span className="px-2.5 py-1 rounded-full bg-gold-50 dark:bg-gold-500/10 label-xs text-gold-700 dark:text-gold-400">
                                   {String(doc.subject).replaceAll('_', ' ')}
                                 </span>
                               )}
                               {doc.type && (
-                                <span className="px-2.5 py-1 rounded-full bg-navy-50 dark:bg-navy-600 text-[10px] font-black uppercase tracking-widest text-navy-500 dark:text-cream-300">
+                                <span className="px-2.5 py-1 rounded-full bg-navy-50 dark:bg-navy-600 label-xs text-navy-500 dark:text-cream-300">
                                   {String(doc.type).replaceAll('_', ' ')}
                                 </span>
                               )}
@@ -380,14 +380,14 @@ function TutorDashboardInner() {
                               href={doc.fileUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center justify-center rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors"
+                              className="inline-flex items-center justify-center rounded-2xl bg-navy-600 px-4 py-3 label-xs text-white hover:bg-navy-700 transition-colors"
                             >
                               View File
                             </a>
                             <button
                               onClick={() => void handleDeleteDocument(doc.id)}
                               disabled={deletingDocumentId === doc.id}
-                              className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                              className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 label-xs text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
                             >
                               {deletingDocumentId === doc.id ? 'Deleting...' : 'Delete'}
                             </button>
@@ -467,7 +467,7 @@ function TutorDashboardInner() {
                     Review pending requests, join the room, open notes, and mark lessons complete when they end.
                   </p>
                 </div>
-                <Link href="/dashboard/tutor/calendar" className="text-[10px] font-black uppercase tracking-widest text-gold-600 hover:text-gold-700 transition-colors">
+                <Link href="/dashboard/tutor/calendar" className="label-xs text-gold-600 hover:text-gold-700 transition-colors">
                   Full Calendar
                 </Link>
               </div>
@@ -483,14 +483,14 @@ function TutorDashboardInner() {
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-3">
                               <h3 className="text-lg font-bold text-navy-600 dark:text-cream-200">{booking.student.name}</h3>
-                              <span className="px-2.5 py-1 rounded-full bg-gold-50 dark:bg-gold-500/10 text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">
+                              <span className="px-2.5 py-1 rounded-full bg-gold-50 dark:bg-gold-500/10 label-xs text-gold-700 dark:text-gold-400">
                                 {String(booking.subject).replaceAll('_', ' ')}
                               </span>
-                              <span className="px-2.5 py-1 rounded-full bg-navy-50 dark:bg-navy-600 text-[10px] font-black uppercase tracking-widest text-navy-500 dark:text-cream-300">
+                              <span className="px-2.5 py-1 rounded-full bg-navy-50 dark:bg-navy-600 label-xs text-navy-500 dark:text-cream-300">
                                 {booking.status}
                               </span>
                               {booking.hasConflict && (
-                                <span className="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                                <span className="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 label-xs text-amber-700 dark:text-amber-400">
                                   Conflict
                                 </span>
                               )}
@@ -506,7 +506,7 @@ function TutorDashboardInner() {
                           <div className="flex flex-wrap gap-3">
                             <button
                               onClick={() => setSelectedNotesBooking(booking)}
-                              className="rounded-2xl border border-navy-200 dark:border-navy-500/20 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 dark:text-cream-200 hover:border-gold-400 transition-colors"
+                              className="rounded-2xl border border-navy-200 dark:border-navy-500/20 px-4 py-3 label-xs text-navy-600 dark:text-cream-200 hover:border-gold-400 transition-colors"
                             >
                               Notes
                             </button>
@@ -514,7 +514,7 @@ function TutorDashboardInner() {
                               <button
                                 onClick={() => void handleDismissConflict(booking.id)}
                                 disabled={dismissingConflictId === booking.id}
-                                className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                                className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 label-xs text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors disabled:opacity-50"
                               >
                                 {dismissingConflictId === booking.id ? 'Dismissing...' : 'Dismiss Conflict'}
                               </button>
@@ -524,14 +524,14 @@ function TutorDashboardInner() {
                                 <button
                                   onClick={() => void handleBookingDecision(booking.id, 'accept')}
                                   disabled={updatingBookingId === booking.id}
-                                  className="rounded-2xl bg-sage-500 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-sage-600 transition-colors disabled:opacity-50"
+                                  className="rounded-2xl bg-sage-500 px-4 py-3 label-xs text-white hover:bg-sage-600 transition-colors disabled:opacity-50"
                                 >
                                   {updatingBookingId === booking.id ? 'Working...' : 'Accept'}
                                 </button>
                                 <button
                                   onClick={() => void handleBookingDecision(booking.id, 'decline')}
                                   disabled={updatingBookingId === booking.id}
-                                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 label-xs text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
                                 >
                                   {updatingBookingId === booking.id ? 'Working...' : 'Decline'}
                                 </button>
@@ -559,7 +559,7 @@ function TutorDashboardInner() {
                                   <button
                                     disabled
                                     title={title}
-                                    className="rounded-2xl bg-navy-100 dark:bg-navy-800 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/20 cursor-not-allowed opacity-60"
+                                    className="rounded-2xl bg-navy-100 dark:bg-navy-800 px-4 py-3 label-xs text-navy-400 dark:text-cream-400/20 cursor-not-allowed opacity-60"
                                   >
                                     {label}
                                   </button>
@@ -571,7 +571,7 @@ function TutorDashboardInner() {
                                   href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors shadow-lg shadow-navy-900/10"
+                                  className="rounded-2xl bg-navy-600 px-4 py-3 label-xs text-white hover:bg-navy-700 transition-colors shadow-lg shadow-navy-900/10"
                                 >
                                   Join Room
                                 </a>
@@ -580,7 +580,7 @@ function TutorDashboardInner() {
                             <button
                               onClick={() => void handleCompleteSession(booking.id)}
                               disabled={booking.status !== 'CONFIRMED' || !canComplete || completingBookingId === booking.id}
-                              className="rounded-2xl bg-gold-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 hover:bg-gold-500 transition-colors disabled:bg-navy-100 disabled:text-navy-400"
+                              className="rounded-2xl bg-gold-400 px-4 py-3 label-xs text-navy-600 hover:bg-gold-500 transition-colors disabled:bg-navy-100 disabled:text-navy-400"
                             >
                               {completingBookingId === booking.id ? 'Completing...' : 'Complete Session'}
                             </button>
@@ -622,17 +622,17 @@ function TutorDashboardInner() {
                 <h2 className="text-sm font-black text-navy-600 dark:text-cream-200 uppercase tracking-widest mb-5">Session Flow</h2>
                 <div className="space-y-4">
                   <div className="rounded-2xl bg-white dark:bg-navy-700/30 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Step 1</p>
+                    <p className="label-xs text-gold-700 dark:text-gold-400">Step 1</p>
                     <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">Open Notes and Join Room</p>
                     <p className="mt-2 text-xs text-navy-300 dark:text-cream-400/50">Review the student brief, then enter the session room from this tab.</p>
                   </div>
                   <div className="rounded-2xl bg-white dark:bg-navy-700/30 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Step 2</p>
+                    <p className="label-xs text-gold-700 dark:text-gold-400">Step 2</p>
                     <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">Teach the Lesson</p>
                     <p className="mt-2 text-xs text-navy-300 dark:text-cream-400/50">Run the live session normally. The room link stays available here throughout the lesson.</p>
                   </div>
                   <div className="rounded-2xl bg-white dark:bg-navy-700/30 border border-navy-100/60 dark:border-navy-500/20 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Step 3</p>
+                    <p className="label-xs text-gold-700 dark:text-gold-400">Step 3</p>
                     <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">Mark Complete</p>
                     <p className="mt-2 text-xs text-navy-300 dark:text-cream-400/50">After the lesson ends, click `Complete Session`. The booking closes and the student can leave a review.</p>
                   </div>
@@ -691,7 +691,7 @@ function TutorDashboardInner() {
               ) : (
                 <div className="flex flex-col items-center gap-4">
                   <div className="text-4xl text-gold-400">M</div>
-                  <p className="text-xs font-black uppercase tracking-widest leading-relaxed text-navy-400 dark:text-cream-400/40">
+                  <p className="label-sm leading-relaxed text-navy-400 dark:text-cream-400/40">
                     Select a conversation
                     <br />
                     to reply to your students
@@ -718,7 +718,7 @@ function TutorDashboardInner() {
             <div className="flex items-center justify-between border-b border-navy-100/50 dark:border-navy-500/20 px-6 py-5">
               <div>
                 <h3 className="text-lg font-black text-navy-600 dark:text-cream-200">Session Notes</h3>
-                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+                <p className="mt-1 label-sm text-navy-300 dark:text-cream-400/40">
                   {selectedNotesBooking.student.name} | {formatDateTimeInTz(selectedNotesBooking.scheduledAt, tutorTimezone)}
                 </p>
               </div>

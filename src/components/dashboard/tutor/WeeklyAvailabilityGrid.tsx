@@ -130,7 +130,7 @@ export default function WeeklyAvailabilityGrid({
           <table className="border-collapse text-xs w-full table-fixed">
             <thead className="sticky top-0 z-10 bg-white dark:bg-navy-800 shadow-sm">
               <tr>
-                <th className="w-12 py-2 text-right pr-2 text-[9px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+                <th className="w-12 py-2 text-right pr-2 label-xs text-navy-300 dark:text-cream-400/40">
                   —
                 </th>
                 {DAYS.map((d) => (
@@ -138,7 +138,7 @@ export default function WeeklyAvailabilityGrid({
                     <button
                       type="button"
                       onClick={() => toggleDay(d.dayOfWeek)}
-                      className="w-full text-[10px] font-black uppercase tracking-widest text-navy-500 dark:text-cream-300 hover:text-sage-600 dark:hover:text-sage-400 transition-colors"
+                      className="w-full label-xs text-navy-500 dark:text-cream-300 hover:text-sage-600 dark:hover:text-sage-400 transition-colors"
                     >
                       {d.short}
                     </button>

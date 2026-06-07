@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { Star, ChevronLeft, ChevronRight, CornerUpLeft } from '@/components/ui/icons';
 
 export default function ReviewsSection() {
   const [data, setData] = useState<any>(null);
@@ -68,25 +69,23 @@ export default function ReviewsSection() {
             </span>
             <div className="flex text-gold-400">
               {[1, 2, 3, 4, 5].map(s => (
-                <svg key={s} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
+                <Star key={s} size={16} fill="currentColor" />
               ))}
             </div>
-            <span className="text-xs text-navy-300 dark:text-cream-400/60 uppercase tracking-widest font-bold">
+            <span className="label-sm text-navy-300 dark:text-cream-400/60">
               ({data?.totalCount || 0} reviews)
             </span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
           {['All', '5', '4', '3', '2', '1'].map(r => (
             <button
               key={r}
               onClick={() => { setFilterRating(r); setCurrentPage(1); }}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
-                filterRating === r 
-                  ? 'bg-navy-600 text-white border-navy-600 shadow-lg' 
+                filterRating === r
+                  ? 'bg-navy-600 text-white border-navy-600 shadow-lg'
                   : 'bg-white dark:bg-navy-600/50 text-navy-400 border-navy-100 dark:border-navy-400/10 hover:border-gold-400/50'
               }`}
             >
@@ -105,8 +104,8 @@ export default function ReviewsSection() {
               <div key={star} className="flex items-center gap-3">
                 <span className="text-[10px] font-bold text-navy-400 w-4">{star}★</span>
                 <div className="flex-1 h-2 bg-navy-50 dark:bg-navy-500 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gold-400 transition-all duration-1000" 
+                  <div
+                    className="h-full bg-gold-400 transition-all duration-1000"
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
@@ -115,7 +114,7 @@ export default function ReviewsSection() {
             );
           })}
         </div>
-        
+
         <div className="lg:col-span-2 space-y-6">
           {data?.reviews?.length > 0 ? (
             data.reviews.map((review: any) => (
@@ -138,13 +137,11 @@ export default function ReviewsSection() {
                   </div>
                   <div className="flex text-gold-400 scale-75 origin-right">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill={i < review.rating ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
+                      <Star key={i} size={16} fill={i < review.rating ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} />
                     ))}
                   </div>
                 </div>
-                
+
                 <p className="text-sm text-navy-500 dark:text-cream-400/80 leading-relaxed mb-4 italic">
                   &quot;{review.comment}&quot;
                 </p>
@@ -152,7 +149,7 @@ export default function ReviewsSection() {
                 {review.tutorReply ? (
                   <div className="mt-4 p-4 rounded-xl bg-navy-50 dark:bg-navy-500/30 border-l-4 border-gold-400">
                     <div className="flex items-center gap-2 mb-2">
-                       <span className="text-[10px] font-black text-gold-500 uppercase tracking-widest">Your Private Reply</span>
+                       <span className="label-xs text-gold-500">Your Private Reply</span>
                        <span className="text-[9px] text-navy-300">• {new Date(review.repliedAt).toLocaleDateString()}</span>
                     </div>
                     <p className="text-xs text-navy-600 dark:text-cream-400 font-medium">{review.tutorReply}</p>
@@ -169,7 +166,7 @@ export default function ReviewsSection() {
                       />
                       <div className="flex justify-end gap-2">
                         <button onClick={() => {setReplyingTo(null); setReplyText('');}} className="px-3 py-1.5 text-[10px] font-bold text-navy-400 uppercase tracking-widest">Cancel</button>
-                        <button 
+                        <button
                           onClick={() => handleReply(review.id)}
                           disabled={submittingReply}
                           className="btn-primary px-4 py-1.5 text-[10px] font-bold"
@@ -179,11 +176,11 @@ export default function ReviewsSection() {
                       </div>
                     </div>
                   ) : (
-                    <button 
+                    <button
                       onClick={() => setReplyingTo(review.id)}
-                      className="text-[10px] font-black text-gold-500 hover:text-gold-600 uppercase tracking-widest flex items-center gap-1 group"
+                      className="label-xs text-gold-500 hover:text-gold-600 flex items-center gap-1 group"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:translate-x-0.5 transition-transform"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                      <CornerUpLeft size={12} className="group-hover:translate-x-0.5 transition-transform" />
                       Reply to review
                     </button>
                   )
@@ -198,20 +195,20 @@ export default function ReviewsSection() {
 
           {data?.totalPages > 1 && (
             <div className="flex justify-center items-center gap-4 mt-8">
-              <button 
+              <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(p => p - 1)}
                 className="p-2 rounded-lg bg-white dark:bg-navy-600 border border-navy-100 dark:border-navy-400/20 disabled:opacity-30"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="15 18 9 12 15 6"/></svg>
+                <ChevronLeft size={16} />
               </button>
               <span className="text-xs font-bold text-navy-400">Page {currentPage} of {data.totalPages}</span>
-              <button 
+              <button
                 disabled={currentPage === data.totalPages}
                 onClick={() => setCurrentPage(p => p + 1)}
                 className="p-2 rounded-lg bg-white dark:bg-navy-600 border border-navy-100 dark:border-navy-400/20 disabled:opacity-30"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="9 18 15 12 9 6"/></svg>
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
