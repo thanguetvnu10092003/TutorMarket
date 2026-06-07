@@ -86,7 +86,7 @@ function emptyCfa() {
 function labelInput({ label, value, onChange, type = 'text', min, max, placeholder, isPrimary, disabled = false }: any) {
   return (
     <div className={`space-y-2 ${isPrimary ? 'md:col-span-2' : ''}`}>
-      <label className="text-[10px] font-black text-navy-400 dark:text-cream-400/40 uppercase tracking-[0.2em] ml-1">{label}</label>
+      <label className="label-xs text-navy-400 dark:text-cream-400/40 ml-1">{label}</label>
       <div className="relative group">
         <input
           type={type}
@@ -507,7 +507,7 @@ function SettingsPageInner() {
           <aside className="w-full md:w-64 space-y-1">
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-gold-400 text-navy-600 shadow-gold' : 'text-navy-400 dark:text-cream-400 hover:bg-navy-50 dark:hover:bg-navy-500'}`}>
+                className={`inline-flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-gold-400 text-navy-600 shadow-gold' : 'text-navy-400 dark:text-cream-400 hover:bg-navy-50 dark:hover:bg-navy-500'}`}>
                 {tab.icon}{tab.label}
               </button>
             ))}
@@ -693,7 +693,7 @@ function SettingsPageInner() {
                             <div className="pt-6 border-t border-navy-50 dark:border-navy-700/50">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div className="space-y-1">
-                                  <label className="text-[10px] font-black text-navy-400 uppercase tracking-[0.2em]">Test Date</label>
+                                  <label className="label-xs text-navy-400">Test Date</label>
                                   <input type="date" value={gmat.testDate} onChange={e => setGmat(p => ({ ...p, testDate: e.target.value }))} disabled={lockedGmat}
                                     className={`block px-4 py-2.5 rounded-xl bg-navy-50 dark:bg-navy-700 border-none text-sm font-bold text-navy-600 dark:text-cream-200 outline-none w-full sm:w-48 ${lockedGmat ? 'cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-blue-500'}`} />
                                 </div>
@@ -745,7 +745,7 @@ function SettingsPageInner() {
                             <div className="pt-6 border-t border-navy-50 dark:border-navy-700/50">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div className="space-y-1">
-                                  <label className="text-[10px] font-black text-navy-400 uppercase tracking-[0.2em]">Test Date</label>
+                                  <label className="label-xs text-navy-400">Test Date</label>
                                   <input type="date" value={gre.testDate} onChange={e => setGre(p => ({ ...p, testDate: e.target.value }))} disabled={lockedGre}
                                     className={`block px-4 py-2.5 rounded-xl bg-navy-50 dark:bg-navy-700 border-none text-sm font-bold text-navy-600 dark:text-cream-200 outline-none w-full sm:w-48 ${lockedGre ? 'cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-emerald-500'}`} />
                                 </div>
@@ -892,10 +892,10 @@ function SettingsPageInner() {
                         <div>
                           <p className="text-sm font-bold text-navy-600 dark:text-cream-200">{item.title}</p>
                           <p className="text-xs text-navy-300 dark:text-cream-400/60 mt-0.5">{item.desc}</p>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-gold-600 mt-2">Email + in-app</p>
+                          <p className="label-xs text-gold-600 mt-2">Email + in-app</p>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          {savingNotificationType === item.type && <span className="text-[10px] font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/60">Saving</span>}
+                          {savingNotificationType === item.type && <span className="label-xs text-navy-300 dark:text-cream-400/60">Saving</span>}
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={notificationPreferences[item.type]?.inAppEnabled ?? true}
                               onChange={e => handleNotificationToggle(item.type, e.target.checked)} className="sr-only peer" />
