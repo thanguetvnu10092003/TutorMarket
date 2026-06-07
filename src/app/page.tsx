@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useCountUp } from '@/components/ui/useCountUp';
 import { tutorProfiles, users, getTutorCardData } from '@/lib/mock-data';
 import { SUBJECT_LABELS, SUBJECT_COLORS, type Subject } from '@/types';
 import { formatCurrency, formatResponseTime } from '@/lib/utils';
@@ -83,6 +84,20 @@ const platformHighlights = [
   },
 ];
 
+function AnimatedStat({ value, label }: { value: string; label: string }) {
+  const numericPart = parseInt(value.replace(/[^0-9]/g, ''), 10);
+  const suffix = value.replace(/[0-9,]/g, '');
+  const { count, ref } = useCountUp(numericPart);
+  return (
+    <div className="text-center group" ref={ref}>
+      <div className="text-3xl md:text-4xl font-display font-bold text-navy-600 dark:text-cream-200 mb-1 group-hover:text-gold-500 transition-colors duration-300">
+        {count.toLocaleString()}{suffix}
+      </div>
+      <div className="label-xs text-navy-300 dark:text-cream-400/60">{label}</div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { data: session } = useSession();
   const [searchSubject, setSearchSubject] = useState('');
@@ -140,6 +155,7 @@ export default function HomePage() {
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-sage-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '3s' }} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold-400/10 rounded-full blur-3xl" />
         </div>
+        <div className="absolute inset-0 bg-dot-grid bg-[length:24px_24px] opacity-30 pointer-events-none" />
 
         <div className="page-container relative z-10">
           <div className="max-w-4xl mx-auto text-center">
@@ -234,17 +250,7 @@ export default function HomePage() {
         <div className="page-container">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-12">
             {stats.map((stat, i) => (
-              <div
-                key={i}
-                className="text-center group"
-              >
-                <div className="text-3xl md:text-4xl font-display font-bold text-navy-600 dark:text-cream-200 mb-1 group-hover:text-gold-500 transition-colors duration-300">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-navy-300 dark:text-cream-400/60 font-medium">
-                  {stat.label}
-                </div>
-              </div>
+              <AnimatedStat key={i} value={stat.value} label={stat.label} />
             ))}
           </div>
         </div>
@@ -368,7 +374,9 @@ export default function HomePage() {
               >
                 {/* Connector Line (desktop) */}
                 {i < howItWorks.length - 1 && (
-                  <div className="hidden lg:block absolute top-12 left-[60%] w-full h-px bg-gradient-to-r from-gold-400/30 to-transparent" />
+                  <div className="hidden lg:block absolute top-12 left-[60%] w-full h-px overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-r from-gold-400/50 to-transparent animate-shimmer" />
+                  </div>
                 )}
 
                 <div className="flex flex-col items-center text-center">
@@ -451,7 +459,13 @@ export default function HomePage() {
 
       {/* ─── CTA SECTION ────────────────────────────────── */}
       <section className="relative py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-navy-600 via-navy-600 to-navy-500 dark:from-navy-700 dark:via-navy-700 dark:to-navy-600" />
+        <div
+          className="absolute inset-0 animate-gradient-shift"
+          style={{
+            background: 'linear-gradient(135deg, #0A1628, #0F2847, #0A1628, #1E3A6E)',
+            backgroundSize: '300% 300%',
+          }}
+        />
         <div className="absolute inset-0">
           <div className="absolute top-10 right-10 w-64 h-64 bg-gold-400/15 rounded-full blur-3xl animate-float" />
           <div className="absolute bottom-10 left-10 w-48 h-48 bg-sage-400/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
