@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import Spinner from '@/components/ui/Spinner';
 
 export default function CheckoutForm({ amount, isPackage }: { amount: number, isPackage: boolean }) {
   const stripe = useStripe();
@@ -43,20 +44,13 @@ export default function CheckoutForm({ amount, isPackage }: { amount: number, is
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-6">
       <PaymentElement />
-      
-      {/* Save card checkbox to mimic design (handled by Stripe Link mostly, but visually present) */}
-      <div className="flex items-center gap-2 mt-4">
-        <input type="checkbox" id="save-card" className="w-4 h-4 rounded border-gray-300 text-gold-500 focus:ring-gold-500" />
-        <label htmlFor="save-card" className="text-sm text-navy-600 dark:text-cream-200">
-          Save this card for future payments
-        </label>
-      </div>
 
       <button
         disabled={isLoading || !stripe || !elements}
         id="submit"
         className="w-full bg-gold-400 hover:bg-gold-500 disabled:bg-navy-100 dark:disabled:bg-navy-800 text-navy-600 disabled:text-navy-400 dark:disabled:text-cream-400/40 py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-gold disabled:shadow-none"
       >
+        {isLoading ? <Spinner size="sm" className="text-navy-600" /> : null}
         <span>{isLoading ? 'Processing...' : `Book ${isPackage ? 'package' : 'lesson'} and pay $${amount.toFixed(2)}`}</span>
       </button>
 

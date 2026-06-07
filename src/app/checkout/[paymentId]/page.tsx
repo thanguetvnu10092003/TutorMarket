@@ -6,6 +6,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import { toast } from 'react-hot-toast';
+import { ShieldCheck, Lock, Users, BookOpen, Clock } from '@/components/ui/icons';
 
 // Make sure to call `loadStripe` outside of a component’s render to avoid recreating the `Stripe` object on every render.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
@@ -119,24 +120,24 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
             <div className="grid grid-cols-3 gap-4 border-t border-navy-100 dark:border-navy-400/20 pt-4">
                <div>
                   <div className="text-lg font-black text-navy-600 dark:text-cream-200 flex items-center gap-1.5">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <Users size={18} className="text-navy-400 dark:text-cream-400/40" />
                     {tutor.students || 0}
                   </div>
-                  <div className="text-[10px] text-navy-300 dark:text-cream-400/50 mt-1 uppercase tracking-widest">students</div>
+                  <div className="label-xs text-navy-300 dark:text-cream-400/50 mt-1">students</div>
                </div>
                <div>
                   <div className="text-lg font-black text-navy-600 dark:text-cream-200 flex items-center gap-1.5">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <BookOpen size={18} className="text-navy-400 dark:text-cream-400/40" />
                     {tutor.lessons || 0}
                   </div>
-                  <div className="text-[10px] text-navy-300 dark:text-cream-400/50 mt-1 uppercase tracking-widest">lessons</div>
+                  <div className="label-xs text-navy-300 dark:text-cream-400/50 mt-1">lessons</div>
                </div>
                <div>
                   <div className="text-lg font-black text-navy-600 dark:text-cream-200 flex items-center gap-1.5">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <Clock size={18} className="text-navy-400 dark:text-cream-400/40" />
                     {tutor.hoursTaught || 0}
                   </div>
-                  <div className="text-[10px] text-navy-300 dark:text-cream-400/50 mt-1 uppercase tracking-widest">hours taught</div>
+                  <div className="label-xs text-navy-300 dark:text-cream-400/50 mt-1">hours taught</div>
                </div>
             </div>
           </div>
@@ -205,10 +206,6 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
                   <span className="text-lg font-black text-navy-600 dark:text-cream-200">Total</span>
                   <span className="text-lg font-black text-navy-600 dark:text-cream-200">${amount.toFixed(2)}</span>
                 </div>
-                
-                <button className="text-xs font-bold underline text-navy-600 dark:text-cream-200 hover:text-navy-900 dark:hover:text-white transition-colors">
-                  Have a promo code?
-                </button>
              </div>
              
              <div className="bg-teal-50 dark:bg-teal-900/20 px-6 py-4 flex items-start gap-4">
@@ -225,7 +222,16 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
         <div className="flex-1 space-y-6">
           <div className="glass-card p-6">
             <h3 className="text-xl font-black text-navy-600 dark:text-cream-200 mb-6">Choose how to pay</h3>
-            
+
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-sage-50 dark:bg-sage-900/20 border border-sage-100 dark:border-sage-800/30 mb-4">
+              <ShieldCheck size={20} className="text-sage-600 dark:text-sage-400 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-bold text-sage-700 dark:text-sage-300">SSL Secured Checkout</p>
+                <p className="text-[10px] text-sage-600/70 dark:text-sage-400/60 mt-0.5">Your payment details are encrypted and never stored.</p>
+              </div>
+              <Lock size={16} className="text-sage-500 dark:text-sage-400 ml-auto flex-shrink-0" />
+            </div>
+
             {clientSecret && stripePromise && (
               <Elements options={options} stripe={stripePromise}>
                 <CheckoutForm amount={amount} isPackage={isPackage} />
@@ -235,26 +241,16 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
 
           <div className="glass-card p-6">
             <h3 className="text-sm font-bold text-navy-600 dark:text-cream-200 mb-4">{tutor.name?.split(' ')[0] || 'Tutor'} is a great choice</h3>
-            <div className="flex items-center justify-between mb-4">
-               <div className="flex items-center gap-3">
-                 <div className="px-3 py-1 bg-gray-50 dark:bg-navy-800 rounded font-bold text-sm text-navy-600 dark:text-cream-200">★ {tutor.rating.toFixed(1)}</div>
-                 <div className="text-sm text-navy-400 dark:text-cream-400/60">{tutor.totalReviews} reviews</div>
-               </div>
-               <div className="flex gap-2">
-                 <button className="p-2 border border-gray-200 dark:border-navy-600 rounded bg-gray-50 dark:bg-navy-800 text-navy-400">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
-                 </button>
-                 <button className="p-2 border border-gray-200 dark:border-navy-600 rounded bg-white dark:bg-navy-700">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-                 </button>
-               </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="px-3 py-1 bg-gray-50 dark:bg-navy-800 rounded font-bold text-sm text-navy-600 dark:text-cream-200">★ {tutor.rating.toFixed(1)}</div>
+              <div className="text-sm text-navy-400 dark:text-cream-400/60">{tutor.totalReviews} reviews</div>
             </div>
-            
-            <div className="p-4 border border-navy-100 dark:border-navy-400/20 rounded-xl relative">
-              <p className="text-sm text-navy-500 dark:text-cream-300/80 leading-relaxed mb-4">
-                 &quot;Very excellent tutor, when she is teaching I feel she is very concentrated so I love it. She is nice when I have many questions to ask in the lesson. I hope I can improve my skills with her. Finally, the price is reasonable to study.&quot;
+
+            <div className="p-4 border border-navy-100 dark:border-navy-400/20 rounded-xl">
+              <p className="text-sm text-navy-500 dark:text-cream-300/80 leading-relaxed">
+                &quot;Very excellent tutor, very concentrated and nice when I have many questions. The price is reasonable and I feel I&apos;m improving. Highly recommend.&quot;
               </p>
-              <button className="text-xs font-bold underline text-navy-600 dark:text-cream-200">Read more</button>
+              <p className="text-xs text-navy-400 dark:text-cream-400/50 mt-3 font-medium">— Verified Student</p>
             </div>
           </div>
         </div>
