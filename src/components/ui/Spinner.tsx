@@ -1,3 +1,5 @@
+'use client';
+
 import { Loader2 } from '@/components/ui/icons';
 
 interface SpinnerProps {
