@@ -68,7 +68,7 @@ function getPriceFilterValue(minPrice: number | '', maxPrice: number | '') {
 
 /* ─── Sub-components ─────────────────────────────────── */
 
-/** Floating-label select wrapper */
+/** Floating-label select wrapper — label always floated (select always has a displayed value) */
 function FilterSelect({
   label,
   value,
@@ -85,42 +85,44 @@ function FilterSelect({
   highlighted?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
-  const active = focused || value !== '';
+  const hasValue = value !== '';
 
   return (
-    <div
-      className={`relative group transition-all duration-200 ${
-        highlighted ? '' : ''
-      }`}
-    >
+    <div className="relative group transition-all duration-200">
       {/* Icon */}
       {icon && (
-        <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none transition-colors duration-200
-          ${active || highlighted ? 'text-gold-500' : 'text-navy-300 dark:text-cream-400/30 group-hover:text-navy-400'}`}>
+        <div className={`absolute left-3.5 top-[18px] z-10 pointer-events-none transition-colors duration-200
+          ${focused || highlighted || hasValue
+            ? 'text-gold-500'
+            : 'text-navy-300 dark:text-cream-400/30 group-hover:text-navy-400'}`}>
           {icon}
         </div>
       )}
 
-      {/* Floating label */}
+      {/* Label — ALWAYS floated to top since select always shows a value */}
       <label
-        className={`absolute z-10 font-bold pointer-events-none transition-all duration-200 select-none
+        className={`absolute z-10 font-bold pointer-events-none select-none
+          top-2 text-[10px] tracking-widest uppercase
           ${icon ? 'left-10' : 'left-3.5'}
-          ${active
-            ? 'top-2 text-[10px] tracking-widest uppercase text-gold-500/80'
-            : 'top-1/2 -translate-y-1/2 text-sm text-navy-300 dark:text-cream-400/40 group-hover:text-navy-400'
+          transition-colors duration-200
+          ${focused
+            ? 'text-gold-500'
+            : hasValue
+              ? 'text-gold-500/70'
+              : 'text-navy-300/70 dark:text-cream-400/35 group-hover:text-navy-400/80'
           }`}
       >
         {label}
       </label>
 
-      {/* Select */}
+      {/* Select — always uses pt-6 pb-2 so value text never overlaps label */}
       <select
         value={value}
         onChange={onChange}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         className={`w-full appearance-none cursor-pointer rounded-2xl
-          ${active ? 'pt-6 pb-2' : 'py-4'}
+          pt-6 pb-2
           ${icon ? 'pl-10' : 'pl-3.5'} pr-9
           text-sm font-bold
           text-navy-600 dark:text-cream-200
@@ -137,7 +139,7 @@ function FilterSelect({
       </select>
 
       {/* Caret */}
-      <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-200
+      <div className={`absolute right-3 top-[50%] -translate-y-[2px] pointer-events-none transition-all duration-200
         ${focused ? 'text-gold-400 rotate-180' : 'text-navy-300/50 dark:text-cream-400/30'}`}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M6 9l6 6 6-6"/>
