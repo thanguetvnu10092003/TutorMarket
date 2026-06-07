@@ -112,6 +112,7 @@ export default function TutorFilterBar({
     filters.country !== '' ||
     filters.availability !== '' ||
     filters.nativeSpeaker ||
+    filters.category !== '' ||
     filters.search !== '';
 
   const priceValue = getPriceFilterValue(filters.minPrice, filters.maxPrice);
@@ -317,6 +318,7 @@ export default function TutorFilterBar({
           {filters.subject && (
             <button
               onClick={() => onFilterChange('subject', '')}
+              aria-label={`Remove ${subjects.find((s) => s.value === filters.subject)?.label || filters.subject} filter`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
             >
               {subjects.find((s) => s.value === filters.subject)?.label || filters.subject}
@@ -327,6 +329,7 @@ export default function TutorFilterBar({
           {(filters.minPrice !== '' || filters.maxPrice !== '') && (
             <button
               onClick={() => { onFilterChange('minPrice', ''); onFilterChange('maxPrice', ''); }}
+              aria-label={`Remove ${priceOptions.find((p) => p.value === priceValue)?.label || priceValue} filter`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
             >
               {priceOptions.find((p) => p.value === priceValue)?.label || priceValue}
@@ -337,6 +340,7 @@ export default function TutorFilterBar({
           {filters.language && (
             <button
               onClick={() => onFilterChange('language', '')}
+              aria-label={`Remove ${filters.language} filter`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
             >
               {filters.language}
@@ -347,6 +351,7 @@ export default function TutorFilterBar({
           {filters.country && (
             <button
               onClick={() => onFilterChange('country', '')}
+              aria-label={`Remove ${countryOptions.find((c) => c.code === filters.country)?.name || filters.country} filter`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
             >
               {countryOptions.find((c) => c.code === filters.country)?.name || filters.country}
@@ -357,6 +362,7 @@ export default function TutorFilterBar({
           {filters.availability && (
             <button
               onClick={() => onFilterChange('availability', '')}
+              aria-label={`Remove ${availabilityOptions.find((a) => a.value === filters.availability)?.label || filters.availability} filter`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
             >
               {availabilityOptions.find((a) => a.value === filters.availability)?.label || filters.availability}
@@ -367,6 +373,7 @@ export default function TutorFilterBar({
           {filters.nativeSpeaker && (
             <button
               onClick={() => onFilterChange('nativeSpeaker', false)}
+              aria-label="Remove Native speaker filter"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
             >
               Native speaker
@@ -374,9 +381,21 @@ export default function TutorFilterBar({
             </button>
           )}
 
+          {filters.category && (
+            <button
+              onClick={() => onFilterChange('category', '')}
+              aria-label={`Remove ${filters.category} filter`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 transition-colors"
+            >
+              {filters.category}
+              <X size={12} />
+            </button>
+          )}
+
           {filters.search && (
             <button
               onClick={() => onFilterChange('search', '')}
+              aria-label={`Remove "${filters.search}" filter`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
             >
               &ldquo;{filters.search}&rdquo;

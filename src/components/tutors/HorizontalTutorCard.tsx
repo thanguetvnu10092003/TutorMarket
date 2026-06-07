@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { SUBJECT_LABELS, type Subject } from '@/types';
 import { formatCurrency, getInitials } from '@/lib/utils';
-import { Star, Clock, Check, Heart, Globe, TrendingUp } from '@/components/ui/icons';
+import { Star, Clock, Check, Heart, Globe, TrendingUp, BookOpen } from '@/components/ui/icons';
 
 interface HorizontalTutorCardProps {
   tutor: any;
@@ -115,7 +115,7 @@ export default function HorizontalTutorCard({
 
         <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mb-4 text-xs font-bold">
           <div className="flex items-center gap-2 text-navy-400 dark:text-cream-400/40">
-            <Heart size={14} strokeWidth={2.5} />
+            <BookOpen size={14} strokeWidth={2.5} />
             <span>{SUBJECT_LABELS[primarySubject as Subject] || primarySubject}</span>
           </div>
           <div className="flex items-center gap-2 text-navy-400 dark:text-cream-400/40 min-w-0">

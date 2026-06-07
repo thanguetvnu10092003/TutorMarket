@@ -93,16 +93,6 @@ function TutorsPageSkeleton() {
   );
 }
 
-function TutorListLoadingCards() {
-  return (
-    <>
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="glass-card h-64 animate-pulse rounded-[32px] bg-white dark:bg-navy-800" />
-      ))}
-    </>
-  );
-}
-
 function TutorsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -318,9 +308,9 @@ function TutorsContent() {
                 </div>
               ))
             ) : (
-              <div className="col-span-full flex flex-col items-center justify-center py-24 gap-4">
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-navy-50 dark:bg-navy-500 flex items-center justify-center">
-                  <SearchX size={28} className="text-navy-300 dark:text-cream-400/40" />
+                  <SearchX size={28} className="text-navy-300 dark:text-cream-400/40" aria-hidden={true} />
                 </div>
                 <h3 className="text-base font-bold text-navy-600 dark:text-cream-200">No tutors found</h3>
                 <p className="text-sm text-navy-300 dark:text-cream-400/60 text-center max-w-xs">
