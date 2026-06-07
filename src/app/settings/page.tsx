@@ -8,20 +8,14 @@ import { getInitials } from '@/lib/utils';
 import PasswordInput from '@/components/ui/PasswordInput';
 import { CURRENCY_META } from '@/lib/currency';
 import VideoUploader from '@/components/profile/VideoUploader';
+import { User, Lock, Bell, Globe, Check } from '@/components/ui/icons';
+import Spinner from '@/components/ui/Spinner';
 
 const tabs = [
-  { id: 'profile', label: 'Profile', icon: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-  )},
-  { id: 'account', label: 'Account', icon: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-  )},
-  { id: 'notifications', label: 'Notifications', icon: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-  )},
-  { id: 'security', label: 'Security', icon: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-  )},
+  { id: 'profile', label: 'Profile', icon: <User size={16} /> },
+  { id: 'account', label: 'Account', icon: <Globe size={16} /> },
+  { id: 'notifications', label: 'Notifications', icon: <Bell size={16} /> },
+  { id: 'security', label: 'Security', icon: <Lock size={16} /> },
 ];
 
 const notificationOptions = [
@@ -124,7 +118,7 @@ function ScoreRow({ title, scoreKey, pctKey, data, setData, isPrimary, color = '
   return (
     <div className={`flex flex-col gap-4 p-5 rounded-[24px] border border-navy-50 dark:border-navy-700/50 hover:bg-navy-50/30 dark:hover:bg-navy-800/10 transition-colors ${isPrimary ? 'md:col-span-2 bg-gradient-to-r from-transparent to-navy-50/20 dark:to-navy-800/20' : ''}`}>
       <div className="flex items-center gap-3">
-        <div className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${colorClasses[color]}`}>
+        <div className={`px-2.5 py-1 rounded-lg label-xs ${colorClasses[color]}`}>
           {title}
         </div>
         <div className="h-px flex-1 bg-navy-100 dark:bg-navy-700/50" />
@@ -684,7 +678,7 @@ function SettingsPageInner() {
                             </div>
                           </div>
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${hasGmat ? 'bg-white border-white' : 'border-navy-200'}`}>
-                            {hasGmat && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#2563eb" strokeWidth="3"><polyline points="2.5 6 5 8.5 9.5 3.5"/></svg>}
+                            {hasGmat && <Check size={12} strokeWidth={3} color="#2563eb" />}
                           </div>
                         </div>
 
@@ -737,7 +731,7 @@ function SettingsPageInner() {
                             </div>
                           </div>
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${hasGre ? 'bg-white border-white' : 'border-navy-200'}`}>
-                            {hasGre && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#059669" strokeWidth="3"><polyline points="2.5 6 5 8.5 9.5 3.5"/></svg>}
+                            {hasGre && <Check size={12} strokeWidth={3} color="#059669" />}
                           </div>
                         </div>
 
@@ -792,17 +786,17 @@ function SettingsPageInner() {
                           <div className="space-y-6">
                             {activeCfaLevels.map(level => (
                               <div key={level} className="p-6 rounded-2xl bg-amber-50/50 dark:bg-amber-900/5 border border-amber-100 dark:border-amber-800/30 animate-in zoom-in-95 duration-200">
-                                <p className="text-xs font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-4">{cfaLabel(level)} Details</p>
+                                <p className="label-sm text-amber-600 dark:text-amber-400 mb-4">{cfaLabel(level)} Details</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest">Year Passed</label>
+                                    <label className="label-xs text-navy-400">Year Passed</label>
                                     <input type="number" placeholder="2024" value={cfaData[level]?.year || ''}
                                       onChange={e => setCfaData(p => ({ ...p, [level]: { ...p[level], year: e.target.value } }))}
                                       disabled={lockedCfaLevels.has(level)}
                                       className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-600 text-sm font-bold text-navy-600 dark:text-cream-200 outline-none ${lockedCfaLevels.has(level) ? 'cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-amber-500'}`} />
                                   </div>
                                   <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest">Score (Optional)</label>
+                                    <label className="label-xs text-navy-400">Score (Optional)</label>
                                     <input type="text" placeholder="e.g. Pass (>70%)" value={cfaData[level]?.score || ''}
                                       onChange={e => setCfaData(p => ({ ...p, [level]: { ...p[level], score: e.target.value } }))}
                                       disabled={lockedCfaLevels.has(level)}
@@ -824,20 +818,8 @@ function SettingsPageInner() {
 
                   <div className="pt-8 border-t border-navy-100 dark:border-navy-400/30 flex justify-end">
                     <button type="submit" disabled={isSaving} className="btn-primary py-3.5 px-10 disabled:opacity-50 flex items-center gap-3 text-sm font-black uppercase tracking-[0.15em] shadow-lg hover:scale-105 active:scale-95 transition-all">
-                      {isSaving ? (
-                        <>
-                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v13a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                          Save Changes
-                        </>
-                      )}
+                      {isSaving ? <Spinner size="sm" /> : null}
+                      {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </form>
