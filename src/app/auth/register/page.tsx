@@ -67,33 +67,53 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex bg-cream-200 dark:bg-navy-600">
       {/* Left: Brand Panel — hidden on mobile */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-navy-600 to-navy-700 flex-col justify-between p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-dot-grid bg-[length:24px_24px] opacity-30 pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-gold-400/10 rounded-full blur-3xl" />
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-navy-600 to-navy-700 flex-col justify-between p-12 relative overflow-hidden auth-panel-enter">
+        <div className="absolute inset-0 bg-dot-grid bg-[length:24px_24px] opacity-25 pointer-events-none" />
+        <div className="absolute top-20 right-10 w-56 h-56 bg-gold-400/12 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-20 left-10 w-64 h-64 bg-sage-400/8 rounded-full blur-3xl animate-float" style={{ animationDelay: '3s' }} />
+        <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-gold-400/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/50 to-transparent" />
         <div className="relative z-10">
-          <Link href="/" className="inline-flex items-center gap-2 mb-16">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-gold">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-navy-600">
+          <Link href="/" className="inline-flex items-center gap-2.5 mb-14 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-gold group-hover:shadow-glow-gold transition-shadow duration-300">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-navy-700">
                 <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5"/>
               </svg>
             </div>
-            <span className="text-xl font-display font-bold text-cream-200">Prep<span className="text-gold-400">Pass</span></span>
+            <span className="text-xl font-display font-bold text-cream-200 group-hover:text-gold-300 transition-colors duration-300">
+              Prep<span className="text-gold-400">Pass</span>
+            </span>
           </Link>
           <h2 className="text-3xl font-display font-bold text-cream-200 mb-4 leading-tight">
-            Join thousands of<br />exam high-achievers
+            Join thousands of<br /><span className="text-gold-400">exam high-achievers</span>
           </h2>
-          <p className="text-cream-400/60 text-sm leading-relaxed max-w-xs">
+          <p className="text-cream-400/55 text-sm leading-relaxed max-w-xs mb-8">
             Your first session with any tutor is completely free. No credit card required.
           </p>
+          <ul className="space-y-3">
+            {['Free first session with every tutor', 'Verified world-class experts', 'Track your progress live'].map((item) => (
+              <li key={item} className="flex items-center gap-2.5 text-sm text-cream-400/70">
+                <span className="w-5 h-5 rounded-full bg-gold-400/20 flex items-center justify-center flex-shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-gold-400">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="relative z-10 grid grid-cols-2 gap-4">
+        <div className="relative z-10 grid grid-cols-2 gap-3">
           {[
             { value: '2,500+', label: 'Students mentored' },
-            { value: '95%', label: 'Pass rate' },
-            { value: '4.9/5', label: 'Avg rating' },
-            { value: '10k+', label: 'Sessions done' },
-          ].map((s) => (
-            <div key={s.label} className="glass-card p-4 !bg-white/5 !border-white/10">
+            { value: '95%',    label: 'Pass rate' },
+            { value: '4.9/5',  label: 'Avg rating' },
+            { value: '10k+',   label: 'Sessions done' },
+          ].map((s, i) => (
+            <div key={s.label}
+              className="shimmer-hover p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-gold-400/25 transition-all duration-300"
+              style={{ animationDelay: `${i * 0.1}s` }}
+            >
               <div className="text-2xl font-display font-bold text-gold-400">{s.value}</div>
               <div className="label-xs text-cream-400/50 mt-1">{s.label}</div>
             </div>
@@ -102,7 +122,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right: Form */}
-      <div className="flex-1 flex items-center justify-center pt-20 pb-16 px-6">
+      <div className="flex-1 flex items-center justify-center pt-20 pb-16 px-6 auth-form-enter">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-10">
           <Link href="/" aria-label="PrepPass – Go to homepage" className="inline-flex items-center gap-2 mb-6">
@@ -127,7 +147,7 @@ export default function RegisterPage() {
             {/* Student Choice */}
             <button
               onClick={() => handleRoleSelect('STUDENT')}
-              className="glass-card p-6 text-center group hover:border-gold-400 transition-all duration-300 hover:shadow-gold-lg"
+              className="shimmer-hover glass-card p-6 text-center group hover:border-gold-400/60 hover:shadow-gold-lg transition-all duration-300 active:scale-[0.98]"
             >
               <div className="w-14 h-14 rounded-2xl bg-cream-100 dark:bg-navy-500 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-glass">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gold-500">
@@ -142,7 +162,7 @@ export default function RegisterPage() {
             {/* Tutor Choice */}
             <button
               onClick={() => handleRoleSelect('TUTOR')}
-              className="glass-card p-6 text-center group hover:border-sage-400 transition-all duration-300 hover:shadow-sage"
+              className="shimmer-hover glass-card p-6 text-center group hover:border-sage-400/60 hover:shadow-[0_8px_32px_rgba(74,124,111,0.25)] transition-all duration-300 active:scale-[0.98]"
             >
               <div className="w-14 h-14 rounded-2xl bg-cream-100 dark:bg-navy-500 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-glass">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sage-500">
@@ -157,7 +177,7 @@ export default function RegisterPage() {
             {/* Admin Choice */}
             <button
               onClick={() => handleRoleSelect('ADMIN')}
-              className="glass-card p-6 text-center group hover:border-blue-400 transition-all duration-300 hover:shadow-blue"
+              className="shimmer-hover glass-card p-6 text-center group hover:border-blue-400/60 hover:shadow-[0_8px_32px_rgba(59,130,246,0.2)] transition-all duration-300 active:scale-[0.98]"
             >
               <div className="w-14 h-14 rounded-2xl bg-cream-100 dark:bg-navy-500 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-glass">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">

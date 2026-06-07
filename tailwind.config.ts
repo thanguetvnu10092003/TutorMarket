@@ -70,6 +70,11 @@ const config: Config = {
         "scale-in": "scaleIn 0.3s ease-out",
         "gradient-shift": "gradientShift 8s ease infinite",
         shine: "shine 0.6s ease-out",
+        "glow-pulse": "glowPulse 2.5s ease-in-out infinite",
+        "fade-up": "fadeUp 0.6s cubic-bezier(0.4,0,0.2,1) both",
+        "slide-in-left": "slideInLeft 0.55s cubic-bezier(0.4,0,0.2,1) both",
+        "slide-in-right": "slideInRight 0.55s cubic-bezier(0.4,0,0.2,1) both",
+        "border-spin": "borderSpin 4s linear infinite",
       },
       keyframes: {
         fadeIn: {
@@ -108,6 +113,26 @@ const config: Config = {
           "0%": { transform: "translateX(-100%) skewX(-15deg)" },
           "100%": { transform: "translateX(200%) skewX(-15deg)" },
         },
+        glowPulse: {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(201,168,76,0)" },
+          "50%": { boxShadow: "0 0 20px 6px rgba(201,168,76,0.25)" },
+        },
+        fadeUp: {
+          "0%": { opacity: "0", transform: "translateY(24px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        slideInLeft: {
+          "0%": { opacity: "0", transform: "translateX(-24px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        slideInRight: {
+          "0%": { opacity: "0", transform: "translateX(24px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        borderSpin: {
+          "0%": { backgroundPosition: "0% 50%" },
+          "100%": { backgroundPosition: "100% 50%" },
+        },
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -121,7 +146,11 @@ const config: Config = {
         glass: "0 8px 32px 0 rgba(10, 22, 40, 0.12)",
         "glass-lg": "0 16px 48px 0 rgba(10, 22, 40, 0.16)",
         gold: "0 4px 20px 0 rgba(201, 168, 76, 0.25)",
+        "gold-lg": "0 8px 32px 0 rgba(201, 168, 76, 0.35)",
+        sage: "0 4px 20px 0 rgba(74, 124, 111, 0.25)",
         "navy-sm": "0 2px 8px 0 rgba(10, 22, 40, 0.08)",
+        "glow-gold": "0 0 24px 4px rgba(201, 168, 76, 0.3)",
+        "glow-sage": "0 0 24px 4px rgba(74, 124, 111, 0.3)",
       },
     },
   },

@@ -79,13 +79,17 @@ function TutorsPageSkeleton() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 items-start mt-8">
-          <div className="space-y-6">
+          <div className="space-y-5">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="glass-card h-64 animate-pulse rounded-[32px] bg-white dark:bg-navy-800" />
+              <div key={index} className="relative overflow-hidden glass-card h-64 rounded-[32px] bg-white dark:bg-navy-800">
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.8s_ease_infinite] bg-gradient-to-r from-transparent via-gold-400/5 to-transparent" />
+              </div>
             ))}
           </div>
           <aside className="hidden lg:block">
-            <div className="glass-card h-[420px] animate-pulse rounded-[32px] bg-white dark:bg-navy-800" />
+            <div className="relative overflow-hidden glass-card h-[420px] rounded-[32px] bg-white dark:bg-navy-800">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.8s_ease_infinite] bg-gradient-to-r from-transparent via-gold-400/5 to-transparent" />
+            </div>
           </aside>
         </div>
       </div>
@@ -291,34 +295,45 @@ function TutorsContent() {
                 ))}
               </div>
             ) : results.length > 0 ? (
-              results.map((tutor) => (
-                <div 
-                    key={tutor.id} 
-                    ref={el => { cardRefs.current[tutor.id] = el; }}
-                    onClick={() => setSelectedTutorId(tutor.id)}
-                    className={`cursor-pointer min-w-0 transition-all ${selectedTutorId === tutor.id ? 'ring-4 ring-gold-400 rounded-[32px]' : ''}`}
+              results.map((tutor, index) => (
+                <div
+                  key={tutor.id}
+                  ref={el => { cardRefs.current[tutor.id] = el; }}
+                  onClick={() => setSelectedTutorId(tutor.id)}
+                  className={`cursor-pointer min-w-0 transition-all ${selectedTutorId === tutor.id ? 'ring-4 ring-gold-400 rounded-[32px]' : ''}`}
+                  style={{
+                    opacity: loading ? 0 : 1,
+                    transform: loading ? 'translateY(16px)' : 'translateY(0)',
+                    transition: `opacity 0.45s ease ${Math.min(index * 0.07, 0.4)}s, transform 0.45s ease ${Math.min(index * 0.07, 0.4)}s`,
+                  }}
                 >
-                    <HorizontalTutorCard 
-                        tutor={tutor} 
-                        onBookTrial={() => setBookingTutor(tutor)}
-                        onSendMessage={() => handleSendMessage(tutor.id)}
-                        isFavorite={favoriteIds.includes(tutor.id)}
-                        onToggleFavorite={handleToggleFavorite}
-                    />
+                  <HorizontalTutorCard
+                    tutor={tutor}
+                    onBookTrial={() => setBookingTutor(tutor)}
+                    onSendMessage={() => handleSendMessage(tutor.id)}
+                    isFavorite={favoriteIds.includes(tutor.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-24 gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-navy-50 dark:bg-navy-500 flex items-center justify-center">
-                  <SearchX size={28} className="text-navy-300 dark:text-cream-400/40" aria-hidden={true} />
+              <div className="flex flex-col items-center justify-center py-24 gap-5">
+                {/* Animated empty icon */}
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl bg-cream-100 dark:bg-navy-500/50 flex items-center justify-center shadow-[0_4px_20px_rgba(10,22,40,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+                    <SearchX size={32} className="text-navy-300 dark:text-cream-400/40" aria-hidden={true} />
+                  </div>
+                  <div className="absolute inset-0 rounded-2xl border-2 border-gold-400/20 animate-ping" style={{ animationDuration: '2s' }} />
                 </div>
-                <h3 className="text-base font-bold text-navy-600 dark:text-cream-200">No tutors found</h3>
-                <p className="text-sm text-navy-300 dark:text-cream-400/60 text-center max-w-xs">
-                  Try adjusting your filters or search term to find available tutors.
-                </p>
+                <div className="text-center">
+                  <h3 className="text-base font-bold text-navy-600 dark:text-cream-200 mb-1.5">No tutors found</h3>
+                  <p className="text-sm text-navy-300 dark:text-cream-400/60 max-w-xs leading-relaxed">
+                    Try adjusting your filters or search term to find available tutors.
+                  </p>
+                </div>
                 <button
                   onClick={handleResetFilters}
-                  className="btn-outline text-sm px-5 py-2.5"
+                  className="btn-outline text-sm px-5 py-2.5 hover:shadow-navy-sm transition-shadow duration-200"
                 >
                   Clear all filters
                 </button>
@@ -328,27 +343,32 @@ function TutorsContent() {
 
           {/* Sticky Detail Sidebar */}
           <aside className="hidden lg:block">
-            <div 
-              style={{ marginTop: `${Math.max(0, topOffset - 32)}px` }} 
+            <div
+              style={{ marginTop: `${Math.max(0, topOffset - 32)}px` }}
               className="space-y-6 transition-all duration-500 ease-out"
             >
             {selectedTutor && (
-              <div className="glass-card bg-white dark:bg-navy-800 rounded-[32px] overflow-hidden border border-navy-100/50 dark:border-navy-500/10 shadow-2xl">
-                <VideoPlayer 
-                    url={selectedTutor.videoUrl} 
-                    poster={selectedTutor.user?.avatarUrl} 
-                    className="aspect-video"
+              <div
+                className="glass-card bg-white dark:bg-navy-800 rounded-[32px] overflow-hidden border border-navy-100/50 dark:border-navy-500/10 shadow-2xl"
+                style={{
+                  animation: 'slideInRight 0.4s cubic-bezier(0.4,0,0.2,1) both',
+                }}
+              >
+                <VideoPlayer
+                  url={selectedTutor.videoUrl}
+                  poster={selectedTutor.user?.avatarUrl}
+                  className="aspect-video"
                 />
-                <div className="p-8 space-y-4">
-                  <button 
+                <div className="p-6 space-y-3">
+                  <button
                     onClick={() => navigateToProfile(selectedTutor.id)}
-                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl label-sm text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
+                    className="w-full py-3.5 border-2 border-navy-100 dark:border-navy-700 rounded-2xl label-sm text-navy-600 dark:text-cream-200 hover:bg-navy-600 hover:text-cream-200 hover:border-navy-600 dark:hover:bg-cream-200 dark:hover:text-navy-700 dark:hover:border-cream-200 transition-all duration-200 font-display"
                   >
                     View full schedule
                   </button>
-                  <button 
+                  <button
                     onClick={() => navigateToProfile(selectedTutor.id)}
-                    className="w-full py-4 border-2 border-navy-100 dark:border-navy-700 rounded-2xl label-sm text-navy-600 dark:text-cream-200 hover:bg-navy-50 dark:hover:bg-navy-700 transition-all font-display"
+                    className="w-full py-3.5 bg-gold-400 hover:bg-gold-300 text-navy-700 rounded-2xl label-sm font-bold transition-all duration-200 hover:shadow-gold active:scale-[0.98]"
                   >
                     See {selectedTutor.user?.name.split(' ')[0]}&apos;s profile
                   </button>

@@ -273,9 +273,110 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* ── Scroll-triggered entrance animations ── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1);
+    transition-delay: var(--stagger, 0ms);
+  }
+  .fade-up.in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .fade-left {
+    opacity: 0;
+    transform: translateX(-28px);
+    transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1), transform 0.55s cubic-bezier(0.4,0,0.2,1);
+    transition-delay: var(--stagger, 0ms);
+  }
+  .fade-left.in-view {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .fade-right {
+    opacity: 0;
+    transform: translateX(28px);
+    transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1), transform 0.55s cubic-bezier(0.4,0,0.2,1);
+    transition-delay: var(--stagger, 0ms);
+  }
+  .fade-right.in-view {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .scale-up {
+    opacity: 0;
+    transform: scale(0.92);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition-delay: var(--stagger, 0ms);
+  }
+  .scale-up.in-view {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Stagger delay helpers */
+  .stagger-1 { --stagger: 60ms; }
+  .stagger-2 { --stagger: 120ms; }
+  .stagger-3 { --stagger: 180ms; }
+  .stagger-4 { --stagger: 240ms; }
+  .stagger-5 { --stagger: 300ms; }
+  .stagger-6 { --stagger: 360ms; }
 }
 
 /* Disabled button cursor */
 button:disabled {
   cursor: not-allowed;
+}
+
+/* ── Input focus glow ── */
+.input-field:focus {
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15), 0 1px 3px rgba(10,22,40,0.08);
+}
+
+/* ── Card shimmer sweep on hover ── */
+.shimmer-hover {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-hover::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 60%; height: 100%;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+.shimmer-hover:hover::after {
+  left: 150%;
+}
+
+/* ── Page-level enter animation ── */
+.page-enter {
+  animation: pageEnter 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Auth panel entrance ── */
+.auth-panel-enter {
+  animation: authPanelEnter 0.65s cubic-bezier(0.4,0,0.2,1) both;
+}
+@keyframes authPanelEnter {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.auth-form-enter {
+  animation: authFormEnter 0.65s cubic-bezier(0.4,0,0.2,1) 0.1s both;
+}
+@keyframes authFormEnter {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
