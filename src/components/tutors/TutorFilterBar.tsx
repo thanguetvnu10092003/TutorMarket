@@ -3,6 +3,7 @@
 import React from 'react';
 import { SUBJECT_LABELS, type Subject } from '@/types';
 import { getCountryOptions } from '@/lib/intl-data';
+import { X } from '@/components/ui/icons';
 
 interface TutorFilterBarProps {
   filters: {
@@ -308,6 +309,89 @@ export default function TutorFilterBar({
           </button>
         )}
       </div>
+
+      {hasActiveFilters && (
+        <div className="flex flex-wrap gap-2 pt-3 border-t border-navy-100/50 dark:border-navy-500/20">
+          <span className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 self-center">Active:</span>
+
+          {filters.subject && (
+            <button
+              onClick={() => onFilterChange('subject', '')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
+            >
+              {subjects.find((s) => s.value === filters.subject)?.label || filters.subject}
+              <X size={12} />
+            </button>
+          )}
+
+          {(filters.minPrice !== '' || filters.maxPrice !== '') && (
+            <button
+              onClick={() => { onFilterChange('minPrice', ''); onFilterChange('maxPrice', ''); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
+            >
+              {priceOptions.find((p) => p.value === priceValue)?.label || priceValue}
+              <X size={12} />
+            </button>
+          )}
+
+          {filters.language && (
+            <button
+              onClick={() => onFilterChange('language', '')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
+            >
+              {filters.language}
+              <X size={12} />
+            </button>
+          )}
+
+          {filters.country && (
+            <button
+              onClick={() => onFilterChange('country', '')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
+            >
+              {countryOptions.find((c) => c.code === filters.country)?.name || filters.country}
+              <X size={12} />
+            </button>
+          )}
+
+          {filters.availability && (
+            <button
+              onClick={() => onFilterChange('availability', '')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
+            >
+              {availabilityOptions.find((a) => a.value === filters.availability)?.label || filters.availability}
+              <X size={12} />
+            </button>
+          )}
+
+          {filters.nativeSpeaker && (
+            <button
+              onClick={() => onFilterChange('nativeSpeaker', false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
+            >
+              Native speaker
+              <X size={12} />
+            </button>
+          )}
+
+          {filters.search && (
+            <button
+              onClick={() => onFilterChange('search', '')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 text-xs font-semibold hover:bg-gold-100 dark:hover:bg-gold-900/40 transition-colors"
+            >
+              &ldquo;{filters.search}&rdquo;
+              <X size={12} />
+            </button>
+          )}
+
+          <button
+            onClick={onResetFilters}
+            className="text-[10px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/40 hover:text-red-500 transition-colors self-center ml-auto"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
 
       <div className="pt-4">
         <h2 className="text-2xl font-display font-black text-navy-600 dark:text-cream-200">

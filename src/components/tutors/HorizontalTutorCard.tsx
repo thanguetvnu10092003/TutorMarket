@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { SUBJECT_LABELS, type Subject } from '@/types';
 import { formatCurrency, getInitials } from '@/lib/utils';
+import { Star, Clock, Check } from '@/components/ui/icons';
 
 interface HorizontalTutorCardProps {
   tutor: any;
@@ -97,9 +98,7 @@ export default function HorizontalTutorCard({
           {tutor.verificationStatus === 'APPROVED' && (
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full border border-blue-500/20">
               <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <Check size={8} color="white" strokeWidth={4} />
               </div>
               <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
                 Verified tutor
@@ -140,7 +139,7 @@ export default function HorizontalTutorCard({
                     : 'bg-blue-50 dark:bg-blue-400/10 border-blue-200/70 dark:border-blue-400/20'
                 }`}
               >
-                <span className={`text-[10px] font-black uppercase tracking-widest ${
+                <span className={`label-xs ${
                   result.isVerified ? 'text-sage-700 dark:text-sage-300' : 'text-blue-700 dark:text-blue-300'
                 }`}>
                   {result.scoreText}
@@ -164,7 +163,7 @@ export default function HorizontalTutorCard({
           </button>
         </p>
 
-        <div className="mt-auto flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+        <div className="mt-auto flex items-center gap-3 label-xs text-navy-300 dark:text-cream-400/40">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
@@ -180,7 +179,7 @@ export default function HorizontalTutorCard({
             <div className="text-3xl font-display font-black text-navy-600 dark:text-cream-200 leading-none break-words">
               {priceLabel}
             </div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mt-2">
+            <div className="label-xs text-navy-300 dark:text-cream-400/40 mt-2">
               {tutor.primaryPrice?.usesConversion ? tutor.primaryPrice.originalFormatted : pricingSummary}
             </div>
             {tutor.primaryPrice?.usesConversion && (
@@ -210,7 +209,7 @@ export default function HorizontalTutorCard({
         </div>
 
         <div className="mb-6 rounded-2xl bg-navy-50/50 dark:bg-navy-800/50 border border-navy-100/60 dark:border-navy-500/20 p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-3">
+          <p className="label-xs text-navy-300 dark:text-cream-400/40 mb-3">
             Lesson Options
           </p>
           <div className="flex flex-wrap gap-2.5">
@@ -220,9 +219,7 @@ export default function HorizontalTutorCard({
                 className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-navy-700 border border-navy-100 dark:border-navy-500/20 rounded-xl transition-all hover:border-gold-400 hover:shadow-lg group/price"
               >
                 <div className="w-6 h-6 rounded-lg bg-gold-50 dark:bg-gold-500/10 flex items-center justify-center text-gold-600 group-hover/price:bg-gold-400 group-hover/price:text-navy-600 transition-colors">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
+                  <Clock size={12} strokeWidth={3} />
                 </div>
                 <div className="flex flex-col -space-y-0.5">
                   <span className="text-[10px] font-black text-navy-600 dark:text-cream-200 uppercase tracking-tighter">{p.durationMinutes}m</span>
@@ -242,9 +239,7 @@ export default function HorizontalTutorCard({
               <span className="text-sm font-black text-navy-600 dark:text-cream-200">
                 {tutor.rating?.toFixed(1) || '0.0'}
               </span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-gold-400">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg>
+              <Star size={12} fill="currentColor" className="text-gold-400" />
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
               {tutor.totalReviews || 0} reviews

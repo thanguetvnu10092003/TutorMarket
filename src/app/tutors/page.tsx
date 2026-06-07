@@ -10,6 +10,7 @@ import BookingModal from '@/components/student/BookingModal';
 import { dispatchFavoritesUpdated } from '@/lib/favorite-events';
 import { toast } from 'react-hot-toast';
 import VideoPlayer from '@/components/shared/VideoPlayer';
+import { SearchX } from '@/components/ui/icons';
 
 type TutorFilters = {
   subject: string;
@@ -287,7 +288,18 @@ function TutorsContent() {
           {/* Main Listing */}
           <div className="space-y-6 min-w-0">
             {loading ? (
-              <TutorListLoadingCards />
+              <div className="grid grid-cols-1 gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="glass-card p-6 flex gap-4 animate-pulse">
+                    <div className="w-20 h-20 rounded-2xl bg-navy-100 dark:bg-navy-500/40 flex-shrink-0" />
+                    <div className="flex-1 space-y-3">
+                      <div className="h-5 w-1/3 rounded-lg bg-navy-100 dark:bg-navy-500/40" />
+                      <div className="h-4 w-2/3 rounded-lg bg-navy-100 dark:bg-navy-500/40" />
+                      <div className="h-4 w-1/2 rounded-lg bg-navy-100 dark:bg-navy-500/40" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : results.length > 0 ? (
               results.map((tutor) => (
                 <div 
@@ -306,10 +318,20 @@ function TutorsContent() {
                 </div>
               ))
             ) : (
-              <div className="glass-card p-20 text-center rounded-[32px]">
-                <div className="text-4xl mb-4">🔍</div>
-                <h3 className="text-xl font-display font-black text-navy-600 dark:text-cream-200 uppercase tracking-tight">No tutors found</h3>
-                <p className="text-xs font-bold text-navy-300 dark:text-cream-400/40 uppercase tracking-widest mt-2">Try adjusting your filters to find more tutors.</p>
+              <div className="col-span-full flex flex-col items-center justify-center py-24 gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-navy-50 dark:bg-navy-500 flex items-center justify-center">
+                  <SearchX size={28} className="text-navy-300 dark:text-cream-400/40" />
+                </div>
+                <h3 className="text-base font-bold text-navy-600 dark:text-cream-200">No tutors found</h3>
+                <p className="text-sm text-navy-300 dark:text-cream-400/60 text-center max-w-xs">
+                  Try adjusting your filters or search term to find available tutors.
+                </p>
+                <button
+                  onClick={handleResetFilters}
+                  className="btn-outline text-sm px-5 py-2.5"
+                >
+                  Clear all filters
+                </button>
               </div>
             )}
           </div>
