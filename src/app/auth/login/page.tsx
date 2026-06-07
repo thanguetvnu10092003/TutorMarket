@@ -48,8 +48,45 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cream-200 dark:bg-navy-600 pt-20 pb-16 px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex bg-cream-200 dark:bg-navy-600">
+      {/* Left: Brand Panel — hidden on mobile */}
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-navy-600 to-navy-700 flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-dot-grid bg-[length:24px_24px] opacity-30 pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-gold-400/10 rounded-full blur-3xl" />
+        <div className="relative z-10">
+          <Link href="/" className="inline-flex items-center gap-2 mb-16">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-gold">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-navy-600">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5"/>
+              </svg>
+            </div>
+            <span className="text-xl font-display font-bold text-cream-200">Prep<span className="text-gold-400">Pass</span></span>
+          </Link>
+          <h2 className="text-3xl font-display font-bold text-cream-200 mb-4 leading-tight">
+            Welcome back to<br />your exam prep hub
+          </h2>
+          <p className="text-cream-400/60 text-sm leading-relaxed max-w-xs">
+            Pick up where you left off. Your tutors, sessions, and progress are waiting.
+          </p>
+        </div>
+        <div className="relative z-10 grid grid-cols-2 gap-4">
+          {[
+            { value: '2,500+', label: 'Students mentored' },
+            { value: '95%', label: 'Pass rate' },
+            { value: '4.9/5', label: 'Avg rating' },
+            { value: '10k+', label: 'Sessions done' },
+          ].map((s) => (
+            <div key={s.label} className="glass-card p-4 !bg-white/5 !border-white/10">
+              <div className="text-2xl font-display font-bold text-gold-400">{s.value}</div>
+              <div className="label-xs text-cream-400/50 mt-1">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right: Form */}
+      <div className="flex-1 flex items-center justify-center pt-20 pb-16 px-6">
+        <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
@@ -131,6 +168,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
