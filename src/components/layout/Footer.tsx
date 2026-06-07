@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
+import { FaTwitter, FaLinkedinIn, FaInstagram } from 'react-icons/fa';
 
 const footerLinks = {
   platform: [
@@ -72,16 +73,18 @@ export default function Footer() {
             </p>
             {/* Social Links */}
             <div className="flex gap-3">
-              {['twitter', 'linkedin', 'instagram'].map((social) => (
+              {[
+                { icon: <FaTwitter size={16} />, label: 'Twitter', href: '#' },
+                { icon: <FaLinkedinIn size={16} />, label: 'LinkedIn', href: '#' },
+                { icon: <FaInstagram size={16} />, label: 'Instagram', href: '#' },
+              ].map(({ icon, label, href }) => (
                 <a
-                  key={social}
-                  href="#"
-                  className="w-9 h-9 rounded-lg bg-navy-500 hover:bg-navy-400 flex items-center justify-center transition-colors duration-200"
-                  aria-label={social}
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  className="w-9 h-9 rounded-xl bg-navy-500 hover:bg-gold-400/20 hover:text-gold-400 flex items-center justify-center text-cream-400/60 transition-all duration-200"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cream-400/60">
-                    <circle cx="12" cy="12" r="10"/>
-                  </svg>
+                  {icon}
                 </a>
               ))}
             </div>
@@ -89,7 +92,7 @@ export default function Footer() {
 
           {/* Link Columns */}
           <div>
-            <h4 className="text-sm font-bold text-cream-200 mb-4 uppercase tracking-wider">Platform</h4>
+            <h4 className="label-sm text-cream-200 mb-5">Platform</h4>
             <ul className="space-y-3">
               {visiblePlatformLinks.map((link) => (
                 <li key={link.href}>
@@ -102,7 +105,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-cream-200 mb-4 uppercase tracking-wider">Subjects</h4>
+            <h4 className="label-sm text-cream-200 mb-5">Subjects</h4>
             <ul className="space-y-3">
               {footerLinks.subjects.map((link) => (
                 <li key={link.href}>
@@ -115,7 +118,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-cream-200 mb-4 uppercase tracking-wider">Company</h4>
+            <h4 className="label-sm text-cream-200 mb-5">Company</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
@@ -128,7 +131,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-cream-200 mb-4 uppercase tracking-wider">Legal</h4>
+            <h4 className="label-sm text-cream-200 mb-5">Legal</h4>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
