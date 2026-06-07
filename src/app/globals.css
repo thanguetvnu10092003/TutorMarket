@@ -94,11 +94,14 @@
   }
 
   .dark .glass-card {
+    background: rgba(5, 10, 19, 0.6);
+    border-color: rgba(30, 58, 110, 0.4);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 
   .dark .glass-card:hover {
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    border-color: rgba(201, 168, 76, 0.15);
   }
 
   /* Grain Texture Overlay */
@@ -250,6 +253,19 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-navy-300 dark:bg-navy-400;
+  }
+
+  /* Toast overrides */
+  .toast-success {
+    @apply !rounded-2xl !border !border-gold-400/30 !bg-navy-600 !text-cream-200 !shadow-glass;
+  }
+
+  .toast-error {
+    @apply !rounded-2xl !border !border-red-500/30 !bg-navy-600 !text-cream-200 !shadow-glass;
+  }
+
+  .toast-loading {
+    @apply !rounded-2xl !border !border-navy-400/30 !bg-navy-600 !text-cream-200 !shadow-glass;
   }
 }
 
