@@ -354,51 +354,121 @@ export default function HomePage() {
       </section>
 
       {/* ─── HOW IT WORKS ───────────────────────────────── */}
-      <section className="section-padding bg-white dark:bg-navy-700">
-        <div className="page-container">
-          <div className="text-center mb-14">
-            <span className="badge-sage mb-4 inline-block">Simple Process</span>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-navy-600 dark:text-cream-200 mb-4">
-              How PrepPass Works
+      <section className="section-padding bg-white dark:bg-navy-700 relative overflow-hidden">
+        {/* Decorative bg elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-gold-400/8 to-transparent" />
+          <div className="absolute top-0 right-1/4 w-px h-full bg-gradient-to-b from-transparent via-sage-400/8 to-transparent" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gold-400/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-sage-400/5 rounded-full blur-3xl" />
+        </div>
+
+        <div className="page-container relative z-10">
+          {/* Section header */}
+          <div className="text-center mb-16">
+            <span className="badge-sage mb-4 inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-sage-400 animate-pulse" />
+              Simple Process
+            </span>
+            <h2 className="text-3xl md:text-5xl font-display font-bold text-navy-600 dark:text-cream-200 mb-4 leading-tight">
+              How{' '}
+              <span className="relative inline-block">
+                PrepPass
+                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-gold-400 to-gold-300 rounded-full" />
+              </span>{' '}
+              Works
             </h2>
-            <p className="text-navy-300 dark:text-cream-400/60 max-w-2xl mx-auto">
+            <p className="text-navy-300 dark:text-cream-400/60 max-w-2xl mx-auto text-lg leading-relaxed">
               From finding your perfect tutor to acing your exam — we&apos;ve streamlined every step.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Steps grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
             {howItWorks.map((item, i) => (
               <div
                 key={i}
                 className="relative group"
+                style={{ animationDelay: `${i * 0.1}s` }}
               >
-                {/* Connector Line (desktop) */}
+                {/* Connector Line (desktop only, between cards) */}
                 {i < howItWorks.length - 1 && (
-                  <div className="hidden lg:block absolute top-12 left-[60%] w-full h-px overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-r from-gold-400/50 to-transparent animate-shimmer" />
+                  <div className="hidden lg:flex absolute top-11 left-[calc(100%-0px)] w-full items-center z-10 pointer-events-none" style={{ left: 'calc(50% + 52px)', width: 'calc(100% - 104px)' }}>
+                    <div className="flex-1 flex items-center gap-1">
+                      <div className="flex-1 h-px bg-gradient-to-r from-gold-400/60 via-gold-400/30 to-transparent" />
+                      <svg className="text-gold-400/40 flex-shrink-0" width="6" height="6" viewBox="0 0 6 6" fill="currentColor">
+                        <polygon points="0,3 6,0 6,6" />
+                      </svg>
+                    </div>
                   </div>
                 )}
 
-                <div className="flex flex-col items-center text-center">
-                  {/* Step Number + Icon */}
-                  <div className="relative mb-6">
-                    <div className="w-20 h-20 rounded-2xl bg-cream-100 dark:bg-navy-500 flex items-center justify-center text-gold-500 group-hover:bg-gold-50 dark:group-hover:bg-gold-900/20 group-hover:text-gold-600 transition-all duration-300 group-hover:scale-110">
-                      {item.icon}
-                    </div>
-                    <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gold-400 text-navy-600 text-xs font-bold flex items-center justify-center shadow-gold">
-                      {item.step}
-                    </span>
+                {/* Card */}
+                <div className="relative flex flex-col items-center text-center p-6 rounded-2xl
+                  bg-cream-50/60 dark:bg-navy-600/40
+                  border border-cream-300/60 dark:border-navy-400/30
+                  hover:border-gold-400/40 dark:hover:border-gold-400/25
+                  hover:bg-cream-50 dark:hover:bg-navy-500/50
+                  hover:shadow-[0_8px_40px_rgba(201,168,76,0.12)]
+                  transition-all duration-500 ease-out
+                  group-hover:-translate-y-2 overflow-hidden">
+
+                  {/* Subtle shimmer on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 via-transparent to-sage-400/5" />
                   </div>
 
-                  <h3 className="text-lg font-bold text-navy-600 dark:text-cream-200 mb-2">
+                  {/* Step Number + Icon */}
+                  <div className="relative mb-5 z-10">
+                    {/* Outer glow ring on hover */}
+                    <div className="absolute inset-0 rounded-2xl bg-gold-400/0 group-hover:bg-gold-400/8 transition-colors duration-500 blur-sm scale-110" />
+
+                    <div className="relative w-20 h-20 rounded-2xl bg-white dark:bg-navy-500
+                      border border-cream-200 dark:border-navy-400/50
+                      group-hover:border-gold-400/40 dark:group-hover:border-gold-400/30
+                      flex items-center justify-center text-navy-400 dark:text-cream-400/70
+                      group-hover:text-gold-500
+                      shadow-[0_4px_16px_rgba(10,22,40,0.06)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.2)]
+                      group-hover:shadow-[0_8px_32px_rgba(201,168,76,0.18)]
+                      transition-all duration-400 ease-out group-hover:scale-105">
+                      {item.icon}
+                    </div>
+
+                    {/* Step badge */}
+                    <div className="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full
+                      bg-gradient-to-br from-gold-400 to-gold-500
+                      text-navy-700 text-xs font-black
+                      flex items-center justify-center
+                      shadow-[0_4px_12px_rgba(201,168,76,0.4)]
+                      group-hover:shadow-[0_4px_20px_rgba(201,168,76,0.6)]
+                      group-hover:scale-110
+                      transition-all duration-300 border-2 border-white dark:border-navy-600">
+                      {item.step}
+                    </div>
+                  </div>
+
+                  <h3 className="text-base font-bold text-navy-600 dark:text-cream-200 mb-2.5 z-10 relative group-hover:text-navy-700 dark:group-hover:text-gold-300 transition-colors duration-300">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-navy-300 dark:text-cream-400/60 leading-relaxed">
+                  <p className="text-sm text-navy-300 dark:text-cream-400/55 leading-relaxed z-10 relative">
                     {item.description}
                   </p>
+
+                  {/* Bottom accent line */}
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-16 bg-gradient-to-r from-transparent via-gold-400 to-transparent rounded-full transition-all duration-500 ease-out" />
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* CTA below steps */}
+          <div className="mt-14 text-center">
+            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gold-400/10 border border-gold-400/20 text-sm text-navy-400 dark:text-cream-400/70">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gold-400 flex-shrink-0">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              No credit card required · Free first session with every tutor
+            </div>
           </div>
         </div>
       </section>
