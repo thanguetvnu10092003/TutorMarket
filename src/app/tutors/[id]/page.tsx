@@ -8,7 +8,7 @@ import { SUBJECT_COLORS, SUBJECT_LABELS, type Subject } from '@/types';
 import { formatDate, formatResponseTime, getInitials } from '@/lib/utils';
 import BookingModal from '@/components/student/BookingModal';
 import VideoPlayer from '@/components/shared/VideoPlayer';
-import { Star, Users, Clock, Calendar, Globe, ChevronRight, ChevronLeft, Check, Award } from '@/components/ui/icons';
+import { Star, Users, Clock, Calendar, Globe, ChevronRight, ChevronLeft, Check, Award, ShieldCheck, Lock } from '@/components/ui/icons';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -153,11 +153,7 @@ function AvailabilityGrid({ tutorId }: { tutorId: string }) {
                               : 'bg-red-100 text-red-400 dark:bg-red-900/20 dark:text-red-400 opacity-60'
                           }`}
                         >
-                          {status === 'booked' && (
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                          )}
+                          {status === 'booked' && <Lock size={8} />}
                         </div>
                       </td>
                     );
@@ -444,12 +440,12 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                                     <p className="label-xs text-navy-400 dark:text-cream-400/40">{result.label}</p>
                                     <div className="flex items-center gap-2 mt-0.5">
                                       {result.isVerified ? (
-                                        <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tight text-sage-600 dark:text-sage-400">
+                                        <span className="flex items-center gap-1 label-xs text-sage-600 dark:text-sage-400">
                                           <Check size={10} />
                                           Verified
                                         </span>
                                       ) : (
-                                        <span className="text-[9px] font-black uppercase tracking-tight text-blue-600 dark:text-blue-400">Self-reported</span>
+                                        <span className="label-xs text-blue-600 dark:text-blue-400">Self-reported</span>
                                       )}
                                     </div>
                                   </div>
@@ -494,7 +490,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                       </div>
                     ) : (
                       <div className="p-12 rounded-[32px] bg-navy-50/50 dark:bg-navy-800/30 border border-dashed border-navy-100 dark:border-navy-700 text-center">
-                        <svg className="mx-auto mb-4 text-navy-200" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <ShieldCheck size={48} className="mx-auto mb-4 text-navy-200" />
                         <p className="text-sm font-bold text-navy-300 dark:text-cream-400/50 uppercase tracking-widest leading-loose">
                           No certifications have been submitted yet.
                         </p>
@@ -549,7 +545,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                             </div>
                             <div>
                               <div className="text-sm font-bold text-navy-600 dark:text-cream-200">{review.student.name}</div>
-                              <div className="text-[10px] text-navy-300 dark:text-cream-400/60 font-bold uppercase tracking-widest">
+                              <div className="label-xs text-navy-300 dark:text-cream-400/60">
                                 {formatDate(review.createdAt)}
                               </div>
                             </div>
@@ -630,7 +626,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                   Book a lesson
                 </button>
                 {profile.hasUsedTrialLesson && (
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-navy-300 dark:text-cream-400/40 text-center">
+                  <p className="label-xs text-navy-300 dark:text-cream-400/40 text-center">
                     Free trial has already been used with this tutor
                   </p>
                 )}
@@ -658,9 +654,9 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-navy-600 dark:text-cream-200">{result.label}</span>
                             {result.isVerified ? (
-                              <span className="px-1.5 py-0.5 rounded-md bg-sage-500 text-[8px] font-black text-white uppercase tracking-tighter">Verified</span>
+                              <span className="px-1.5 py-0.5 rounded-md bg-sage-500 label-xs text-white">Verified</span>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded-md bg-blue-500 text-[8px] font-black text-white uppercase tracking-tighter">Self-reported</span>
+                              <span className="px-1.5 py-0.5 rounded-md bg-blue-500 label-xs text-white">Self-reported</span>
                             )}
                           </div>
                           <span className="text-xs font-black text-navy-600 dark:text-cream-200">{result.scoreText}</span>
@@ -689,7 +685,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
             </div>
 
             <div className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100 text-center">
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Satisfaction Guarantee</p>
+              <p className="label-xs text-blue-600 mb-1">Satisfaction Guarantee</p>
               <p className="text-[11px] text-blue-500/80 leading-relaxed">
                 If the first session is not a fit, booking support can help you choose a better match.
               </p>
