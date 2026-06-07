@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { SUBJECT_LABELS, type Subject } from '@/types';
 import { formatCurrency, getInitials } from '@/lib/utils';
-import { Star, Clock, Check } from '@/components/ui/icons';
+import { Star, Clock, Check, Heart, Globe, TrendingUp } from '@/components/ui/icons';
 
 interface HorizontalTutorCardProps {
   tutor: any;
@@ -80,7 +80,7 @@ export default function HorizontalTutorCard({
           )}
         </div>
         {tutor.nextAvailableDate != null && (
-          <div className="absolute -bottom-1 -right-1 px-2.5 py-1 rounded-full bg-green-500 border-4 border-white dark:border-navy-800 shadow-md z-10 text-[9px] font-black uppercase tracking-widest text-white">
+          <div className="absolute -bottom-1 -right-1 px-2.5 py-1 rounded-full bg-green-500 border-4 border-white dark:border-navy-800 shadow-md z-10 label-xs text-white">
             Open
           </div>
         )}
@@ -100,7 +100,7 @@ export default function HorizontalTutorCard({
               <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
                 <Check size={8} color="white" strokeWidth={4} />
               </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+              <span className="label-xs text-blue-600 dark:text-blue-400">
                 Verified tutor
               </span>
             </div>
@@ -115,15 +115,11 @@ export default function HorizontalTutorCard({
 
         <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mb-4 text-xs font-bold">
           <div className="flex items-center gap-2 text-navy-400 dark:text-cream-400/40">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
+            <Heart size={14} strokeWidth={2.5} />
             <span>{SUBJECT_LABELS[primarySubject as Subject] || primarySubject}</span>
           </div>
           <div className="flex items-center gap-2 text-navy-400 dark:text-cream-400/40 min-w-0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="flex-shrink-0">
-              <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.783.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-            </svg>
+            <Globe size={14} strokeWidth={2.5} className="flex-shrink-0" />
             <span className="truncate break-words">{languagesText}</span>
           </div>
         </div>
@@ -164,9 +160,7 @@ export default function HorizontalTutorCard({
         </p>
 
         <div className="mt-auto flex items-center gap-3 label-xs text-navy-300 dark:text-cream-400/40">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
+          <TrendingUp size={14} strokeWidth={3} />
           <span>
             {(tutor.totalSessions || 0) > 50 ? 'Highly experienced' : 'Building experience'} • Booked {tutor.totalSessions || 0} times{tutor.totalHoursTaught ? ` • ${tutor.totalHoursTaught}h taught` : ''}
           </span>
@@ -194,17 +188,7 @@ export default function HorizontalTutorCard({
               isFavorite ? 'bg-red-50 text-red-500' : 'bg-navy-50 dark:bg-navy-800 text-navy-300 hover:text-red-500'
             }`}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill={isFavorite ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="group-hover/heart:fill-red-500 transition-all"
-            >
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
+            <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={2.5} className="group-hover/heart:fill-red-500 transition-all" />
           </button>
         </div>
 
@@ -222,7 +206,7 @@ export default function HorizontalTutorCard({
                   <Clock size={12} strokeWidth={3} />
                 </div>
                 <div className="flex flex-col -space-y-0.5">
-                  <span className="text-[10px] font-black text-navy-600 dark:text-cream-200 uppercase tracking-tighter">{p.durationMinutes}m</span>
+                  <span className="label-xs text-navy-600 dark:text-cream-200">{p.durationMinutes}m</span>
                   <span className="text-xs font-black text-gold-600 dark:text-gold-400">{p.priceDisplay?.formatted || formatCurrency(p.price, p.currency || 'USD')}</span>
                 </div>
               </div>
@@ -241,7 +225,7 @@ export default function HorizontalTutorCard({
               </span>
               <Star size={12} fill="currentColor" className="text-gold-400" />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+            <span className="label-xs text-navy-300 dark:text-cream-400/40">
               {tutor.totalReviews || 0} reviews
             </span>
           </div>
@@ -249,7 +233,7 @@ export default function HorizontalTutorCard({
             <div className="text-sm font-black text-navy-600 dark:text-cream-200 mb-1">
               {tutor.totalStudents || 0}
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+            <span className="label-xs text-navy-300 dark:text-cream-400/40">
               students
             </span>
           </div>
@@ -257,7 +241,7 @@ export default function HorizontalTutorCard({
             <div className="text-[10px] font-black text-navy-600 dark:text-cream-200 mb-1 truncate leading-tight">
               {formatNextAvailable(tutor.nextAvailableDate)}
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">
+            <span className="label-xs text-navy-300 dark:text-cream-400/40">
               next available
             </span>
           </div>
@@ -269,7 +253,7 @@ export default function HorizontalTutorCard({
               event.stopPropagation();
               onBookTrial(tutor.id);
             }}
-            className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all bg-gold-400 hover:bg-gold-500 text-navy-600 shadow-gold hover:translate-y-[-2px] active:translate-y-0"
+            className="w-full py-4 rounded-2xl label-sm transition-all bg-gold-400 hover:bg-gold-500 text-navy-600 shadow-gold hover:translate-y-[-2px] active:translate-y-0"
           >
             Book lesson options
           </button>
@@ -278,7 +262,7 @@ export default function HorizontalTutorCard({
               event.stopPropagation();
               onSendMessage(tutor.id);
             }}
-            className="w-full bg-white dark:bg-navy-800 border-2 border-navy-100 dark:border-navy-500/20 text-navy-600 dark:text-cream-200 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all hover:bg-navy-50 dark:hover:bg-navy-700"
+            className="w-full bg-white dark:bg-navy-800 border-2 border-navy-100 dark:border-navy-500/20 text-navy-600 dark:text-cream-200 py-4 rounded-2xl label-sm transition-all hover:bg-navy-50 dark:hover:bg-navy-700"
           >
             Send message
           </button>
