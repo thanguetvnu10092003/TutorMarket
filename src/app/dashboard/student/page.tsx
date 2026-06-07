@@ -15,13 +15,15 @@ import ChatWindow from '@/components/chat/ChatWindow';
 import { toast } from 'react-hot-toast';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getTimeZoneOptions } from '@/lib/intl-data';
+import { LayoutDashboard, Calendar, MessageSquare, CreditCard, Gift } from '@/components/ui/icons';
+import Spinner from '@/components/ui/Spinner';
 
 const tabs = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'bookings', label: 'Bookings' },
-  { id: 'messages', label: 'Messages' },
-  { id: 'payments', label: 'Payments' },
-  { id: 'referral', label: 'Referral' },
+  { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
+  { id: 'bookings', label: 'Bookings', icon: <Calendar size={16} /> },
+  { id: 'messages', label: 'Messages', icon: <MessageSquare size={16} /> },
+  { id: 'payments', label: 'Payments', icon: <CreditCard size={16} /> },
+  { id: 'referral', label: 'Referral', icon: <Gift size={16} /> },
 ];
 
 function StudentDashboardInner() {
@@ -334,15 +336,16 @@ function StudentDashboardInner() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all inline-flex items-center justify-center ${
+              className={`px-5 py-3 rounded-[18px] label-xs transition-all inline-flex items-center gap-2 justify-center ${
                 activeTab === tab.id
                   ? 'bg-navy-600 text-white shadow-xl scale-105'
                   : 'text-navy-400 dark:text-cream-400/60 hover:text-navy-600 dark:hover:text-cream-200 hover:bg-white dark:hover:bg-navy-700/50'
               }`}
             >
+              {tab.icon}
               <span>{tab.label}</span>
               {tab.id === 'messages' && messageUnreadCount > 0 && (
-                <span className="ml-2 min-w-5 h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] font-black flex items-center justify-center">
+                <span className="min-w-5 h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] font-black flex items-center justify-center">
                   {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
                 </span>
               )}
@@ -380,8 +383,22 @@ function StudentDashboardInner() {
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                           <p className="text-xs font-black text-navy-600 dark:text-cream-200">{formatTimeInTz(booking.scheduledAt, studentTimezone)}</p>
+                          {(() => {
+                            const minutesUntil = Math.floor((new Date(booking.scheduledAt).getTime() - Date.now()) / 60000);
+                            if (minutesUntil > 0 && minutesUntil <= 1440) {
+                              const hours = Math.floor(minutesUntil / 60);
+                              const mins = minutesUntil % 60;
+                              const label = hours > 0 ? `Starts in ${hours}h ${mins}m` : `Starts in ${mins}m`;
+                              return (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-gold-50 dark:bg-gold-900/20 text-gold-600 dark:text-gold-400">
+                                  {label}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-gold-600">{booking.status}</span>
+                            <span className="label-xs text-gold-600">{booking.status}</span>
                             {(() => {
                               const joinStatus = getSessionJoinStatus(
                                 booking.scheduledAt,
@@ -405,7 +422,7 @@ function StudentDashboardInner() {
                             {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
                               <button
                                 onClick={() => void handleCancelBooking(booking.id)}
-                                className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2 py-1 rounded-lg transition-all"
+                                className="label-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2 py-1 rounded-lg transition-all"
                               >
                                 Cancel
                               </button>
@@ -425,7 +442,7 @@ function StudentDashboardInner() {
 
             <div className="lg:col-span-4 space-y-8">
               <div className="glass-card p-6 bg-navy-600 text-white shadow-xl shadow-navy-900/20">
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-cream-400/40 mb-6">Learning Pulse</h2>
+                <h2 className="label-xs text-cream-400/40 mb-6">Learning Pulse</h2>
                 <div className="space-y-6">
                   <div>
                     <p className="text-xs font-bold text-cream-400/60 mb-1">Total Lessons</p>
@@ -445,7 +462,7 @@ function StudentDashboardInner() {
               </div>
 
               <div className="glass-card p-6 border-gold-400/30">
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-4">Refer & Earn</h2>
+                <h2 className="label-xs text-navy-300 dark:text-cream-400/40 mb-4">Refer & Earn</h2>
                 <p className="text-xs text-navy-600 dark:text-cream-200 font-medium mb-4">
                   Earn credits when your friends join and book lessons.
                 </p>
@@ -469,7 +486,7 @@ function StudentDashboardInner() {
 
               {/* Timezone Settings */}
               <div className="glass-card p-6">
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40 mb-4">Your Timezone</h2>
+                <h2 className="label-xs text-navy-300 dark:text-cream-400/40 mb-4">Your Timezone</h2>
                 <p className="text-xs text-navy-600 dark:text-cream-200 font-medium mb-3">
                   We show lesson times based on your preferred timezone.
                 </p>
@@ -517,7 +534,7 @@ function StudentDashboardInner() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="badge py-1.5 px-3 text-[9px] font-black uppercase tracking-widest bg-gold-50 text-gold-600">
+                    <span className="badge py-1.5 px-3 label-xs bg-gold-50 text-gold-600">
                       {booking.status}
                     </span>
                     {(() => {
@@ -543,7 +560,7 @@ function StudentDashboardInner() {
                           <button
                             disabled
                             title={title}
-                            className="rounded-2xl bg-navy-100 dark:bg-navy-800 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-400 dark:text-cream-400/20 cursor-not-allowed opacity-60"
+                            className="rounded-2xl bg-navy-100 dark:bg-navy-800 px-4 py-3 label-xs text-navy-400 dark:text-cream-400/20 cursor-not-allowed opacity-60"
                           >
                             {label}
                           </button>
@@ -555,7 +572,7 @@ function StudentDashboardInner() {
                           href={booking.meetingLink || buildBookingRoomUrl(booking.id)}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-navy-700 transition-colors shadow-lg shadow-navy-900/10"
+                          className="rounded-2xl bg-navy-600 px-4 py-3 label-xs text-white hover:bg-navy-700 transition-colors shadow-lg shadow-navy-900/10"
                         >
                           Join Room
                         </a>
@@ -582,7 +599,7 @@ function StudentDashboardInner() {
                     {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
                       <button
                         onClick={() => void handleCancelBooking(booking.id)}
-                        className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-3 py-1.5 rounded-xl transition-all"
+                        className="label-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-3 py-1.5 rounded-xl transition-all"
                       >
                         Cancel
                       </button>
@@ -634,8 +651,8 @@ function StudentDashboardInner() {
                 />
               ) : (
                 <div className="flex flex-col items-center gap-4">
-                  <div className="text-4xl text-gold-400">M</div>
-                  <p className="text-xs font-black uppercase tracking-widest leading-relaxed text-navy-400 dark:text-cream-400/40">
+                  <MessageSquare size={40} className="text-gold-400/60" aria-hidden={true} />
+                  <p className="label-sm leading-relaxed text-navy-400 dark:text-cream-400/40">
                     Select a conversation
                     <br />
                     to start messaging
@@ -654,14 +671,14 @@ function StudentDashboardInner() {
             <div className="p-6 space-y-6">
               <div className="rounded-[24px] border border-gold-200/70 dark:border-gold-500/20 bg-gold-50/70 dark:bg-navy-700/40 p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gold-700 dark:text-gold-400">Payment Method</p>
+                  <p className="label-xs text-gold-700 dark:text-gold-400">Payment Method</p>
                   <h3 className="mt-2 text-lg font-black text-navy-600 dark:text-cream-200">Stripe Checkout</h3>
                   <p className="mt-1 text-sm text-navy-400 dark:text-cream-300/70">
                     Secure card checkout for single lessons and lesson packages. Trial lessons stay free.
                   </p>
                 </div>
                 <div className="rounded-2xl bg-white dark:bg-navy-800/60 px-4 py-3 border border-white/70 dark:border-navy-500/20">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-navy-300 dark:text-cream-400/40">Status</p>
+                  <p className="label-xs text-navy-300 dark:text-cream-400/40">Status</p>
                   <p className="mt-1 text-sm font-bold text-navy-600 dark:text-cream-200">Ready for checkout</p>
                 </div>
               </div>
@@ -684,7 +701,7 @@ function StudentDashboardInner() {
                     </div>
                     <div className="text-left md:text-right space-y-2">
                       <p className="text-lg font-black text-navy-600 dark:text-cream-200">{formatCurrency(payment.amount)}</p>
-                      <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${payment.status === 'CANCELLED' ? 'text-red-500' : 'text-gold-600'}`}>
+                      <p className={`label-xs mt-1 ${payment.status === 'CANCELLED' ? 'text-red-500' : 'text-gold-600'}`}>
                         {payment.status.replaceAll('_', ' ')}
                       </p>
                       {payment.canPayNow && (
@@ -692,7 +709,7 @@ function StudentDashboardInner() {
                           <button
                             onClick={() => void handlePayNow(payment.id)}
                             disabled={payingPaymentId === payment.id || mockPayingId === payment.id}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-navy-700 disabled:bg-navy-200 disabled:text-navy-400"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-navy-600 px-4 py-3 label-xs text-white transition-all hover:bg-navy-700 disabled:bg-navy-200 disabled:text-navy-400"
                           >
                             {payingPaymentId === payment.id ? (
                               <div className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -702,12 +719,10 @@ function StudentDashboardInner() {
                           <button
                             onClick={() => void handleMockPayNow(payment.id)}
                             disabled={payingPaymentId === payment.id || mockPayingId === payment.id || paypalPayingId === payment.id}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-navy-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-navy-600 transition-all hover:bg-navy-50 disabled:border-navy-200 disabled:text-navy-400"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-dashed border-navy-200 dark:border-navy-500 px-4 py-2.5 label-xs text-navy-300 dark:text-cream-400/40 italic transition-all hover:bg-navy-50 dark:hover:bg-navy-700/30 disabled:opacity-40"
                           >
-                            {mockPayingId === payment.id ? (
-                              <div className="h-3.5 w-3.5 rounded-full border-2 border-navy-600 border-t-transparent animate-spin" />
-                            ) : null}
-                            Mock Pay (Test)
+                            {mockPayingId === payment.id ? <Spinner size="sm" /> : null}
+                            Mock Pay · Test only
                           </button>
                           
                           <div className="mt-2 relative z-0">
@@ -770,7 +785,7 @@ function StudentDashboardInner() {
                                 void handleCancelBooking(payment.bookingId);
                               }
                             }}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-50 dark:bg-red-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 transition-all hover:bg-red-100"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-50 dark:bg-red-500/10 px-4 py-3 label-xs text-red-500 transition-all hover:bg-red-100"
                           >
                             Cancel Booking
                           </button>
