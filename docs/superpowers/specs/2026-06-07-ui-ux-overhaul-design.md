@@ -126,7 +126,7 @@ PrepPass is a tutor marketplace for CFA/GMAT/GRE exam prep. The site is live at 
 
 ### Student Dashboard (`/dashboard/student`)
 - Tab bar icons (Lucide): Overview→`LayoutDashboard`, Bookings→`Calendar`, Messages→`MessageSquare`, Payments→`CreditCard`, Referral→`Gift`
-- Overview: "Learning Pulse" card — add mini bar chart (sessions per month, last 4 weeks)
+- Overview: "Learning Pulse" card — add mini bar chart (sessions per month, last 4 weeks) using CSS/inline SVG bars — no charting library needed
 - Upcoming lessons: countdown badge ("Starts in 2h 30m") for the next lesson
 - Messages empty state: replace `<div>M</div>` with Lucide `MessageSquare` icon + "Select a conversation to start messaging"
 - Payments tab: payment method badges (Stripe/PayPal logos), Mock Pay styled as dev-mode (gray, "Test only" label)
@@ -184,7 +184,7 @@ PrepPass is a tutor marketplace for CFA/GMAT/GRE exam prep. The site is live at 
 
 ### Tailwind Config Additions
 Add to `tailwind.config.js`:
-- Custom utility classes: `label-xs`, `label-sm` for consistent metadata text
+- Custom utility classes: `label-xs` (`text-[10px] font-bold uppercase tracking-widest`) and `label-sm` (`text-xs font-bold uppercase tracking-widest`) via Tailwind plugin — replace all ad-hoc occurrences
 - Extended `boxShadow`: `glass`, `gold`, `navy-sm` tokens
 - Extended `animation`: `gradient-shift`, `count-up`, `shimmer`
 
