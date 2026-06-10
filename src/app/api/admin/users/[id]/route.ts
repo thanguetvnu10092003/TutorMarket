@@ -184,7 +184,7 @@ export async function DELETE(
     const supabase = getSupabaseAdmin();
 
     /** Extract the storage path from a full Supabase public URL */
-    function extractStoragePath(url: string | null | undefined): string | null {
+    const extractStoragePath = (url: string | null | undefined): string | null => {
       if (!url) return null;
       // URL format: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
       const match = url.match(/\/object\/public\/[^/]+\/(.+)/);
