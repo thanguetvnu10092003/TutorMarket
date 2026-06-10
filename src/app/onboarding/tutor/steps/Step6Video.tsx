@@ -54,14 +54,41 @@ export default function Step6Video({ onNext, onBack }: Props) {
   // 2. Camera Management (ON/OFF)
   const startCamera = async () => {
     try {
+      // First check if mediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Your browser does not support camera access. Try Chrome or Edge.');
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (liveVideoRef.current) {
         liveVideoRef.current.srcObject = stream;
       }
     } catch (err: any) {
-      toast.error('Could not access camera/microphone. Please allow permissions in your browser.');
-      console.error(err);
+      console.error('Camera error:', err.name, err.message);
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        toast.error('Camera permission denied. Go to Site Settings → Camera → Allow, then reload the page.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        toast.error('No camera or microphone found on this device. Please connect one and try again.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        toast.error('Camera is already in use by another app (Zoom, Teams, etc.). Close it and try again.');
+      } else if (err.name === 'OverconstrainedError') {
+        // Retry with audio only fallback
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          streamRef.current = stream;
+          if (liveVideoRef.current) liveVideoRef.current.srcObject = stream;
+          toast.success('Camera connected (no microphone).');
+        } catch {
+          toast.error('Camera constraints not supported on this device.');
+        }
+      } else if (err.name === 'SecurityError') {
+        toast.error('Camera blocked: page must be served over HTTPS.');
+      } else {
+        toast.error(`Camera error (${err.name}): ${err.message || 'Unknown error'}`);
+      }
     }
   };
 
