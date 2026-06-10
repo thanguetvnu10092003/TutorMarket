@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import prisma from '@/lib/prisma';
 import {
   banUser,
@@ -8,6 +9,14 @@ import {
   suspendUser,
   toggleTutorSearchVisibility,
 } from '@/lib/admin';
+
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
 
 export const dynamic = 'force-dynamic';
 
@@ -151,6 +160,9 @@ export async function DELETE(
         tutorProfile: {
           select: {
             id: true,
+            avatarUrl: true,
+            introVideoUrl: true,
+            certifications: { select: { fileUrl: true } },
           },
         },
         _count: {
@@ -169,6 +181,55 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // ── 1. Collect all Supabase storage file paths to delete ──────────────
+    const supabase = getSupabaseAdmin();
+
+    /** Extract the storage path from a full Supabase public URL */
+    function extractStoragePath(url: string | null | undefined): string | null {
+      if (!url) return null;
+      // URL format: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+      const match = url.match(/\/object\/public\/[^/]+\/(.+)/);
+      return match ? match[1] : null;
+    }
+
+    // Avatar (stored in 'avatars' bucket at root level)
+    const avatarPaths: string[] = [];
+    const avatarPath = extractStoragePath(user.image ?? user.tutorProfile?.avatarUrl);
+    if (avatarPath) avatarPaths.push(avatarPath);
+
+    // Certifications (stored in 'avatars/certifications/{userId}/')
+    const certPaths: string[] = [];
+    for (const cert of user.tutorProfile?.certifications ?? []) {
+      const p = extractStoragePath(cert.fileUrl);
+      if (p) certPaths.push(p);
+    }
+
+    // Intro video (stored in 'tutor-videos' bucket)
+    const videoPaths: string[] = [];
+    const videoPath = extractStoragePath(user.tutorProfile?.introVideoUrl);
+    if (videoPath) videoPaths.push(videoPath);
+
+    // ── 2. Delete files from storage (best-effort, non-blocking) ──────────
+    const storageErrors: string[] = [];
+
+    if (avatarPaths.length > 0 || certPaths.length > 0) {
+      const allAvatarBucketPaths = [...avatarPaths, ...certPaths];
+      const { error } = await supabase.storage.from('avatars').remove(allAvatarBucketPaths);
+      if (error) storageErrors.push(`avatars: ${error.message}`);
+    }
+
+    if (videoPaths.length > 0) {
+      const { error } = await supabase.storage.from('tutor-videos').remove(videoPaths);
+      if (error) storageErrors.push(`tutor-videos: ${error.message}`);
+    }
+
+    if (storageErrors.length > 0) {
+      console.warn(`Storage cleanup warnings for user ${user.id}:`, storageErrors);
+    } else {
+      console.log(`Storage cleanup complete for user ${user.id}: ${avatarPaths.length} avatars, ${certPaths.length} certs, ${videoPaths.length} videos deleted.`);
+    }
+
+    // ── 3. Record admin action ─────────────────────────────────────────────
     await recordAdminAction({
       adminId: session.user.id,
       targetUserId: null, // User will be deleted, so we can't reference their ID
@@ -182,9 +243,12 @@ export async function DELETE(
         sessionCount: user._count.bookingsAsStudent,
         reviewCount: user._count.reviewsGiven,
         reportCount: user._count.reportsFiled,
+        storageFilesDeleted: avatarPaths.length + certPaths.length + videoPaths.length,
+        storageErrors,
       },
     });
 
+    // ── 4. Delete from database ────────────────────────────────────────────
     await prisma.user.delete({
       where: { id: user.id }
     });
@@ -196,6 +260,7 @@ export async function DELETE(
         sessionCount: user._count.bookingsAsStudent,
         reviewCount: user._count.reviewsGiven,
         reportCount: user._count.reportsFiled,
+        storageFilesDeleted: avatarPaths.length + certPaths.length + videoPaths.length,
       },
     });
   } catch (error) {
@@ -207,3 +272,4 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }
+
