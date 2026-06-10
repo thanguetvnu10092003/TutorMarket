@@ -8,10 +8,14 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'ap
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error(`Missing Supabase env vars: URL=${!!url}, SERVICE_KEY=${!!key}`);
+  }
+
+  return createClient(url, key);
 }
 
 export async function POST(request: NextRequest) {
@@ -61,7 +65,13 @@ export async function POST(request: NextRequest) {
         .from('avatars')
         .upload(safeName, bytes, { contentType: file.type, upsert: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase storage upload error:', error);
+        return NextResponse.json(
+          { error: `Storage error: ${error.message}` },
+          { status: 500 }
+        );
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
@@ -71,8 +81,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ files: uploadedFiles });
-  } catch (error) {
+  } catch (error: any) {
     console.error('File upload error:', error);
-    return NextResponse.json({ error: 'Failed to upload files' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Failed to upload files' },
+      { status: 500 }
+    );
   }
 }

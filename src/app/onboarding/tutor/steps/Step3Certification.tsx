@@ -59,14 +59,16 @@ export default function Step3Certification({ onNext, onBack }: Props) {
 
     try {
       const response = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error(data?.error || 'Upload failed');
       }
 
-      const { files } = await response.json();
-      return files?.[0]?.url || null;
-    } catch (error) {
+      return data.files?.[0]?.url || null;
+    } catch (error: any) {
       console.error('File upload failed', error);
+      toast.error(error.message || 'Failed to upload file');
       return null;
     }
   };
