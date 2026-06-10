@@ -462,7 +462,8 @@ function SettingsPageInner() {
     try {
         const fileExt = file.name.split('.').pop() || 'jpg';
         const userId = session?.user?.id || `temp_${Date.now()}`;
-        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        const folder = session?.user?.role === 'TUTOR' ? 'tutors' : 'students';
+        const fileName = `${folder}/${userId}-${Date.now()}.${fileExt}`;
 
         // Dynamic import supabase since it's a client component, or just use normal import at top.
         // I will need to make sure supabase is imported at the top.

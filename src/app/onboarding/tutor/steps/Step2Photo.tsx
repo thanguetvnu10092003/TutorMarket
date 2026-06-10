@@ -50,7 +50,7 @@ export default function Step2Photo({ onNext, onBack }: Props) {
         toast.loading('Uploading photo to cloud...', { id: 'upload-toast' });
         const fileExt = selectedFile.name.split('.').pop() || 'jpg';
         const userId = (session?.user as any)?.id || `temp_${Date.now()}`;
-        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        const fileName = `tutors/${userId}-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
