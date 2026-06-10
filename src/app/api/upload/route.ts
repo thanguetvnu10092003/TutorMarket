@@ -54,17 +54,17 @@ export async function POST(request: NextRequest) {
       }
 
       const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
-      const safeName = `${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const safeName = `certifications/${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
       const bytes = await file.arrayBuffer();
       const { error } = await supabase.storage
-        .from('uploads')
+        .from('avatars')
         .upload(safeName, bytes, { contentType: file.type, upsert: false });
 
       if (error) throw error;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
+        .from('avatars')
         .getPublicUrl(safeName);
 
       uploadedFiles.push({ name: file.name, url: publicUrl, size: file.size, type: file.type });
