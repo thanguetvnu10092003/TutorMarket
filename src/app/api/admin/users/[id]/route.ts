@@ -160,8 +160,7 @@ export async function DELETE(
         tutorProfile: {
           select: {
             id: true,
-            avatarUrl: true,
-            introVideoUrl: true,
+            videoUrl: true,
             certifications: { select: { fileUrl: true } },
           },
         },
@@ -194,7 +193,7 @@ export async function DELETE(
 
     // Avatar (stored in 'avatars' bucket at root level)
     const avatarPaths: string[] = [];
-    const avatarPath = extractStoragePath(user.image ?? user.tutorProfile?.avatarUrl);
+    const avatarPath = extractStoragePath(user.avatarUrl);
     if (avatarPath) avatarPaths.push(avatarPath);
 
     // Certifications (stored in 'avatars/certifications/{userId}/')
@@ -206,7 +205,7 @@ export async function DELETE(
 
     // Intro video (stored in 'tutor-videos' bucket)
     const videoPaths: string[] = [];
-    const videoPath = extractStoragePath(user.tutorProfile?.introVideoUrl);
+    const videoPath = extractStoragePath(user.tutorProfile?.videoUrl);
     if (videoPath) videoPaths.push(videoPath);
 
     // ── 2. Delete files from storage (best-effort, non-blocking) ──────────
