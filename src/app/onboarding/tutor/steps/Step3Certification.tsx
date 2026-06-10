@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
+import { supabase } from '@/lib/supabase';
 
 interface Props {
   onNext: () => void;
@@ -23,6 +25,7 @@ function asString(value: unknown) {
 }
 
 export default function Step3Certification({ onNext, onBack }: Props) {
+  const { data: session } = useSession();
   const [subjects, setSubjects] = useState<string[]>([]);
   const [noCerts, setNoCerts] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,21 +57,30 @@ export default function Step3Certification({ onNext, onBack }: Props) {
   });
 
   const uploadFile = async (file: File): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append('files', file);
-
     try {
-      const response = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await response.json();
+      const userId = (session?.user as any)?.id || `anon_${Date.now()}`;
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+      const safeName = `certifications/${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-      if (!response.ok) {
-        throw new Error(data?.error || 'Upload failed');
-      }
+      toast.loading('Uploading file…', { id: 'cert-upload' });
 
-      return data.files?.[0]?.url || null;
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(safeName, file, { contentType: file.type, upsert: false });
+
+      toast.dismiss('cert-upload');
+
+      if (error) throw new Error(error.message);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(safeName);
+
+      return publicUrl;
     } catch (error: any) {
+      toast.dismiss('cert-upload');
       console.error('File upload failed', error);
-      toast.error(error.message || 'Failed to upload file');
+      toast.error('Upload failed: ' + (error.message || 'Unknown error'));
       return null;
     }
   };
@@ -304,8 +316,8 @@ export default function Step3Certification({ onNext, onBack }: Props) {
                       return;
                     }
 
-                    if (file.size > 5 * 1024 * 1024) {
-                      toast.error('File must be under 5MB');
+                    if (file.size > 4 * 1024 * 1024) {
+                      toast.error('File must be under 4MB');
                       return;
                     }
 
@@ -424,8 +436,8 @@ export default function Step3Certification({ onNext, onBack }: Props) {
                       return;
                     }
 
-                    if (file.size > 5 * 1024 * 1024) {
-                      toast.error('File must be under 5MB');
+                    if (file.size > 4 * 1024 * 1024) {
+                      toast.error('File must be under 4MB');
                       return;
                     }
 
