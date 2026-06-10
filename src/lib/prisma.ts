@@ -4,9 +4,6 @@ const prismaClientSingleton = () => {
   return new PrismaClient({
     datasources: {
       db: {
-        // Supabase's built-in PgBouncer (transaction mode) URL
-        // Set DATABASE_URL to the pooled connection string from Supabase dashboard
-        // Project Settings → Database → Connection pooling → Transaction mode
         url: process.env.DATABASE_URL,
       },
     },
