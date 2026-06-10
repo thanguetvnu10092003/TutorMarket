@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { generateOTP, sendOTP } from '@/lib/mail';
 import { addMinutes, differenceInSeconds } from 'date-fns';
 import { z } from 'zod';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,9 @@ const verifySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, RATE_LIMITS.auth);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     const { email, code } = verifySchema.parse(body);

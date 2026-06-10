@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { generateOTP, sendOTP } from '@/lib/mail';
 import { addMinutes } from 'date-fns';
 import { generateReferralCode } from '@/lib/utils';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -16,6 +17,9 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, RATE_LIMITS.auth);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     

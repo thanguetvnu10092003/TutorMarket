@@ -4,6 +4,7 @@ import { getPublicTutorCards } from '@/lib/admin-dashboard';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getCountryOptions } from '@/lib/intl-data';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,9 @@ function resolveCountryCode(value?: string | null) {
 }
 
 export async function GET(request: NextRequest) {
+  const limited = rateLimit(request, RATE_LIMITS.api);
+  if (limited) return limited;
+
   try {
     const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
