@@ -17,6 +17,7 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getTimeZoneOptions } from '@/lib/intl-data';
 import { LayoutDashboard, Calendar, MessageSquare, CreditCard, Gift } from '@/components/ui/icons';
 import Spinner from '@/components/ui/Spinner';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
@@ -70,6 +71,14 @@ function StudentDashboardInner() {
     fetcher,
     { revalidateOnFocus: true }
   );
+  const { data: creditsJson } = useSWR(
+    session?.user ? '/api/student/credits' : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
+
+  const { format } = useCurrency();
+  const creditsTotal = creditsJson?.total ?? 0;
 
   const bookings = bookingsJson?.data ?? [];
   const packages = bookingsJson?.packages ?? [];
@@ -483,6 +492,30 @@ function StudentDashboardInner() {
                   </button>
                 </div>
               </div>
+
+              {creditsTotal > 0 && (
+                <div style={{
+                  padding: '20px 24px', borderRadius: '14px',
+                  border: '1px solid rgba(34,197,94,0.3)',
+                  background: 'rgba(34,197,94,0.05)',
+                }}>
+                  <div style={{ color: '#22c55e', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                    🎁 STORE CREDITS
+                  </div>
+                  <div style={{ color: '#F5F0E8', fontSize: '22px', fontWeight: 700 }}>
+                    ${creditsTotal.toFixed(2)}
+                  </div>
+                  <div style={{ color: '#8899aa', fontSize: '13px', marginTop: '2px' }}>
+                    {format(creditsTotal)} · Applied at checkout
+                  </div>
+                  <a href="/dashboard/student/wallet" style={{
+                    display: 'inline-block', marginTop: '10px', color: '#22c55e',
+                    fontSize: '13px', textDecoration: 'none', fontWeight: 600,
+                  }}>
+                    View History →
+                  </a>
+                </div>
+              )}
 
               {/* Timezone Settings */}
               <div className="glass-card p-6">

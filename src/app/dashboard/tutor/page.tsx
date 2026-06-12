@@ -14,6 +14,7 @@ import CertificationStatus from '@/components/dashboard/tutor/CertificationStatu
 import AvailabilityManager from '@/components/dashboard/tutor/AvailabilityManager';
 import PricingManager from '@/components/dashboard/tutor/PricingManager';
 import ReviewsSection from '@/components/dashboard/tutor/ReviewsSection';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const tutorTabs = [
   { id: 'overview', label: 'Overview' },
@@ -60,6 +61,10 @@ function TutorDashboardInner() {
     fetcher,
     { refreshInterval: 30000, revalidateOnFocus: true }
   );
+
+  const { format } = useCurrency();
+  const { data: walletData } = useSWR(session?.user ? '/api/wallet' : null, fetcher);
+  const walletAvailable = walletData?.available ?? 0;
 
   const verificationData = verifyData ?? null;
   const availability = availData?.slots ?? null;
@@ -331,6 +336,27 @@ function TutorDashboardInner() {
                     <div className="rounded-2xl bg-white dark:bg-navy-700/40 border border-navy-100/60 dark:border-navy-500/20 p-4">
                       <p className="label-xs text-navy-300 dark:text-cream-400/40">Submitted Files</p>
                       <p className="mt-2 text-sm font-bold text-navy-600 dark:text-cream-200">{documents.length} document{documents.length === 1 ? '' : 's'} on file</p>
+                    </div>
+                    <div style={{
+                      padding: '20px 24px', borderRadius: '14px',
+                      border: '1px solid rgba(201,168,76,0.3)',
+                      background: 'linear-gradient(135deg, rgba(201,168,76,0.1), transparent)',
+                    }}>
+                      <div style={{ color: '#C9A84C', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                        💳 MY WALLET
+                      </div>
+                      <div style={{ color: '#F5F0E8', fontSize: '22px', fontWeight: 700 }}>
+                        ${walletAvailable.toFixed(2)}
+                      </div>
+                      <div style={{ color: '#8899aa', fontSize: '13px', marginTop: '2px' }}>
+                        {format(walletAvailable)}
+                      </div>
+                      <a href="/dashboard/tutor/wallet" style={{
+                        display: 'inline-block', marginTop: '10px', color: '#C9A84C',
+                        fontSize: '13px', textDecoration: 'none', fontWeight: 600,
+                      }}>
+                        View Wallet & Withdraw →
+                      </a>
                     </div>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SUBJECT_LABELS, type Subject } from '@/types';
 import { formatCurrency, getInitials } from '@/lib/utils';
 import { Star, Clock, Check, Heart, Globe, TrendingUp, BookOpen } from '@/components/ui/icons';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface HorizontalTutorCardProps {
   tutor: any;
@@ -45,6 +46,7 @@ export default function HorizontalTutorCard({
   onToggleFavorite,
 }: HorizontalTutorCardProps) {
   const router = useRouter();
+  const { format } = useCurrency();
 
   const handleFavoriteClick = (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -64,7 +66,7 @@ export default function HorizontalTutorCard({
   const verifiedResults = tutor.verifiedResults || [];
   const primarySubject =
     tutor.verifiedCertifications?.[0] || tutor.specializations?.[0] || 'Tutor';
-  const priceLabel = tutor.primaryPrice?.formatted || 'Contact for pricing';
+  const priceLabel = tutor.primaryPrice?.formatted || (tutor.primaryPrice?.amount != null ? format(tutor.primaryPrice.amount) : 'Contact for pricing');
   const pricingSummary = getPricingSummary(tutor);
 
   return (
@@ -207,7 +209,7 @@ export default function HorizontalTutorCard({
                 </div>
                 <div className="flex flex-col -space-y-0.5">
                   <span className="label-xs text-navy-600 dark:text-cream-200">{p.durationMinutes}m</span>
-                  <span className="text-xs font-black text-gold-600 dark:text-gold-400">{p.priceDisplay?.formatted || formatCurrency(p.price, p.currency || 'USD')}</span>
+                  <span className="text-xs font-black text-gold-600 dark:text-gold-400">{p.priceDisplay?.formatted || (p.price != null ? format(p.price) : formatCurrency(p.price, p.currency || 'USD'))}</span>
                 </div>
               </div>
             ))}
