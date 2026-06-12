@@ -18,6 +18,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { getInitials, formatDateInTz, formatTimeInTz } from '@/lib/utils';
 import { formatMoney, roundCurrencyAmount } from '@/lib/currency';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { getOpenTimeWindowsForDate, minutesToTime, timeToMinutes } from '@/lib/availability';
 
 interface BookingModalProps {
@@ -173,6 +174,7 @@ function tutorLocalToUTC(date: Date, slotTime: string, tutorTz: string): Date {
 
 export default function BookingModal({ isOpen, onClose, tutor }: BookingModalProps) {
   const router = useRouter();
+  const { format: fmtCurrency } = useCurrency();
   const pricingOptions = useMemo(() => getPricingOptions(tutor), [tutor]);
   const packages = getPackages(tutor);
   const defaultDuration = pricingOptions[0]?.durationMinutes || 60;
@@ -471,7 +473,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                     <div className="text-sm font-black text-blue-600">LIVE</div>
                     <h4 className="mt-4 text-base font-bold text-navy-600 dark:text-cream-200">Single Lesson</h4>
                     <p className="mt-2 text-sm text-navy-400 dark:text-cream-300/70">Pick one of the durations this tutor offers.</p>
-                    <div className="mt-5 text-sm font-black text-blue-600">{selectedPricingOption?.priceDisplay?.formatted || tutor.primaryPrice?.formatted || 'Choose duration next'}</div>
+                    <div className="mt-5 text-sm font-black text-blue-600">{selectedPricingOption ? fmtCurrency(selectedPricingOption.priceDisplay?.originalAmount ?? selectedPricingOption.price ?? 0) : tutor.primaryPrice?.originalAmount != null ? fmtCurrency(tutor.primaryPrice.originalAmount) : 'Choose duration next'}</div>
                   </button>
                   <button onClick={() => { setSelectedType('PACKAGE'); setStep(STEPS.PACKAGE); }} className="rounded-3xl border-2 border-navy-100 bg-white hover:border-sage-400 p-6 text-left">
                     <div className="text-sm font-black text-sage-600">SAVE</div>
@@ -492,7 +494,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                 <div className="flex flex-wrap gap-3">
                   {pricingOptions.map((option) => (
                     <button key={option.durationMinutes} onClick={() => setSelectedDuration(option.durationMinutes)} className={`px-4 py-3 rounded-2xl border text-sm font-black ${selectedDuration === option.durationMinutes ? 'border-gold-400 bg-gold-50 text-gold-700' : 'border-navy-100 bg-white text-navy-600'}`}>
-                      {option.durationMinutes}m • {option.priceDisplay?.formatted || option.price}
+                      {option.durationMinutes}m • {fmtCurrency(option.priceDisplay?.originalAmount ?? option.price ?? 0)}
                     </button>
                   ))}
                 </div>
@@ -507,9 +509,8 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                             <span className="px-2 py-0.5 rounded-full bg-sage-100 label-xs text-sage-600">{pkg.discount * 100}% off</span>
                           </div>
                           <p className="mt-2 text-sm text-navy-300">{pkg.label} • {selectedDuration}m</p>
-                          {total.usesConversion && <p className="mt-2 text-xs text-navy-300">Original total: {total.originalFormatted}</p>}
                         </div>
-                        <div className="text-xl font-black text-navy-600 dark:text-cream-200">{total.formatted}</div>
+                        <div className="text-xl font-black text-navy-600 dark:text-cream-200">{fmtCurrency((selectedPricingOption?.price ?? 0) * pkg.sessions * (1 - pkg.discount))}</div>
                       </button>
                     );
                   })}
@@ -537,7 +538,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                   <div className="flex flex-wrap gap-3">
                     {pricingOptions.map((option) => (
                       <button key={option.durationMinutes} onClick={() => { setSelectedDuration(option.durationMinutes); setSelectedDate(null); setSelectedSlot(null); }} className={`px-4 py-3 rounded-2xl border text-sm font-black ${selectedDuration === option.durationMinutes ? 'border-gold-400 bg-gold-50 text-gold-700' : 'border-navy-100 bg-white text-navy-600'}`}>
-                        {option.durationMinutes}m • {option.priceDisplay?.formatted || option.price}
+                        {option.durationMinutes}m • {fmtCurrency(option.priceDisplay?.originalAmount ?? option.price ?? 0)}
                       </button>
                     ))}
                   </div>
@@ -725,16 +726,9 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                           {selectedType === 'TRIAL'
                             ? 'Free'
                             : selectedType === 'PACKAGE'
-                              ? getPackagePrice(selectedPricingOption, selectedPackage?.sessions || 0, selectedPackage?.discount || 0).formatted
-                              : selectedPricingOption?.priceDisplay?.formatted || selectedPricingOption?.price || 'N/A'}
+                              ? fmtCurrency((selectedPricingOption?.price ?? 0) * (selectedPackage?.sessions || 0) * (1 - (selectedPackage?.discount || 0)))
+                              : fmtCurrency(selectedPricingOption?.priceDisplay?.originalAmount ?? selectedPricingOption?.price ?? 0)}
                         </div>
-                        {selectedType !== 'TRIAL' && selectedPricingOption?.priceDisplay?.usesConversion && (
-                          <p className="text-xs font-bold text-navy-300 mt-1">
-                            Original: {selectedType === 'PACKAGE'
-                              ? getPackagePrice(selectedPricingOption, selectedPackage?.sessions || 0, selectedPackage?.discount || 0).originalFormatted
-                              : selectedPricingOption.priceDisplay.originalFormatted}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>

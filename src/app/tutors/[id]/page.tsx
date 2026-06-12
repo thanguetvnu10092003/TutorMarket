@@ -8,6 +8,7 @@ import { SUBJECT_COLORS, SUBJECT_LABELS, type Subject } from '@/types';
 import { formatDate, formatResponseTime, getInitials } from '@/lib/utils';
 import BookingModal from '@/components/student/BookingModal';
 import VideoPlayer from '@/components/shared/VideoPlayer';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Star, Users, Clock, Calendar, Globe, ChevronRight, ChevronLeft, Check, Award, ShieldCheck, Lock } from '@/components/ui/icons';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -181,6 +182,7 @@ function AvailabilityGrid({ tutorId }: { tutorId: string }) {
 export default function TutorProfilePage({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
   const router = useRouter();
+  const { format: fmtCurrency } = useCurrency();
   const [profile, setProfile] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'about' | 'reviews' | 'availability'>('about');
   const [isLoading, setIsLoading] = useState(true);
@@ -592,13 +594,8 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                 <div className="flex items-baseline justify-between gap-4">
                   <div>
                     <span className="text-3xl font-display font-black text-navy-600 dark:text-cream-200">
-                      {profile.primaryPrice?.formatted || 'Contact for pricing'}
+                      {profile.primaryPrice?.originalAmount != null ? fmtCurrency(profile.primaryPrice.originalAmount) : 'Contact for pricing'}
                     </span>
-                    {profile.primaryPrice?.usesConversion && (
-                      <p className="text-xs font-bold text-navy-300 mt-2">
-                        Original: {profile.primaryPrice.originalFormatted}
-                      </p>
-                    )}
                   </div>
                   {profile.totalReviews > 0 && (
                     <div className="flex items-center gap-1 text-gold-500 font-bold text-sm">
@@ -611,7 +608,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                   <div className="mt-4 flex flex-wrap gap-2">
                     {profile.pricingOptions.map((option: any) => (
                       <span key={option.id || option.durationMinutes} className="px-3 py-1.5 rounded-full bg-navy-50 dark:bg-navy-600 label-xs text-navy-500 dark:text-cream-300">
-                        {option.durationMinutes}m • {option.priceDisplay?.formatted || option.price}
+                        {option.durationMinutes}m • {fmtCurrency(option.priceDisplay?.originalAmount ?? option.price ?? 0)}
                       </span>
                     ))}
                   </div>
