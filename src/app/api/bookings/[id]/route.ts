@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { stripe } from '@/lib/stripe';
 import { buildBookingRoomUrl } from '@/lib/utils';
 import { createInAppNotification } from '@/lib/in-app-notifications';
 
@@ -63,7 +64,6 @@ export async function PATCH(
       if (booking.status === 'CANCELLED') {
         return NextResponse.json({ error: 'Booking is already cancelled' }, { status: 400 });
       }
-
       if (booking.status === 'COMPLETED') {
         return NextResponse.json({ error: 'Completed bookings cannot be cancelled' }, { status: 400 });
       }
@@ -77,36 +77,76 @@ export async function PATCH(
         );
       }
 
-      const updatedBooking = await prisma.booking.update({
-        where: { id: booking.id },
-        data: {
-          status: 'CANCELLED',
-          cancelledAt: new Date(),
-        },
-      });
+      const payment = booking.payment;
+      const now = new Date();
+      const ops: any[] = [
+        prisma.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED', cancelledAt: now } }),
+        prisma.bookingEvent.create({
+          data: {
+            bookingId: booking.id,
+            eventType: 'BOOKING_CANCELLED',
+            title: 'Booking cancelled',
+            details: `${isTutorOwner ? 'Tutor' : 'Student'} cancelled the session.`,
+          },
+        }),
+      ];
 
-      await prisma.bookingEvent.create({
-        data: {
-          bookingId: booking.id,
-          eventType: 'BOOKING_CANCELLED',
-          title: 'Booking cancelled',
-          details: `${isTutorOwner ? 'Tutor' : 'Student'} cancelled the session.`,
-        },
-      });
+      let isStripeRefund = false;
+
+      if (payment && payment.amount > 0 && payment.status === 'CAPTURED') {
+        const isStripePayment = (payment as any).paymentMethod === 'STRIPE' || !(payment as any).paymentMethod;
+        if (isStripePayment) {
+          isStripeRefund = true;
+        } else {
+          // Store credit refund for PayOS payments
+          ops.push(
+            prisma.studentCredit.create({
+              data: {
+                studentId: booking.studentId,
+                amount: payment.amount,
+                source: 'REFUND',
+              },
+            })
+          );
+        }
+        ops.push(
+          prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: 'REFUNDED',
+              refundedAmount: payment.amount,
+              refundedAt: now,
+              refundReason: 'Booking cancelled',
+            },
+          })
+        );
+      }
+
+      const [updatedBooking] = await prisma.$transaction(ops);
+
+      // Stripe refund happens AFTER DB transaction commits
+      if (isStripeRefund && payment?.stripePaymentIntentId && stripe) {
+        try {
+          await stripe.refunds.create({ payment_intent: payment.stripePaymentIntentId });
+        } catch (err) {
+          console.error('Stripe refund failed for payment', payment.id, err);
+          await prisma.payment.update({
+            where: { id: payment!.id },
+            data: { stripeRefundFailed: true },
+          }).catch(() => {});
+        }
+      }
 
       await createInAppNotification({
         userId: isTutorOwner ? booking.studentId : booking.tutorProfile.userId,
         preferenceType: 'SESSION_UPDATES',
         type: 'BOOKING_CANCELLED',
         title: 'Session cancelled',
-        body: `${booking.student.name}'s session has been cancelled.`,
+        body: `Your session has been cancelled.${payment?.amount ? ' A refund has been issued.' : ''}`,
         link: isTutorOwner ? '/dashboard/student?tab=bookings' : '/dashboard/tutor?tab=sessions',
       });
 
-      return NextResponse.json({
-        data: updatedBooking,
-        message: 'Booking cancelled successfully',
-      });
+      return NextResponse.json({ data: updatedBooking, message: 'Booking cancelled successfully' });
     }
 
     if (!isTutorOwner) {
@@ -157,13 +197,11 @@ export async function PATCH(
       }
 
       const now = new Date();
+      const payment = booking.payment;
       const operations: any[] = [
         prisma.booking.update({
           where: { id: booking.id },
-          data: {
-            status: 'CANCELLED',
-            cancelledAt: now,
-          },
+          data: { status: 'CANCELLED', cancelledAt: now },
         }),
         prisma.bookingEvent.create({
           data: {
@@ -175,13 +213,13 @@ export async function PATCH(
         }),
       ];
 
-      if (booking.payment && booking.payment.amount > 0 && booking.payment.status !== 'REFUNDED') {
+      if (payment && payment.amount > 0 && payment.status !== 'REFUNDED') {
         operations.push(
           prisma.payment.update({
-            where: { id: booking.payment.id },
+            where: { id: payment.id },
             data: {
               status: 'REFUNDED',
-              refundedAmount: booking.payment.amount,
+              refundedAmount: payment.amount,
               refundedAt: now,
               refundReason: 'Tutor declined the booking request',
             },
@@ -191,21 +229,31 @@ export async function PATCH(
 
       const [updatedBooking] = await prisma.$transaction(operations);
 
+      // Always Stripe refund when tutor declines — student entitled to full refund
+      if (payment?.stripePaymentIntentId && payment.status === 'CAPTURED' && stripe) {
+        try {
+          await stripe.refunds.create({ payment_intent: payment.stripePaymentIntentId });
+        } catch (err) {
+          console.error('Stripe refund failed for declined booking', payment.id, err);
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: { stripeRefundFailed: true },
+          }).catch(() => {});
+        }
+      }
+
       await createInAppNotification({
         userId: booking.studentId,
         preferenceType: 'SESSION_UPDATES',
         type: 'BOOKING_DECLINED',
         title: 'Booking request declined',
-        body: booking.payment && booking.payment.amount > 0
-          ? `${booking.tutorProfile.user.name} declined your booking request. Any captured payment has been marked for refund.`
+        body: payment?.amount
+          ? `${booking.tutorProfile.user.name} declined your booking. A refund has been issued.`
           : `${booking.tutorProfile.user.name} declined your booking request.`,
         link: '/dashboard/student?tab=bookings',
       });
 
-      return NextResponse.json({
-        data: updatedBooking,
-        message: 'Booking declined and student notified.',
-      });
+      return NextResponse.json({ data: updatedBooking, message: 'Booking declined and student notified.' });
     }
 
     if (booking.status === 'COMPLETED') {
