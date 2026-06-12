@@ -427,10 +427,11 @@ model Booking {
   conflictAt      DateTime?
 
   // Relations
-  payment Payment?
-  review  Review?
-  reports UserReport[]
-  events  BookingEvent[]
+  payment            Payment?
+  review             Review?
+  reports            UserReport[]
+  events             BookingEvent[]
+  walletTransactions WalletTransaction[]
 
   @@index([studentId])
   @@index([tutorProfileId])
@@ -460,7 +461,7 @@ model Payment {
   currency           String        @default("USD")
   exchangeRate       Float         @default(1)
   paymentMethod      PaymentMethod @default(STRIPE)
-  payosOrderCode     String?
+  payosOrderCode     String?       @unique
   stripeRefundFailed Boolean       @default(false)
   createdAt             DateTime        @default(now())
 
@@ -844,8 +845,8 @@ model Wallet {
   id           String   @id @default(cuid())
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance      Float    @default(0)
-  frozen       Float    @default(0)
+  balance      Decimal  @default(0) @db.Decimal(18,6)
+  frozen       Decimal  @default(0) @db.Decimal(18,6)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -857,10 +858,12 @@ model WalletTransaction {
   walletId        String
   wallet          Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
   type            WalletTransactionType
-  amount          Float
-  balanceAfter    Float
+  amount          Decimal               @db.Decimal(18,6)
+  balanceAfter    Decimal               @db.Decimal(18,6)
   bookingId       String?
+  booking         Booking?              @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   payoutRequestId String?
+  payoutRequest   PayoutRequest?        @relation(fields: [payoutRequestId], references: [id], onDelete: SetNull)
   description     String
   metadata        Json?
   createdAt       DateTime              @default(now())
@@ -873,7 +876,7 @@ model PayoutRequest {
   id              String              @id @default(cuid())
   tutorId         String
   tutor           User                @relation("TutorPayoutRequests", fields: [tutorId], references: [id], onDelete: Cascade)
-  amountUsd       Float
+  amountUsd       Decimal             @db.Decimal(18,6)
   status          PayoutRequestStatus @default(PENDING)
   bankAccountId   String?
   bankAccount     BankAccount?        @relation(fields: [bankAccountId], references: [id])
@@ -884,6 +887,8 @@ model PayoutRequest {
   processedAt     DateTime?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
+
+  walletTransactions WalletTransaction[]
 
   @@index([tutorId, status])
   @@index([status, createdAt])
