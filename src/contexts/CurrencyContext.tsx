@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   getCurrencyForLocation,
-  convertAmount,
   formatMoney,
   roundCurrencyAmount,
   CURRENCY_META,
@@ -45,7 +44,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     fetch('/api/currency/rates')
       .then(r => r.json())
       .then(data => { if (data.rates) setRates(data.rates); })
-      .catch(() => {})
+      .catch((e) => { console.error('[CurrencyContext] Failed to fetch rates:', e); })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -54,8 +53,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('preferred_currency', code);
   };
 
-  const convert = (usdAmount: number) =>
-    roundCurrencyAmount(convertAmount(usdAmount, 'USD', currency), currency);
+  const convert = (usdAmount: number) => {
+    const rate = rates[currency] ?? CURRENCY_META[currency]?.usdRate ?? 1;
+    return roundCurrencyAmount(usdAmount * rate, currency);
+  };
 
   const format = (usdAmount: number) =>
     formatMoney(convert(usdAmount), currency);
