@@ -126,6 +126,29 @@ enum DiscountType {
   FIXED
 }
 
+enum WalletTransactionType {
+  BOOKING_EARNING
+  REFUND_CREDIT
+  WITHDRAWAL_REQUEST
+  WITHDRAWAL_PAID
+  WITHDRAWAL_CANCELLED
+  BONUS
+}
+
+enum PayoutRequestStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYOS
+  WALLET
+  FREE
+}
+
 // ─── MODELS ─────────────────────────────────────────
 
 model User {
@@ -188,6 +211,10 @@ model User {
   referralReceived        Referral?                @relation("Referred")
   credits                 StudentCredit[]
   notificationPreferences NotificationPreference[]
+  wallet              Wallet?
+  bankAccounts        BankAccount[]
+  tutorPayoutRequests PayoutRequest[] @relation("TutorPayoutRequests")
+  processedPayouts    PayoutRequest[] @relation("AdminProcessedPayouts")
 
   @@index([email])
   @@index([role])
@@ -430,6 +457,11 @@ model Payment {
   stripeTransferId      String?
   paidAt                DateTime?
   refundedAt            DateTime?
+  currency           String        @default("USD")
+  exchangeRate       Float         @default(1)
+  paymentMethod      PaymentMethod @default(STRIPE)
+  payosOrderCode     String?
+  stripeRefundFailed Boolean       @default(false)
   createdAt             DateTime        @default(now())
 
   @@index([status])
@@ -805,5 +837,82 @@ model PlatformSetting {
   key       String   @id
   value     Json
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Wallet {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Float    @default(0)
+  frozen       Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id              String                @id @default(cuid())
+  walletId        String
+  wallet          Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type            WalletTransactionType
+  amount          Float
+  balanceAfter    Float
+  bookingId       String?
+  payoutRequestId String?
+  description     String
+  metadata        Json?
+  createdAt       DateTime              @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([bookingId])
+}
+
+model PayoutRequest {
+  id              String              @id @default(cuid())
+  tutorId         String
+  tutor           User                @relation("TutorPayoutRequests", fields: [tutorId], references: [id], onDelete: Cascade)
+  amountUsd       Float
+  status          PayoutRequestStatus @default(PENDING)
+  bankAccountId   String?
+  bankAccount     BankAccount?        @relation(fields: [bankAccountId], references: [id])
+  processedById   String?
+  processedBy     User?               @relation("AdminProcessedPayouts", fields: [processedById], references: [id])
+  adminNote       String?
+  rejectionReason String?
+  processedAt     DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([tutorId, status])
+  @@index([status, createdAt])
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankName      String?
+  accountNumber String?
+  accountName   String?
+  bankBranch    String?
+  swiftCode     String?
+  iban          String?
+  routingNumber String?
+  country       String   @default("VN")
+  isPrimary     Boolean  @default(true)
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  payoutRequests PayoutRequest[]
+
+  @@index([userId])
+}
+
+model ExchangeRate {
+  currency  String   @id
+  rateToUsd Float
   updatedAt DateTime @updatedAt
 }
