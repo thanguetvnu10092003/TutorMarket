@@ -1,3 +1,4 @@
+import 'server-only';
 import prisma from '@/lib/prisma';
 import { CURRENCY_META } from '@/lib/currency';
 
@@ -21,6 +22,9 @@ export async function refreshExchangeRates(): Promise<void> {
   if (!res.ok) throw new Error(`Exchange rate API error: ${res.status}`);
 
   const data = await res.json();
+  if (!data || typeof data.conversion_rates !== 'object') {
+    throw new Error('Unexpected response shape from exchange rate API');
+  }
   const apiRates = data.conversion_rates as Record<string, number>;
 
   const currencies = Object.keys(CURRENCY_META).filter(c => c !== 'USD');

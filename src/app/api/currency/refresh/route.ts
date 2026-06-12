@@ -11,7 +11,8 @@ export async function POST() {
   try {
     await refreshExchangeRates();
     return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    console.error('[currency/refresh]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
