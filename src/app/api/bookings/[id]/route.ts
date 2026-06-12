@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { buildBookingRoomUrl } from '@/lib/utils';
 import { createInAppNotification } from '@/lib/in-app-notifications';
+import { creditWallet } from '@/lib/wallet';
+import { WalletTransactionType } from '@prisma/client';
 
 const VALID_ACTIONS = ['accept', 'cancel', 'complete', 'decline'] as const;
 
@@ -256,25 +258,44 @@ export async function PATCH(
       return NextResponse.json({ data: updatedBooking, message: 'Booking declined and student notified.' });
     }
 
+    // action === 'complete'
     if (booking.status === 'COMPLETED') {
       return NextResponse.json({ error: 'Booking is already completed' }, { status: 400 });
     }
 
-    const updatedBooking = await prisma.booking.update({
-      where: { id: booking.id },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-      },
-    });
+    const completionPayment = booking.payment;
+    const now = new Date();
 
-    await prisma.bookingEvent.create({
-      data: {
-        bookingId: booking.id,
-        eventType: 'SESSION_COMPLETED',
-        title: 'Session completed',
-        details: `Tutor marked the session with ${booking.student.name} as completed.`,
-      },
+    await prisma.$transaction(async tx => {
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: { status: 'COMPLETED', completedAt: now },
+      });
+
+      if (completionPayment && completionPayment.tutorPayout > 0) {
+        await tx.payment.update({
+          where: { id: completionPayment.id },
+          data: { payoutStatus: 'PAID', payoutAt: now },
+        });
+
+        await creditWallet(
+          tx,
+          booking.tutorProfile.userId,
+          completionPayment.tutorPayout,
+          WalletTransactionType.BOOKING_EARNING,
+          `Earned from session on ${booking.scheduledAt.toLocaleDateString()}`,
+          { bookingId: booking.id, platformFee: completionPayment.platformFee }
+        );
+      }
+
+      await tx.bookingEvent.create({
+        data: {
+          bookingId: booking.id,
+          eventType: 'SESSION_COMPLETED',
+          title: 'Session completed',
+          details: `Tutor marked the session with ${booking.student.name} as completed.`,
+        },
+      });
     });
 
     await createInAppNotification({
@@ -287,7 +308,6 @@ export async function PATCH(
     });
 
     return NextResponse.json({
-      data: updatedBooking,
       message: 'Session marked as complete. The student can now leave a review.',
     });
   } catch (error) {
