@@ -8,6 +8,7 @@ import { useTheme } from '@/components/providers/ThemeProvider';
 import { FAVORITES_UPDATED_EVENT } from '@/lib/favorite-events';
 import { formatDateTime, formatRelativeTime, getInitials } from '@/lib/utils';
 import { Bell, Heart, Sun, Moon, Menu, X, ChevronDown } from '@/components/ui/icons';
+import CurrencySwitcher from '@/components/ui/CurrencySwitcher';
 
 const navLinks = [
   { href: '/tutors', label: 'Find Tutors' },
@@ -359,6 +360,8 @@ export default function Navbar() {
                 )}
               </div>
             )}
+
+            <CurrencySwitcher />
 
             <div className="relative">
               <button
