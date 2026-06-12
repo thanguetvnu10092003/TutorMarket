@@ -27,7 +27,7 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
   const [payosLoading, setPayosLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch booking/tutor details
+    // Fetch booking/tutor details only
     fetch(`/api/checkout/${params.paymentId}`)
       .then((res) => res.json())
       .then((data) => {
@@ -37,35 +37,34 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
           return;
         }
         setCheckoutData(data.data);
+        setLoading(false);
       })
       .catch((err) => {
         console.error(err);
         toast.error('Failed to parse checkout details.');
-      });
-
-    // Create PaymentIntent
-    fetch(`/api/checkout/${params.paymentId}/intent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          toast.error(data.error);
-        } else {
-          setClientSecret(data.clientSecret);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
+        setLoading(false);
       });
   }, [params.paymentId, router]);
 
-  useEffect(() => {
-    if (clientSecret && checkoutData) {
-      setLoading(false);
+  // Lazily init Stripe intent only when user selects Stripe tab
+  async function initStripe() {
+    if (clientSecret) return;
+    try {
+      const res = await fetch(`/api/checkout/${params.paymentId}/intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.error) {
+        toast.error(data.error);
+      } else {
+        setClientSecret(data.clientSecret);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to initialize card payment.');
     }
-  }, [clientSecret, checkoutData]);
+  }
 
   async function initPayos() {
     setPayosLoading(true);
@@ -262,7 +261,7 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
             {/* Payment method selector */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
               <button
-                onClick={() => setPaymentMethod('stripe')}
+                onClick={() => { setPaymentMethod('stripe'); initStripe(); }}
                 style={{
                   padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                   background: paymentMethod === 'stripe' ? '#C9A84C' : 'rgba(201,168,76,0.1)',
