@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { CURRENCY_META, type CurrencyCode } from '@/lib/currency';
 
+const currencyDisplayNames = new Intl.DisplayNames(['en'], { type: 'currency' });
+
 const CURRENCY_FLAGS: Record<string, string> = {
   USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', VND: '🇻🇳', JPY: '🇯🇵',
   AUD: '🇦🇺', CAD: '🇨🇦', SGD: '🇸🇬', KRW: '🇰🇷', CNY: '🇨🇳',
@@ -90,7 +92,7 @@ export default function CurrencySwitcher() {
               <span>{CURRENCY_FLAGS[code] ?? '💱'}</span>
               <span style={{ fontWeight: 600 }}>{code}</span>
               <span style={{ opacity: 0.6, fontSize: '12px' }}>
-                {new Intl.DisplayNames(['en'], { type: 'currency' }).of(code)}
+                {currencyDisplayNames.of(code)}
               </span>
             </button>
           ))}
