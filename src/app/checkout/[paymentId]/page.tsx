@@ -7,15 +7,24 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import { toast } from 'react-hot-toast';
 import { ShieldCheck, Lock, Users, BookOpen, Clock } from '@/components/ui/icons';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // Make sure to call `loadStripe` outside of a component’s render to avoid recreating the `Stripe` object on every render.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 export default function CheckoutPage({ params }: { params: { paymentId: string } }) {
   const router = useRouter();
+  const { currency, format } = useCurrency();
   const [clientSecret, setClientSecret] = useState('');
   const [checkoutData, setCheckoutData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'payos'>('stripe');
+  const [payosData, setPayosData] = useState<{
+    checkoutUrl: string;
+    qrCode: string | null;
+    amountVnd: number;
+  } | null>(null);
+  const [payosLoading, setPayosLoading] = useState(false);
 
   useEffect(() => {
     // Fetch booking/tutor details
@@ -57,6 +66,24 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
       setLoading(false);
     }
   }, [clientSecret, checkoutData]);
+
+  async function initPayos() {
+    setPayosLoading(true);
+    try {
+      const res = await fetch('/api/checkout/payos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: params.paymentId }),
+      });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      setPayosData(data);
+    } catch {
+      toast.error('Failed to initialize PayOS payment.');
+    } finally {
+      setPayosLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -204,7 +231,7 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
 
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-4 flex justify-between items-center">
                   <span className="text-lg font-black text-navy-600 dark:text-cream-200">Total</span>
-                  <span className="text-lg font-black text-navy-600 dark:text-cream-200">${amount.toFixed(2)}</span>
+                  <span className="text-lg font-black text-navy-600 dark:text-cream-200">{format(amount)}</span>
                 </div>
              </div>
              
@@ -232,10 +259,64 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
               <Lock size={16} className="text-sage-500 dark:text-sage-400 ml-auto flex-shrink-0" />
             </div>
 
-            {clientSecret && stripePromise && (
+            {/* Payment method selector */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <button
+                onClick={() => setPaymentMethod('stripe')}
+                style={{
+                  padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                  background: paymentMethod === 'stripe' ? '#C9A84C' : 'rgba(201,168,76,0.1)',
+                  color: paymentMethod === 'stripe' ? '#0A1628' : '#C9A84C',
+                  fontWeight: 600, fontSize: '14px',
+                }}
+              >
+                💳 Card (Stripe)
+              </button>
+              <button
+                onClick={() => { setPaymentMethod('payos'); if (!payosData) initPayos(); }}
+                style={{
+                  padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                  background: paymentMethod === 'payos' ? '#C9A84C' : 'rgba(201,168,76,0.1)',
+                  color: paymentMethod === 'payos' ? '#0A1628' : '#C9A84C',
+                  fontWeight: 600, fontSize: '14px',
+                }}
+              >
+                🏦 VietQR (PayOS)
+              </button>
+            </div>
+
+            {paymentMethod === 'stripe' && clientSecret && stripePromise && (
               <Elements options={options} stripe={stripePromise}>
                 <CheckoutForm amount={amount} isPackage={isPackage} />
               </Elements>
+            )}
+
+            {paymentMethod === 'payos' && (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                {payosLoading && <p style={{ color: '#C9A84C' }}>Generating QR code...</p>}
+                {payosData && (
+                  <>
+                    <p style={{ color: '#F5F0E8', marginBottom: '12px' }}>
+                      Amount: <strong style={{ color: '#C9A84C' }}>
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(payosData.amountVnd)}
+                      </strong>
+                    </p>
+                    {payosData.qrCode && (
+                      <img src={payosData.qrCode} alt="VietQR" style={{ width: 220, height: 220, borderRadius: '12px' }} />
+                    )}
+                    <div style={{ marginTop: '16px' }}>
+                      <a href={payosData.checkoutUrl} target="_blank" rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block', padding: '12px 28px', borderRadius: '8px',
+                          background: '#C9A84C', color: '#0A1628', fontWeight: 700, textDecoration: 'none',
+                        }}
+                      >
+                        Open PayOS →
+                      </a>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
 
