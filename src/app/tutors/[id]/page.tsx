@@ -9,6 +9,7 @@ import { formatDate, formatResponseTime, getInitials } from '@/lib/utils';
 import BookingModal from '@/components/student/BookingModal';
 import VideoPlayer from '@/components/shared/VideoPlayer';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { convertAmount } from '@/lib/currency';
 import { Star, Users, Clock, Calendar, Globe, ChevronRight, ChevronLeft, Check, Award, ShieldCheck, Lock } from '@/components/ui/icons';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -594,7 +595,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                 <div className="flex items-baseline justify-between gap-4">
                   <div>
                     <span className="text-3xl font-display font-black text-navy-600 dark:text-cream-200">
-                      {profile.primaryPrice?.originalAmount != null ? fmtCurrency(profile.primaryPrice.originalAmount) : 'Contact for pricing'}
+                      {profile.primaryPrice?.originalAmount != null ? fmtCurrency(convertAmount(profile.primaryPrice.originalAmount, profile.primaryPrice.originalCurrency, 'USD')) : 'Contact for pricing'}
                     </span>
                   </div>
                   {profile.totalReviews > 0 && (
@@ -608,7 +609,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                   <div className="mt-4 flex flex-wrap gap-2">
                     {profile.pricingOptions.map((option: any) => (
                       <span key={option.id || option.durationMinutes} className="px-3 py-1.5 rounded-full bg-navy-50 dark:bg-navy-600 label-xs text-navy-500 dark:text-cream-300">
-                        {option.durationMinutes}m • {fmtCurrency(option.priceDisplay?.originalAmount ?? option.price ?? 0)}
+                        {option.durationMinutes}m • {fmtCurrency(convertAmount(option.priceDisplay?.originalAmount ?? option.price ?? 0, option.priceDisplay?.originalCurrency ?? option.currency ?? 'USD', 'USD'))}
                       </span>
                     ))}
                   </div>

@@ -17,7 +17,7 @@ import {
 } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { getInitials, formatDateInTz, formatTimeInTz } from '@/lib/utils';
-import { formatMoney, roundCurrencyAmount } from '@/lib/currency';
+import { formatMoney, roundCurrencyAmount, convertAmount } from '@/lib/currency';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { getOpenTimeWindowsForDate, minutesToTime, timeToMinutes } from '@/lib/availability';
 
@@ -473,7 +473,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                     <div className="text-sm font-black text-blue-600">LIVE</div>
                     <h4 className="mt-4 text-base font-bold text-navy-600 dark:text-cream-200">Single Lesson</h4>
                     <p className="mt-2 text-sm text-navy-400 dark:text-cream-300/70">Pick one of the durations this tutor offers.</p>
-                    <div className="mt-5 text-sm font-black text-blue-600">{selectedPricingOption ? fmtCurrency(selectedPricingOption.priceDisplay?.originalAmount ?? selectedPricingOption.price ?? 0) : tutor.primaryPrice?.originalAmount != null ? fmtCurrency(tutor.primaryPrice.originalAmount) : 'Choose duration next'}</div>
+                    <div className="mt-5 text-sm font-black text-blue-600">{selectedPricingOption ? fmtCurrency(convertAmount(selectedPricingOption.priceDisplay?.originalAmount ?? selectedPricingOption.price ?? 0, selectedPricingOption.priceDisplay?.originalCurrency ?? selectedPricingOption.currency ?? 'USD', 'USD')) : tutor.primaryPrice?.originalAmount != null ? fmtCurrency(convertAmount(tutor.primaryPrice.originalAmount, tutor.primaryPrice.originalCurrency, 'USD')) : 'Choose duration next'}</div>
                   </button>
                   <button onClick={() => { setSelectedType('PACKAGE'); setStep(STEPS.PACKAGE); }} className="rounded-3xl border-2 border-navy-100 bg-white hover:border-sage-400 p-6 text-left">
                     <div className="text-sm font-black text-sage-600">SAVE</div>
@@ -494,7 +494,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                 <div className="flex flex-wrap gap-3">
                   {pricingOptions.map((option) => (
                     <button key={option.durationMinutes} onClick={() => setSelectedDuration(option.durationMinutes)} className={`px-4 py-3 rounded-2xl border text-sm font-black ${selectedDuration === option.durationMinutes ? 'border-gold-400 bg-gold-50 text-gold-700' : 'border-navy-100 bg-white text-navy-600'}`}>
-                      {option.durationMinutes}m • {fmtCurrency(option.priceDisplay?.originalAmount ?? option.price ?? 0)}
+                      {option.durationMinutes}m • {fmtCurrency(convertAmount(option.priceDisplay?.originalAmount ?? option.price ?? 0, option.priceDisplay?.originalCurrency ?? option.currency ?? 'USD', 'USD'))}
                     </button>
                   ))}
                 </div>
@@ -510,7 +510,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                           </div>
                           <p className="mt-2 text-sm text-navy-300">{pkg.label} • {selectedDuration}m</p>
                         </div>
-                        <div className="text-xl font-black text-navy-600 dark:text-cream-200">{fmtCurrency((selectedPricingOption?.price ?? 0) * pkg.sessions * (1 - pkg.discount))}</div>
+                        <div className="text-xl font-black text-navy-600 dark:text-cream-200">{fmtCurrency(convertAmount((selectedPricingOption?.price ?? 0) * pkg.sessions * (1 - pkg.discount), selectedPricingOption?.currency ?? 'USD', 'USD'))}</div>
                       </button>
                     );
                   })}
@@ -538,7 +538,7 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                   <div className="flex flex-wrap gap-3">
                     {pricingOptions.map((option) => (
                       <button key={option.durationMinutes} onClick={() => { setSelectedDuration(option.durationMinutes); setSelectedDate(null); setSelectedSlot(null); }} className={`px-4 py-3 rounded-2xl border text-sm font-black ${selectedDuration === option.durationMinutes ? 'border-gold-400 bg-gold-50 text-gold-700' : 'border-navy-100 bg-white text-navy-600'}`}>
-                        {option.durationMinutes}m • {fmtCurrency(option.priceDisplay?.originalAmount ?? option.price ?? 0)}
+                        {option.durationMinutes}m • {fmtCurrency(convertAmount(option.priceDisplay?.originalAmount ?? option.price ?? 0, option.priceDisplay?.originalCurrency ?? option.currency ?? 'USD', 'USD'))}
                       </button>
                     ))}
                   </div>
@@ -726,8 +726,8 @@ export default function BookingModal({ isOpen, onClose, tutor }: BookingModalPro
                           {selectedType === 'TRIAL'
                             ? 'Free'
                             : selectedType === 'PACKAGE'
-                              ? fmtCurrency((selectedPricingOption?.price ?? 0) * (selectedPackage?.sessions || 0) * (1 - (selectedPackage?.discount || 0)))
-                              : fmtCurrency(selectedPricingOption?.priceDisplay?.originalAmount ?? selectedPricingOption?.price ?? 0)}
+                              ? fmtCurrency(convertAmount((selectedPricingOption?.price ?? 0) * (selectedPackage?.sessions || 0) * (1 - (selectedPackage?.discount || 0)), selectedPricingOption?.currency ?? 'USD', 'USD'))
+                              : fmtCurrency(convertAmount(selectedPricingOption?.priceDisplay?.originalAmount ?? selectedPricingOption?.price ?? 0, selectedPricingOption?.priceDisplay?.originalCurrency ?? selectedPricingOption?.currency ?? 'USD', 'USD'))}
                         </div>
                       </div>
                     </div>
