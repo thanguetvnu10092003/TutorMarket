@@ -80,8 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: { paymentId: s
     const hoursTaught = Math.round((aggregateData._sum.durationMinutes || 0) / 60);
 
     const TOTAL = payment.amount;
-    const PROCESSING_FEE = 0.30;
-    const SUBTOTAL = Math.max(0, TOTAL - PROCESSING_FEE);
+    const SUBTOTAL = TOTAL;
     
     let bookingsInfo;
     if (isPackage) {
@@ -106,7 +105,6 @@ export async function GET(req: NextRequest, { params }: { params: { paymentId: s
         status: payment.status,
         amount: TOTAL,
         subtotal: SUBTOTAL,
-        processingFee: PROCESSING_FEE,
         isPackage,
         packageSessions: isPackage ? payment.package!.totalSessions : 1,
         tutor: {

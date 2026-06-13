@@ -8,6 +8,7 @@ import CheckoutForm from '@/components/checkout/CheckoutForm';
 import { toast } from 'react-hot-toast';
 import { ShieldCheck, Lock, Users, BookOpen, Clock } from '@/components/ui/icons';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import QRCode from 'react-qr-code';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -113,7 +114,7 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
     );
   }
 
-  const { tutor, bindings, amount, subtotal, processingFee, isPackage } = checkoutData;
+  const { tutor, bindings, amount, subtotal, isPackage } = checkoutData;
 
   const appearance = {
     theme: 'stripe' as const,
@@ -367,7 +368,12 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
                   textAlign: 'center', marginBottom: 16,
                   fontSize: 14, fontWeight: 800, color: '#0A1628',
                 }}>
-                  {checkoutData.bookings[0]?.durationMinutes} mins • <span style={{ color: '#C9A84C' }}>${subtotal.toFixed(2)}</span>
+                  {checkoutData.bookings[0]?.durationMinutes} mins •{' '}
+                  <span style={{ color: '#C9A84C' }}>
+                    {paymentMethod === 'payos' && payosData
+                      ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(payosData.amountVnd)
+                      : `$${subtotal.toFixed(2)}`}
+                  </span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -375,16 +381,11 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
                     <span style={{ color: '#6B7280' }}>
                       {isPackage ? `${checkoutData.packageSessions} lessons` : `${checkoutData.bookings[0]?.durationMinutes}-min lesson`}
                     </span>
-                    <span style={{ fontWeight: 700, color: '#0A1628' }}>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, alignItems: 'center' }}>
-                    <span style={{ color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      Processing fee
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#9CA3AF' }}>
-                        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-                      </svg>
+                    <span style={{ fontWeight: 700, color: '#0A1628' }}>
+                      {paymentMethod === 'payos' && payosData
+                        ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(payosData.amountVnd)
+                        : `$${subtotal.toFixed(2)}`}
                     </span>
-                    <span style={{ fontWeight: 700, color: '#0A1628' }}>${processingFee.toFixed(2)}</span>
                   </div>
                   <div style={{
                     borderTop: '2px dashed rgba(10,22,40,0.08)',
@@ -392,7 +393,11 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
                     <span style={{ fontSize: 16, fontWeight: 900, color: '#0A1628' }}>Total</span>
-                    <span style={{ fontSize: 20, fontWeight: 900, color: '#C9A84C' }}>{format(amount)}</span>
+                    <span style={{ fontSize: 20, fontWeight: 900, color: '#C9A84C' }}>
+                      {paymentMethod === 'payos' && payosData
+                        ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(payosData.amountVnd)
+                        : format(amount)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -514,9 +519,10 @@ export default function CheckoutPage({ params }: { params: { paymentId: string }
                               border: '2px solid rgba(201,168,76,0.4)',
                               animation: 'pulse-ring 2s ease-out infinite',
                             }} />
-                            <img
-                              src={payosData.qrCode} alt="VietQR Payment"
-                              style={{ width: 220, height: 220, display: 'block', borderRadius: 8 }}
+                            <QRCode
+                              value={payosData.qrCode}
+                              size={220}
+                              style={{ display: 'block', borderRadius: 8 }}
                             />
                             {/* VietQR label */}
                             <div style={{
